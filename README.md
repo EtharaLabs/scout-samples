@@ -2,15 +2,15 @@
 
 # scout: samples
 
-<p align="center"><b>The samples lane: 0 of 30 Harbor task bundles.</b></p>
+<p align="center"><b>The samples lane: 0 of 5 Harbor task bundles.</b></p>
 
-<p align="center"><a href="#summary"><img src="https://img.shields.io/badge/bundles-0_of_30-845EF7" alt="bundles: 0 of 30"></a> <a href="#evidence-status"><img src="https://img.shields.io/badge/sealed-0-845EF7" alt="sealed: 0"></a> <a href="#difficulty-tiers"><img src="https://img.shields.io/badge/difficulty-measured-845EF7" alt="difficulty: measured"></a></p>
+<p align="center"><a href="#summary"><img src="https://img.shields.io/badge/bundles-0_of_5-845EF7" alt="bundles: 0 of 5"></a> <a href="#evidence-status"><img src="https://img.shields.io/badge/sealed-0-845EF7" alt="sealed: 0"></a> <a href="#difficulty-tiers"><img src="https://img.shields.io/badge/difficulty-measured-845EF7" alt="difficulty: measured"></a></p>
 
 <p align="center"><sub><a href="#abstract">Abstract</a> | <a href="#summary">Summary</a> | <a href="#difficulty-tiers">Difficulty tiers</a> | <a href="#evidence-status">Evidence status</a> | <a href="#coverage">Coverage</a> | <a href="#dataset-structure">Dataset structure</a> | <a href="#verification-and-quality-assurance">Verification and quality assurance</a> | <a href="#reproduction">Reproduction</a> | <a href="#cite">Cite</a> | <a href="#license">License</a> | <a href="#contact">Contact</a></sub></p>
 
 ## Abstract
 
-The curated lane of this corpus: at most 30 Harbor task bundles, every anchor seated first and every other bundle in seal order. Bundles past that ceiling live in `delivery/`.
+The curated lane of this corpus: at most 5 Harbor task bundles, every anchor seated first and every other bundle in seal order. Bundles past that ceiling live in `delivery/`.
 
 Each bundle is one Harbor task in a directory named by its content-derived uuid5, so the name doubles as an integrity check. This page is rendered from the resident bundles on every reconcile; a value a bundle does not carry reads `absent`, and the page never fills one in.
 
@@ -18,7 +18,7 @@ Each bundle is one Harbor task in a directory named by its content-derived uuid5
 
 | Property | Value |
 | --- | --- |
-| Bundles | 0 of 30 |
+| Bundles | 0 of 5 |
 | Sealed | 0 of 0 |
 | Registrations | none |
 | Audit verdicts | none |
@@ -44,7 +44,7 @@ No bundle is resident under `samples/`.
 %%{init: {"theme":"base","themeVariables":{"primaryColor":"#131a33","primaryTextColor":"#e8ecff","primaryBorderColor":"#845EF7","lineColor":"#22d3ee","fontFamily":"monospace"}}}%%
 flowchart LR
     staging["staging/"]
-    staging --> samples["samples/<br/>0 of 30"]
+    staging --> samples["samples/<br/>0 of 5"]
     samples --> delivery["delivery/<br/>0 of 10000"]
     delivery --> stock["stock/<br/>0 of 10000"]
 ```
@@ -60,15 +60,21 @@ Each bundle directory is a complete Harbor task: `task.toml` is the runner manif
 ## Cite
 
 ```bibtex
-@misc{scoutsamples,
-  title = {scout: samples}
+@misc{scout2026,
+  title        = {scout: measured terminal tasks for long-horizon software evolution},
+  author       = {{Ethara.AI}},
+  year         = {2026},
+  howpublished = {\url{https://github.com/Ethara-Ai}},
+  note         = {Method published; no performance claim made at this revision.}
 }
 ```
 
 ## License
 
-See the license of the repository that publishes this lane.
+Released under the MIT License. See [LICENSE](LICENSE).
 
 ## Contact
 
-[Ethara AI on GitHub](https://github.com/Ethara-Ai), [SECURITY.md](SECURITY.md) for a private report, and [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution route.
+- Organization: [github.com/Ethara-Ai](https://github.com/Ethara-Ai)
+- Security and benchmark-integrity disclosure: [SECURITY.md](SECURITY.md)
+- Contribution route: [CONTRIBUTING.md](CONTRIBUTING.md)

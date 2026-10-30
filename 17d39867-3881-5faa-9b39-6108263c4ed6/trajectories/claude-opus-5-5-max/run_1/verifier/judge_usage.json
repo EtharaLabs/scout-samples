@@ -1,7 +1,0 @@
-{
-  "criteria": 9,
-  "evidence_bytes": 54366,
-  "model": "openai/gpt-5.6-sol",
-  "note": "judged channel ran through the author-side bridge adapter on 127.0.0.1:8781; no provider usage meter is exposed by that path",
-  "schema_version": "scout-run/1"
-}

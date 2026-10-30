@@ -1,0 +1,36 @@
+# Deny the whole build context by default, then re-admit only what a COPY instruction names.
+# The verifier image copies the authoritative test tree, the target-revision test-support package,
+# the hash-locked manifest, and the Reward Kit surface; nothing else in this directory may enter
+# the build.
+#
+# Every file the scorer READS must appear below. In the conan bundle group_map.json and
+# baseline_manifest.json were added as scorer inputs while this allowlist still denied them, so
+# test_output.py would have raised at import inside the real image while host-side probes passed
+# because they copied the files by hand. Adding a scorer input means adding a line here.
+*
+**/.*
+
+!authoritative
+!authoritative/**
+!authoritative-dvc-testing
+!authoritative-dvc-testing/**
+!requirements.lock.txt
+!reward.toml
+!test.sh
+!test_output.py
+!sets.json
+!group_map.json
+!baseline_manifest.json
+
+# judge.toml IS re-admitted, and the Dockerfile moves it out of /tests to /judged before the
+# image is sealed. Reward Kit recurses into child directories (runner.py _collect_child_inputs),
+# so a judged TOML anywhere under /tests would join the deterministic invocation's TaskGroup,
+# where an auth failure escapes litellm.Timeout, no except guards the group, and out_path is
+# never written: the test score would die with the judge. Held in its own root, test.sh scores
+# it in a second, shell-guarded invocation that cannot take the first one down.
+!judge.toml
+# which is adjudicated at rollout time over the recorded final diff and verification output, not
+# inside this container. Admitting it would also be fatal: Reward Kit globs every *.toml in its
+# scan directory and turns any file carrying a [[criterion]] table into a live LLM judge, which
+# raises on a missing key and writes no reward at all. The verifier grades offline, so the file
+# stays in the bundle for the rollout harness and out of the image.

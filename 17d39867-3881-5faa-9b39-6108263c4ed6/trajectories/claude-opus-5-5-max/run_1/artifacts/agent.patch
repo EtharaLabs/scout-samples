@@ -1,0 +1,1392 @@
+diff -ruN /app/dvc/cli/completion.py /gin/dvc/cli/completion.py
+--- /app/dvc/cli/completion.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/cli/completion.py	2026-10-30 07:36:12.101171250 +0000
+@@ -22,6 +22,11 @@
+     local _dvc_exps=($(dvc exp list -q --all-commits --names-only))
+     compgen -W "${_dvc_exps[*]}" -- $1
+ }
++
++_dvc_compgen_remotes() {
++    local _dvc_remotes=($(dvc remote list 2>/dev/null | awk '{print $1}'))
++    compgen -W "${_dvc_remotes[*]}" -- $1
++}
+ """
+ 
+ ZSH_PREAMBLE = """
+@@ -55,6 +60,10 @@
+ _dvc_compadd_exps() {
+     _describe 'experiments' "($(dvc exp list -q --all-commits --names-only))"
+ }
++
++_dvc_compadd_remotes() {
++    _describe 'remotes' "($(dvc remote list 2>/dev/null | awk '{print $1}'))"
++}
+ """
+ 
+ PREAMBLE = {
+@@ -71,3 +80,4 @@
+     "zsh": "_dvc_compadd_stages_and_files",
+ }
+ EXPERIMENT = {"bash": "_dvc_compgen_exps", "zsh": "_dvc_compadd_exps"}
++REMOTE = {"bash": "_dvc_compgen_remotes", "zsh": "_dvc_compadd_remotes"}
+diff -ruN /app/dvc/commands/add.py /gin/dvc/commands/add.py
+--- /app/dvc/commands/add.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/add.py	2026-10-30 07:36:12.128475665 +0000
+@@ -101,7 +101,7 @@
+         "--remote",
+         help="Remote storage to download to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     parser.add_argument(
+         "--remote-jobs",
+         type=int,
+diff -ruN /app/dvc/commands/check_ignore.py /gin/dvc/commands/check_ignore.py
+--- /app/dvc/commands/check_ignore.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/check_ignore.py	2026-10-30 07:36:12.143463963 +0000
+@@ -9,12 +9,17 @@
+         super().__init__(args)
+         self.ignore_filter = self.repo.dvcignore
+ 
++    def _matched(self, result) -> bool:
++        # same as `git check-ignore`, with `--details` the paths matching the
++        # patterns that unignore them are shown too
++        return result.match or bool(self.args.details and result.patterns)
++
+     def _show_results(self, result):
+-        if not result.match and not self.args.non_matching:
++        if not self._matched(result) and not self.args.non_matching:
+             return
+ 
+         if self.args.details:
+-            patterns = result.patterns
++            patterns = result.patterns or ["::"]
+             if not self.args.all:
+                 patterns = patterns[-1:]
+ 
+@@ -26,7 +31,7 @@
+     def _check_one_file(self, target):
+         result = self.ignore_filter.check_ignore(target)
+         self._show_results(result)
+-        if result.match:
++        if self._matched(result):
+             return 0
+         return 1
+ 
+diff -ruN /app/dvc/commands/checkout.py /gin/dvc/commands/checkout.py
+--- /app/dvc/commands/checkout.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/checkout.py	2026-10-30 07:36:12.137048728 +0000
+@@ -44,7 +44,9 @@
+ 
+         if self.args.summary:
+             default_message = "No changes."
+-            msg = get_summary(sorted(stats.items(), key=operator.itemgetter(0)))
++            msg = get_summary(
++                sorted(stats["stats"].items(), key=operator.itemgetter(0))
++            )
+             ui.write(msg or default_message)
+         else:
+             log_changes(stats)
+diff -ruN /app/dvc/commands/data.py /gin/dvc/commands/data.py
+--- /app/dvc/commands/data.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/data.py	2026-10-30 07:36:12.142534585 +0000
+@@ -16,6 +16,13 @@
+ logger = logger.getChild(__name__)
+ 
+ 
++def _format_path(path) -> str:
++    if isinstance(path, dict):
++        # renamed entries
++        return f"{path['old']} -> {path['new']}"
++    return path
++
++
+ class CmdDataStatus(CmdBase):
+     COLORS: ClassVar[dict[str, str]] = {
+         "not_in_remote": "red",
+@@ -58,7 +65,7 @@
+             items = stage_status
+             if isinstance(stage_status, dict):
+                 items = {
+-                    file: state
++                    _format_path(file): state
+                     for state, files in stage_status.items()
+                     for file in files
+                 }
+@@ -113,6 +120,7 @@
+                 untracked_files=self.args.untracked_files,
+                 not_in_remote=self.args.not_in_remote,
+                 remote_refresh=self.args.remote_refresh,
++                remote=self.args.remote,
+             )
+ 
+         if not self.args.unchanged:
+@@ -189,6 +197,12 @@
+         help="Show files not in remote.",
+     )
+     data_status_parser.add_argument(
++        "-r",
++        "--remote",
++        help="Remote storage to check against (only applicable with --not-in-remote).",
++        metavar="<name>",
++    ).complete = completion.REMOTE  # type: ignore[attr-defined]
++    data_status_parser.add_argument(
+         "--no-remote-refresh",
+         dest="remote_refresh",
+         action="store_false",
+diff -ruN /app/dvc/commands/data_sync.py /gin/dvc/commands/data_sync.py
+--- /app/dvc/commands/data_sync.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/data_sync.py	2026-10-30 07:36:12.126083847 +0000
+@@ -26,7 +26,10 @@
+         from dvc.commands.checkout import log_changes
+ 
+         log_changes(stats)
+-        super().log_summary(stats)
++        # summarize granular changes instead of the changed outputs
++        summary = {**stats, **stats.get("stats", {})}
++        summary.pop("stats", None)
++        super().log_summary(summary)
+ 
+     def run(self):
+         from dvc.exceptions import CheckoutError, DvcException
+@@ -149,7 +152,7 @@
+     )
+     pull_parser.add_argument(
+         "-r", "--remote", help="Remote storage to pull from", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE  # type: ignore[attr-defined]
+     pull_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -224,7 +227,7 @@
+     )
+     push_parser.add_argument(
+         "-r", "--remote", help="Remote storage to push to", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE  # type: ignore[attr-defined]
+     push_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -286,7 +289,7 @@
+     )
+     fetch_parser.add_argument(
+         "-r", "--remote", help="Remote storage to fetch from", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE  # type: ignore[attr-defined]
+     fetch_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -379,7 +382,7 @@
+         "--remote",
+         help="Remote storage to compare local cache to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE  # type: ignore[attr-defined]
+     status_parser.add_argument(
+         "-a",
+         "--all-branches",
+diff -ruN /app/dvc/commands/experiments/pull.py /gin/dvc/commands/experiments/pull.py
+--- /app/dvc/commands/experiments/pull.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/experiments/pull.py	2026-10-30 07:36:12.131466875 +0000
+@@ -1,6 +1,6 @@
+ import argparse
+ 
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+ from dvc.log import logger
+@@ -71,7 +71,7 @@
+         dest="dvc_remote",
+         metavar="<name>",
+         help="Name of the DVC remote to use when pulling cached outputs.",
+-    )
++    ).complete = completion.REMOTE
+     experiments_pull_parser.add_argument(
+         "-j",
+         "--jobs",
+diff -ruN /app/dvc/commands/experiments/push.py /gin/dvc/commands/experiments/push.py
+--- /app/dvc/commands/experiments/push.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/experiments/push.py	2026-10-30 07:36:12.134430377 +0000
+@@ -111,7 +111,7 @@
+         dest="dvc_remote",
+         metavar="<name>",
+         help="Name of the DVC remote to use when pushing cached outputs.",
+-    )
++    ).complete = completion.REMOTE
+     experiments_push_parser.add_argument(
+         "-j",
+         "--jobs",
+diff -ruN /app/dvc/commands/experiments/show.py /gin/dvc/commands/experiments/show.py
+--- /app/dvc/commands/experiments/show.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/experiments/show.py	2026-10-30 07:36:12.130847942 +0000
+@@ -67,8 +67,9 @@
+     **kwargs,
+ ):
+     if keep:
++        keep_pattern = re.compile("|".join(keep))
+         for col in td.keys():  # noqa: SIM118
+-            if re.match(keep, col):
++            if keep_pattern.match(col):
+                 td.protect(col)
+ 
+     for col in ("State", "Executor"):
+@@ -110,8 +111,9 @@
+         td.drop_duplicates("cols", ignore_empty=False)
+ 
+     cols_to_drop = set()
+-    if drop is not None:
+-        cols_to_drop = {col for col in td.keys() if re.match(drop, col)}  # noqa: SIM118
++    if drop:
++        drop_pattern = re.compile("|".join(drop))
++        cols_to_drop = {col for col in td.keys() if drop_pattern.match(col)}  # noqa: SIM118
+     td.drop(*cols_to_drop)
+ 
+     td.render(
+@@ -237,12 +239,22 @@
+     )
+     experiments_show_parser.add_argument(
+         "--drop",
+-        help="Remove the columns matching the specified regex pattern.",
++        action="append",
++        default=[],
++        help=(
++            "Remove the columns matching the specified regex pattern. "
++            "Can be used multiple times."
++        ),
+         metavar="<regex_pattern>",
+     )
+     experiments_show_parser.add_argument(
+         "--keep",
+-        help="Preserve the columns matching the specified regex pattern.",
++        action="append",
++        default=[],
++        help=(
++            "Preserve the columns matching the specified regex pattern. "
++            "Can be used multiple times."
++        ),
+         metavar="<regex_pattern>",
+     )
+     experiments_show_parser.add_argument(
+diff -ruN /app/dvc/commands/gc.py /gin/dvc/commands/gc.py
+--- /app/dvc/commands/gc.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/gc.py	2026-10-30 07:36:12.128739237 +0000
+@@ -1,6 +1,6 @@
+ import os
+ 
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+ from dvc.log import logger
+@@ -188,7 +188,7 @@
+         "--remote",
+         help="Remote storage to collect garbage in",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     gc_parser.add_argument(
+         "--skip-failed",
+         action="store_true",
+diff -ruN /app/dvc/commands/imp_url.py /gin/dvc/commands/imp_url.py
+--- /app/dvc/commands/imp_url.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/imp_url.py	2026-10-30 07:36:12.134946648 +0000
+@@ -73,7 +73,7 @@
+         "--remote",
+         help="Remote storage to download to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     no_download_exec_group = import_parser.add_mutually_exclusive_group()
+     no_download_exec_group.add_argument(
+         "--no-exec",
+diff -ruN /app/dvc/commands/init.py /gin/dvc/commands/init.py
+--- /app/dvc/commands/init.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/init.py	2026-10-30 07:36:12.141602998 +0000
+@@ -1,7 +1,9 @@
++import os
++
+ import colorama
+ 
+ from dvc import analytics
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBaseNoRepo
+ from dvc.cli.utils import append_doc_link
+ from dvc.log import logger
+@@ -42,7 +44,7 @@
+ 
+         try:
+             with Repo.init(
+-                ".",
++                self.args.directory,
+                 no_scm=self.args.no_scm,
+                 force=self.args.force,
+                 subdir=self.args.subdir,
+@@ -57,9 +59,9 @@
+ 
+ def add_parser(subparsers, parent_parser):
+     """Setup parser for `dvc init`."""
+-    INIT_HELP = "Initialize DVC in the current directory."
++    INIT_HELP = "Initialize DVC in the current or specified directory."
+     INIT_DESCRIPTION = (
+-        "Initialize DVC in the current directory. Expects directory\n"
++        "Initialize DVC in the current or specified directory. Expects directory\n"
+         "to be a Git repository unless --no-scm option is specified."
+     )
+ 
+@@ -71,6 +73,12 @@
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+     init_parser.add_argument(
++        "directory",
++        nargs="?",
++        default=os.curdir,
++        help="Directory to initialize DVC in. Defaults to the current directory.",
++    ).complete = completion.DIR
++    init_parser.add_argument(
+         "--no-scm",
+         action="store_true",
+         default=False,
+diff -ruN /app/dvc/commands/remote.py /gin/dvc/commands/remote.py
+--- /app/dvc/commands/remote.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/remote.py	2026-10-30 07:36:12.129499956 +0000
+@@ -1,4 +1,4 @@
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.utils import append_doc_link
+ from dvc.commands.config import CmdConfig
+ from dvc.ui import ui
+@@ -210,7 +210,9 @@
+         help=REMOTE_DEFAULT_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_default_parser.add_argument("name", nargs="?", help="Name of the remote")
++    remote_default_parser.add_argument(
++        "name", nargs="?", help="Name of the remote"
++    ).complete = completion.REMOTE
+     remote_default_parser.add_argument(
+         "-u",
+         "--unset",
+@@ -228,7 +230,9 @@
+         help=REMOTE_MODIFY_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_modify_parser.add_argument("name", help="Name of the remote")
++    remote_modify_parser.add_argument(
++        "name", help="Name of the remote"
++    ).complete = completion.REMOTE
+     remote_modify_parser.add_argument("option", help="Name of the option to modify.")
+     remote_modify_parser.add_argument(
+         "value", nargs="?", help="(optional) Value of the option."
+@@ -260,7 +264,9 @@
+         help=REMOTE_REMOVE_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_remove_parser.add_argument("name", help="Name of the remote to remove.")
++    remote_remove_parser.add_argument(
++        "name", help="Name of the remote to remove."
++    ).complete = completion.REMOTE
+     remote_remove_parser.set_defaults(func=CmdRemoteRemove)
+     REMOTE_RENAME_HELP = "Rename a DVC remote"
+     remote_rename_parser = remote_subparsers.add_parser(
+@@ -270,6 +276,8 @@
+         help=REMOTE_RENAME_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_rename_parser.add_argument("name", help="Remote to be renamed")
++    remote_rename_parser.add_argument(
++        "name", help="Remote to be renamed"
++    ).complete = completion.REMOTE
+     remote_rename_parser.add_argument("new", help="New name of the remote")
+     remote_rename_parser.set_defaults(func=CmdRemoteRename)
+diff -ruN /app/dvc/commands/update.py /gin/dvc/commands/update.py
+--- /app/dvc/commands/update.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/commands/update.py	2026-10-30 07:36:12.125637949 +0000
+@@ -74,7 +74,7 @@
+         "--remote",
+         help="Remote storage to perform updates to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     update_parser.add_argument(
+         "-j",
+         "--jobs",
+diff -ruN /app/dvc/dvcfile.py /gin/dvc/dvcfile.py
+--- /app/dvc/dvcfile.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/dvcfile.py	2026-10-30 07:36:12.118322250 +0000
+@@ -162,6 +162,10 @@
+     def dump(self, stage, **kwargs):
+         raise NotImplementedError
+ 
++    def dump_stages(self, stages, **kwargs):
++        for stage in stages:
++            self.dump(stage, **kwargs)
++
+     def merge(self, ancestor, other, allowed=None):
+         raise NotImplementedError
+ 
+@@ -226,19 +230,25 @@
+         self.__dict__.pop("resolver", None)
+         self.__dict__.pop("stages", None)
+ 
+-    def dump(self, stage, update_pipeline=True, update_lock=True, **kwargs):
++    def dump(self, stage, **kwargs):
+         """Dumps given stage appropriately in the dvcfile."""
++        self.dump_stages([stage], **kwargs)
++
++    def dump_stages(self, stages, update_pipeline=True, update_lock=True, **kwargs):
++        """Dumps given stages appropriately in the dvcfile, all at once."""
+         from dvc.stage import PipelineStage
+ 
+-        assert isinstance(stage, PipelineStage)
++        assert all(isinstance(stage, PipelineStage) for stage in stages)
+         if self.verify:
+             check_dvcfile_path(self.repo, self.path)
+ 
+-        if update_pipeline and not stage.is_data_source:
+-            self._dump_pipeline_file(stage)
++        if update_pipeline:
++            for stage in stages:
++                if not stage.is_data_source:
++                    self._dump_pipeline_file(stage)
+ 
+         if update_lock:
+-            self._dump_lockfile(stage, **kwargs)
++            self._lockfile.dump_stages(stages, **kwargs)
+ 
+     def dump_dataset(self, dataset):
+         with modify_yaml(self.path, fs=self.repo.fs) as data:
+@@ -260,9 +270,6 @@
+                 raw.append(dataset)
+         self.repo.scm_context.track_file(self.relpath)
+ 
+-    def _dump_lockfile(self, stage, **kwargs):
+-        self._lockfile.dump(stage, **kwargs)
+-
+     @staticmethod
+     def _check_if_parametrized(stage, action: str = "dump") -> None:
+         if stage.raw_data.parametrized:
+@@ -400,7 +407,12 @@
+         self.repo.scm_context.track_file(self.relpath)
+ 
+     def dump(self, stage, **kwargs):
+-        stage_data = serialize.to_lockfile(stage, **kwargs)
++        self.dump_stages([stage], **kwargs)
++
++    def dump_stages(self, stages, **kwargs):
++        stage_data = {}
++        for stage in stages:
++            stage_data.update(serialize.to_lockfile(stage, **kwargs))
+ 
+         with modify_yaml(self.path, fs=self.repo.fs) as data:
+             if not data:
+@@ -409,8 +421,9 @@
+                 logger.info("Generating lock file '%s'", self.relpath)
+ 
+             data["stages"] = data.get("stages", {})
+-            modified = data["stages"].get(stage.name, {}) != stage_data.get(
+-                stage.name, {}
++            modified = any(
++                data["stages"].get(name, {}) != entry
++                for name, entry in stage_data.items()
+             )
+             if modified:
+                 logger.info("Updating lock file '%s'", self.relpath)
+diff -ruN /app/dvc/ignore.py /gin/dvc/ignore.py
+--- /app/dvc/ignore.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/ignore.py	2026-10-30 07:36:12.117140591 +0000
+@@ -37,11 +37,20 @@
+         self.dirname = dirname
+ 
+         self.regex_pattern_list = []
+-        for count, pattern in enumerate(pattern_list):
+-            pattern, group = GitWildMatchPattern.pattern_to_regex(pattern.patterns)
++        # compiled regex, whether it ignores or unignores, the pattern info and
++        # the name of the group matching the parent directories of the paths
++        self.compiled_pattern_list = []
++        for count, pattern_info in enumerate(pattern_list):
++            pattern, group = GitWildMatchPattern.pattern_to_regex(
++                pattern_info.patterns
++            )
+             if pattern:
+-                pattern = pattern.replace(f"<{_DIR_MARK}>", f"<{_DIR_MARK}{count}>")
++                dir_mark = f"{_DIR_MARK}{count}"
++                pattern = pattern.replace(f"<{_DIR_MARK}>", f"<{dir_mark}>")
+                 self.regex_pattern_list.append((pattern, group))
++                self.compiled_pattern_list.append(
++                    (re.compile(pattern), group, pattern_info, dir_mark)
++                )
+ 
+         self.ignore_spec = [
+             (ignore, re.compile("|".join(item[0] for item in group)))
+@@ -90,7 +99,7 @@
+     def matches(self, dirname, basename, is_dir=False, details: bool = False):
+         path = self._get_normalize_path(dirname, basename)
+         if not path:
+-            return False
++            return (False, []) if details else False
+ 
+         if details:
+             return self._ignore_details(path, is_dir)
+@@ -105,33 +114,54 @@
+ 
+             return matches_
+ 
+-        result = False
+-
+         for ignore, pattern in self.ignore_spec[::-1]:
+             if matches(pattern, path, is_dir):
+-                result = ignore
+-                break
+-        return result
++                # unignore patterns might only match the parent directories of
++                # the path, which does not unignore an explicitly ignored path
++                return ignore or self._ignore_details(path, is_dir)[0]
++        return False
+ 
+-    def _ignore_details(self, path, is_dir: bool):
+-        result = []
+-        for (regex, _), pattern_info in list(
+-            zip(self.regex_pattern_list, self.pattern_list)
+-        ):
+-            # skip system pattern
+-            if not pattern_info.file_info:
++    @staticmethod
++    def _match(regex, dir_mark: str, path: str, is_dir: bool) -> Optional[bool]:
++        """Match the path against a pattern.
++
++        Returns None if the pattern does not match, True if it matches the path
++        itself, and False if it only matches one of its parent directories.
++        """
++        result = None
++        for candidate in (path, f"{path}/") if is_dir else (path,):
++            match = regex.match(candidate)
++            if not match:
+                 continue
+ 
+-            regex = re.compile(regex)
++            pos = match.start(dir_mark) if dir_mark in regex.groupindex else -1
++            if pos < 0 or pos >= len(path):
++                return True
++            result = False
++        return result
+ 
+-            matches = bool(regex.match(path))
+-            if is_dir:
+-                matches |= bool(regex.match(f"{path}/"))
++    def _ignore_details(self, path, is_dir: bool) -> tuple[bool, list[str]]:
++        """Return whether the path is ignored, and the patterns that decided it.
+ 
+-            if matches:
+-                result.append(pattern_info.file_info)
++        The last of the patterns is the one that applies to the path.
++        """
++        result = False
++        priority = 0
++        patterns = []
++        for regex, ignore, pattern_info, dir_mark in self.compiled_pattern_list:
++            explicit = self._match(regex, dir_mark, path, is_dir)
++            if explicit is None:
++                continue
+ 
+-        return result
++            # NOTE: same as git, an explicit match takes priority over the match
++            # of a parent directory unless that directory is ignored, e.g.
++            # `!data/**/` unignores the directories, but not the files inside
++            # of them, that are ignored explicitly by `data/**`.
++            match_priority = 2 if explicit else 1
++            if (ignore and not explicit) or match_priority >= priority:
++                result, priority = ignore, match_priority
++                patterns.append(pattern_info.file_info)
++        return result, patterns
+ 
+     def __hash__(self):
+         return hash(self.dirname + ":" + str(self.pattern_list))
+@@ -154,7 +184,7 @@
+ 
+ 
+ def _no_match(path):
+-    return CheckIgnoreResult(path, False, ["::"])
++    return CheckIgnoreResult(path, False, [])
+ 
+ 
+ class DvcIgnoreFilter:
+@@ -365,16 +395,38 @@
+ 
+         return ignores_trie.get(key)
+ 
++    def _ignore_details(
++        self, path: str, is_dir: bool = False, ignore_subrepos: bool = True
++    ) -> tuple[bool, list[str]]:
++        """Return whether the path is ignored, and the patterns that decided it.
++
++        Ignored directories are never walked into, so everything inside of them
++        is ignored too, regardless of the patterns.
++        """
++        parts = self._get_key(path)
++        for i in range(1, len(parts) + 1):
++            dirname, basename = self.fs.split(self.fs.join(self.root_dir, *parts[:i]))
++            ignore_pattern = self._get_trie_pattern(dirname, None, ignore_subrepos)
++            if not ignore_pattern:
++                continue
++
++            is_path = i == len(parts)
++            ignored, patterns = ignore_pattern.matches(
++                dirname, basename, is_dir if is_path else True, details=True
++            )
++            if ignored or is_path:
++                return ignored, patterns
++        return False, []
++
+     def _is_ignored(
+         self, path: str, is_dir: bool = False, ignore_subrepos: bool = True
+     ):
+         if self._outside_repo(path):
+             return False
+-        dirname, basename = self.fs.split(self.fs.normpath(path))
+-        ignore_pattern = self._get_trie_pattern(dirname, None, ignore_subrepos)
+-        if ignore_pattern:
+-            return ignore_pattern.matches(dirname, basename, is_dir)
+-        return False
++        ignored, _ = self._ignore_details(
++            self.fs.normpath(path), is_dir, ignore_subrepos
++        )
++        return ignored
+ 
+     def is_ignored_dir(self, path: str, ignore_subrepos: bool = True) -> bool:
+         # only used in LocalFileSystem
+@@ -397,15 +449,13 @@
+         # https://github.com/iterative/dvc/issues/5046
+         full_target = self.fs.abspath(target)
+         if not self._outside_repo(full_target):
+-            dirname, basename = self.fs.split(self.fs.normpath(full_target))
+-            pattern = self._get_trie_pattern(dirname)
+-            if pattern:
+-                matches = pattern.matches(
+-                    dirname, basename, self.fs.isdir(full_target), True
+-                )
+-
+-                if matches:
+-                    return CheckIgnoreResult(target, True, matches)
++            ignored, patterns = self._ignore_details(
++                self.fs.normpath(full_target), self.fs.isdir(full_target)
++            )
++            # skip system patterns
++            patterns = [pattern for pattern in patterns if pattern]
++            if patterns:
++                return CheckIgnoreResult(target, ignored, patterns)
+         return _no_match(target)
+ 
+     def is_ignored(
+diff -ruN /app/dvc/parsing/__init__.py /gin/dvc/parsing/__init__.py
+--- /app/dvc/parsing/__init__.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/parsing/__init__.py	2026-10-30 07:36:12.145196600 +0000
+@@ -139,7 +139,7 @@
+         self.fs = fs = repo.fs
+         self.parsing_config = repo.config.get("parsing", {})
+ 
+-        if os.path.isabs(wdir):
++        if fs.isabs(wdir):
+             wdir = fs.relpath(wdir)
+             wdir = "" if wdir == os.curdir else wdir
+ 
+diff -ruN /app/dvc/repo/checkout.py /gin/dvc/repo/checkout.py
+--- /app/dvc/repo/checkout.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/checkout.py	2026-10-30 07:36:12.166811292 +0000
+@@ -1,4 +1,5 @@
+ import os
++from collections import Counter, defaultdict
+ from typing import TYPE_CHECKING
+ 
+ from dvc.exceptions import (
+@@ -36,6 +37,11 @@
+     return ret
+ 
+ 
++def _is_dir_change(change) -> bool:
++    entries = [entry for entry in (change.old, change.new) if entry is not None]
++    return all(entry.meta and entry.meta.isdir for entry in entries)
++
++
+ def _build_out_changes(index, changes):
+     from dvc_data.index.checkout import MODIFY
+ 
+@@ -51,6 +57,8 @@
+         out_keys.append(key)
+ 
+     out_changes = {}
++    # granular, file-level changes of each output
++    out_stats: dict[tuple[str, ...], Counter[str]] = defaultdict(Counter)
+     for key, change in changes.items():
+         for out_key in out_keys:
+             if len(out_key) > len(key) or key[: len(out_key)] != out_key:
+@@ -60,9 +68,12 @@
+                 out_changes[out_key] = change.typ
+             elif not out_changes.get(out_key):
+                 out_changes[out_key] = MODIFY
++
++            if not _is_dir_change(change):
++                out_stats[out_key][change.typ] += 1
+             break
+ 
+-    return out_changes
++    return out_changes, out_stats
+ 
+ 
+ def _check_can_delete(
+@@ -103,18 +114,24 @@
+     allow_missing=False,
+     **kwargs,
+ ):
+-    from dvc.repo.index import build_data_index
++    from dvc.repo.index import build_data_index, index_from_targets
+     from dvc.stage.exceptions import StageFileBadNameError, StageFileDoesNotExistError
+     from dvc_data.index.checkout import ADD, DELETE, MODIFY, apply, compare
+ 
+-    stats: dict[str, list[str]] = {
++    changes: dict[str, list[str]] = {
+         "added": [],
+         "deleted": [],
+         "modified": [],
+     }
++    stats: dict[str, int] = {
++        "added": 0,
++        "deleted": 0,
++        "modified": 0,
++    }
+     if not targets:
+         targets = [None]
+-        stats["deleted"] = _remove_unused_links(self)
++        changes["deleted"] = _remove_unused_links(self)
++        stats["deleted"] = len(changes["deleted"])
+ 
+     if isinstance(targets, str):
+         targets = [targets]
+@@ -127,8 +144,8 @@
+             raise CheckoutErrorSuggestGit(target) from exc
+         raise  # noqa: PLE0704
+ 
+-    view = self.index.targets_view(
+-        targets, recursive=recursive, with_deps=with_deps, onerror=onerror
++    view = index_from_targets(
++        self, targets, recursive=recursive, with_deps=with_deps, onerror=onerror
+     )
+ 
+     with ui.progress(unit="entry", desc="Building workspace index", leave=True) as pb:
+@@ -171,7 +188,7 @@
+             **kwargs,
+         )
+ 
+-    out_changes = _build_out_changes(view, diff.changes)
++    out_changes, out_stats = _build_out_changes(view, diff.changes)
+ 
+     typ_map = {ADD: "added", DELETE: "deleted", MODIFY: "modified"}
+     for key, typ in out_changes.items():
+@@ -181,9 +198,12 @@
+             self.fs.remove(out_path, recursive=True)
+         else:
+             self.state.save_link(out_path, self.fs)
+-            stats[typ_map[typ]].append(_fspath_dir(out_path))
++            changes[typ_map[typ]].append(_fspath_dir(out_path))
++            for change_typ, count in out_stats[key].items():
++                stats[typ_map[change_typ]] += count
+ 
++    result = {**changes, "stats": stats}
+     if failed and not allow_missing:
+-        raise CheckoutError([relpath(out_path) for out_path in failed], stats)
++        raise CheckoutError([relpath(out_path) for out_path in failed], result)
+ 
+-    return stats
++    return result
+diff -ruN /app/dvc/repo/commit.py /gin/dvc/repo/commit.py
+--- /app/dvc/repo/commit.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/commit.py	2026-10-30 07:36:12.165323603 +0000
+@@ -1,3 +1,5 @@
++from collections import defaultdict
++from collections.abc import Iterable
+ from typing import TYPE_CHECKING
+ 
+ from dvc import prompt
+@@ -6,6 +8,8 @@
+ from .scm_context import scm_context
+ 
+ if TYPE_CHECKING:
++    from dvc.stage import Stage
++
+     from . import Repo
+     from .index import IndexView
+ 
+@@ -41,6 +45,17 @@
+         )
+ 
+ 
++def _dump_stages(stages: Iterable["Stage"]) -> None:
++    """Dump stages, the ones from the same dvcfile at once."""
++    by_dvcfile: dict[str, list[Stage]] = defaultdict(list)
++    for stage in stages:
++        by_dvcfile[stage.path].append(stage)
++
++    for dvcfile_stages in by_dvcfile.values():
++        dvcfile = dvcfile_stages[0].dvcfile
++        dvcfile.dump_stages(dvcfile_stages, update_pipeline=False)
++
++
+ @locked
+ def commit(
+     self,
+@@ -59,21 +74,26 @@
+         )
+         if not data_only or info.stage.is_data_source
+     ]
+-    for stage_info in stages_info:
+-        stage = stage_info.stage
+-        if force:
+-            stage.save(allow_missing=allow_missing)
+-        else:
+-            changes = stage.changed_entries()
+-            if any(changes):
+-                prompt_to_commit(stage, changes, force=force)
+-                stage.save(allow_missing=allow_missing)
+-        stage.commit(
+-            filter_info=stage_info.filter_info,
+-            allow_missing=allow_missing,
+-            relink=relink,
+-        )
+-        stage.dump(update_pipeline=False)
++    committed: list[Stage] = []
++    try:
++        for stage_info in stages_info:
++            stage = stage_info.stage
++            # stage was just loaded from the workspace, no need to re-read it
++            if force:
++                stage.save(allow_missing=allow_missing, reload=False)
++            else:
++                changes = stage.changed_entries()
++                if any(changes):
++                    prompt_to_commit(stage, changes, force=force)
++                    stage.save(allow_missing=allow_missing, reload=False)
++            stage.commit(
++                filter_info=stage_info.filter_info,
++                allow_missing=allow_missing,
++                relink=relink,
++            )
++            committed.append(stage)
++    finally:
++        _dump_stages(committed)
+     return [s.stage for s in stages_info]
+ 
+ 
+diff -ruN /app/dvc/repo/data.py /gin/dvc/repo/data.py
+--- /app/dvc/repo/data.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/data.py	2026-10-30 07:36:12.171092490 +0000
+@@ -11,6 +11,7 @@
+ 
+ if TYPE_CHECKING:
+     from dvc.repo import Repo
++    from dvc.repo.index import IndexView
+     from dvc.scm import Git, NoSCM
+     from dvc_data.index import (
+         BaseDataIndex,
+@@ -18,6 +19,7 @@
+         DataIndexEntry,
+         DataIndexKey,
+         DataIndexView,
++        StorageMapping,
+     )
+     from dvc_data.index.diff import Change
+     from dvc_objects.fs.base import FileSystem
+@@ -41,6 +43,15 @@
+     return os.path.sep.join(key)
+ 
+ 
++def _adapt_rename(change: "Change") -> dict[str, str]:
++    from dvc_data.index.diff import ADD, DELETE, Change
++
++    return {
++        "old": _adapt_path(Change(DELETE, change.old, None)),
++        "new": _adapt_path(Change(ADD, None, change.new)),
++    }
++
++
+ def _get_missing_paths(
+     to_check: Mapping["FileSystem", Mapping[str, Iterable["DataIndexEntry"]]],
+     batch_size: Optional[int] = None,
+@@ -91,11 +102,24 @@
+     not_in_cache: bool = False,
+     batch_size: Optional[int] = None,
+     callback: "Callback" = DEFAULT_CALLBACK,
+-) -> dict[str, list[str]]:
+-    from dvc_data.index.diff import ADD, DELETE, MODIFY, UNCHANGED, UNKNOWN, diff
++) -> dict[str, list]:
++    from dvc_data.index.diff import (
++        ADD,
++        DELETE,
++        MODIFY,
++        RENAME,
++        UNCHANGED,
++        UNKNOWN,
++        diff,
++    )
+ 
+-    ret: dict[str, list[str]] = defaultdict(list)
+-    change_types = {MODIFY: "modified", ADD: "added", DELETE: "deleted"}
++    ret: dict[str, list] = defaultdict(list)
++    change_types = {
++        MODIFY: "modified",
++        ADD: "added",
++        DELETE: "deleted",
++        RENAME: "renamed",
++    }
+ 
+     to_check: dict[FileSystem, dict[str, list[DataIndexEntry]]] = defaultdict(
+         lambda: defaultdict(list)
+@@ -104,18 +128,28 @@
+     for change in diff(
+         old,
+         new,
++        with_renames=True,
+         with_unchanged=True,
+         shallow=not granular,
+         hash_only=True,
+         with_unknown=True,
+         callback=callback,
+     ):
++        if change.typ == RENAME:
++            assert change.old
++            assert change.new
++            keys = [change.old.key, change.new.key]
++        else:
++            keys = [change.key]
++
+         # The index is a trie, so even when we filter by a specific path
+         # like `dir/file`, all parent nodes leading to that path (e.g., `dir/`)
+         # still appear in the view. As a result, keys like `dir/` will be present
+         # even if only `dir/file` matches the filter.
+         # We need to skip such entries to avoid showing root of tracked directories.
+-        if filter_keys and not any(change.key[: len(fk)] == fk for fk in filter_keys):
++        if filter_keys and not any(
++            key[: len(fk)] == fk for key in keys for fk in filter_keys
++        ):
+             continue
+ 
+         if (
+@@ -137,7 +171,10 @@
+             to_check[cache_fs][cache_path].append(old_entry)
+ 
+         change_typ = change_types.get(change.typ, change.typ)
+-        ret[change_typ].append(_adapt_path(change))
++        if change.typ == RENAME:
++            ret[change_typ].append(_adapt_rename(change))
++        else:
++            ret[change_typ].append(_adapt_path(change))
+ 
+     total_items = sum(
+         len(entries) for paths in to_check.values() for entries in paths.values()
+@@ -266,6 +303,7 @@
+     filter_keys: Optional[Iterable["DataIndexKey"]] = None,
+     granular: bool = False,
+ ) -> dict[str, list[str]]:
++    from dvc.exceptions import NotDvcRepoError
+     from dvc.scm import RevError
+     from dvc_data.index import DataIndex
+ 
+@@ -276,7 +314,7 @@
+         with repo.switch(head):
+             head_index = repo.index.data["repo"]
+             head_view = filter_index(head_index, filter_keys=filter_keys)
+-    except RevError:
++    except (RevError, NotDvcRepoError):
+         logger.debug("failed to switch to '%s'", head)
+         head_view = DataIndex()
+ 
+@@ -319,11 +357,27 @@
+     return [repo.fs.relpath(file, start) for file in files]
+ 
+ 
++def _get_remote_storage_map(index: "IndexView", remote: str) -> "StorageMapping":
++    """Storage map to check the outputs against the given remote."""
++    from dvc.repo.index import _load_storage_from_out
++    from dvc_data.index import StorageMapping
++
++    storage_map = StorageMapping()
++    for out in index.outs:
++        # skip outputs that are pinned to a different remote, same as `push`
++        if out.remote and out.remote != remote:
++            continue
++        _, key = out.index_key
++        _load_storage_from_out(storage_map, key, out, remote_name=remote)
++    return storage_map
++
++
+ def _get_entries_not_in_remote(
+     repo: "Repo",
+     filter_keys: Optional[Iterable["DataIndexKey"]] = None,
+     granular: bool = False,
+     remote_refresh: bool = False,
++    remote: Optional[str] = None,
+ ) -> list[str]:
+     """Get entries that are not in remote storage."""
+     from dvc.repo.worktree import worktree_view
+@@ -348,7 +402,10 @@
+ 
+     missing_entries = []
+ 
+-    storage_map = view.storage_map
++    if remote:
++        storage_map = _get_remote_storage_map(index, remote)
++    else:
++        storage_map = view.storage_map
+ 
+     n = 0
+     with TqdmCallback(size=n, desc="Checking remote", unit="entry") as cb:
+@@ -408,6 +465,7 @@
+     remote_refresh: bool = False,
+     batch_size: Optional[int] = None,
+     head: str = "HEAD",
++    remote: Optional[str] = None,
+ ) -> Status:
+     from dvc.scm import NoSCMError, SCMError
+ 
+@@ -428,6 +486,7 @@
+             filter_keys=filter_keys,
+             granular=granular,
+             remote_refresh=remote_refresh,
++            remote=remote,
+         )
+ 
+     try:
+diff -ruN /app/dvc/repo/diff.py /gin/dvc/repo/diff.py
+--- /app/dvc/repo/diff.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/diff.py	2026-10-30 07:36:12.168497889 +0000
+@@ -22,8 +22,8 @@
+     return None
+ 
+ 
+-def _diff(old, new, data_keys, with_missing=False):
+-    from dvc_data.index.diff import ADD, DELETE, MODIFY, RENAME
++def _diff(old, new, data_keys, with_missing=False):  # noqa: C901
++    from dvc_data.index.diff import ADD, DELETE, MODIFY, RENAME, UNKNOWN
+     from dvc_data.index.diff import diff as idiff
+ 
+     ret: dict[str, list[dict]] = {
+@@ -39,13 +39,37 @@
+             return meta
+         return meta.isdir
+ 
+-    for change in idiff(
+-        old,
+-        new,
+-        with_renames=True,
+-        meta_cmp_key=meta_cmp_key,
+-        roots=data_keys,
+-    ):
++    # directories whose contents could not be loaded from the cache
++    missing_dirs = []
++    if old is not None:
++        old_onerror = old.onerror
++
++        def _onerror(entry, exc):
++            missing_dirs.append(entry)
++            old_onerror(entry, exc)
++
++        old.onerror = _onerror
++
++    try:
++        changes = list(
++            idiff(
++                old,
++                new,
++                with_renames=True,
++                with_unknown=True,
++                meta_cmp_key=meta_cmp_key,
++                roots=data_keys,
++            )
++        )
++    finally:
++        if old is not None:
++            old.onerror = old_onerror
++
++    for change in changes:
++        if change.typ == UNKNOWN:
++            # entries of a directory that is missing from the cache
++            continue
++
+         if (change.old and change.old.isdir and not change.old.hash_info) or (
+             change.new and change.new.isdir and not change.new.hash_info
+         ):
+@@ -82,6 +106,12 @@
+                 {"path": _path(change.old), "hash": _hash(change.old)}
+             )
+ 
++    if with_missing:
++        for entry in missing_dirs:
++            missing = {"path": _path(entry), "hash": _hash(entry)}
++            if missing not in ret["not in cache"]:
++                ret["not in cache"].append(missing)
++
+     return ret if any(ret.values()) else {}
+ 
+ 
+@@ -100,6 +130,8 @@
+     the concept of `index`, but it keeps the same interface, thus,
+     `dvc diff` would be the same as `dvc diff HEAD`.
+     """
++    from .index import index_from_targets
++
+     if self.scm.no_commits:
+         return {}
+ 
+@@ -120,7 +152,7 @@
+         def onerror(target, _exc):
+             missing_targets[rev].add(target)  # noqa: B023
+ 
+-        view = self.index.targets_view(targets, onerror=onerror, recursive=recursive)
++        view = index_from_targets(self, targets, onerror=onerror, recursive=recursive)
+ 
+         data_keys.update(view.data_keys.get("repo", set()))
+ 
+diff -ruN /app/dvc/repo/fetch.py /gin/dvc/repo/fetch.py
+--- /app/dvc/repo/fetch.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/fetch.py	2026-10-30 07:36:12.149702706 +0000
+@@ -41,6 +41,8 @@
+     onerror=None,
+     push=False,
+ ):
++    from dvc.repo.index import index_from_targets
++
+     indexes = {}
+     collection_exc = None
+ 
+@@ -68,7 +70,8 @@
+         try:
+             repo.config.merge(config)
+ 
+-            idx = repo.index.targets_view(
++            idx = index_from_targets(
++                repo,
+                 targets,
+                 with_deps=with_deps,
+                 recursive=recursive,
+diff -ruN /app/dvc/repo/index.py /gin/dvc/repo/index.py
+--- /app/dvc/repo/index.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/index.py	2026-10-30 07:36:12.153408719 +0000
+@@ -216,7 +216,7 @@
+         storage_map.add_remote(FileStorage(key, dep.fs, dep.fs_path, read_only=True))
+ 
+ 
+-def _load_storage_from_out(storage_map, key, out):
++def _load_storage_from_out(storage_map, key, out, remote_name=None):
+     from dvc.cachemgr import LEGACY_HASH_NAMES
+     from dvc.config import NoRemoteError
+     from dvc_data.index import FileStorage, ObjectStorage
+@@ -225,7 +225,7 @@
+         storage_map.add_cache(ObjectStorage(key, out.cache))
+ 
+     try:
+-        remote = out.repo.cloud.get_remote(out.remote)
++        remote = out.repo.cloud.get_remote(remote_name or out.remote)
+         if remote.fs.version_aware:
+             storage_map.add_remote(
+                 FileStorage(
+@@ -820,6 +820,69 @@
+         return data
+ 
+ 
++def _collect_target_stages(
++    repo: "Repo", targets: "TargetType", recursive: bool = False
++) -> Optional[list["Stage"]]:
++    """Load the stages of the targets, if all of them are addresses to stages.
++
++    Returns None if any of the targets cannot be resolved without collecting
++    the whole repo (e.g. a path to an output).
++    """
++    from dvc.exceptions import DvcException
++    from dvc.repo.stage import _collect_specific_target
++    from dvc.utils import as_posix
++    from dvc.utils.collections import ensure_list
++
++    stages: dict[Stage, None] = {}
++    for target in ensure_list(targets):
++        if not target:
++            return None
++        try:
++            collected, _, _ = _collect_specific_target(
++                repo.stage, as_posix(target), with_deps=False, recursive=recursive
++            )
++        except DvcException:
++            return None
++        if not collected:
++            return None
++        stages.update(dict.fromkeys(collected))
++    return list(stages)
++
++
++def index_from_targets(
++    repo: "Repo",
++    targets: Optional["TargetType"] = None,
++    stage_filter: Optional[Callable[["Stage"], bool]] = None,
++    outs_filter: Optional[Callable[["Output"], bool]] = None,
++    max_size: Optional[int] = None,
++    types: Optional[list[str]] = None,
++    with_deps: bool = False,
++    recursive: bool = False,
++    **kwargs: Any,
++) -> "IndexView":
++    """Return read-only view of index for the specified targets.
++
++    If all of the targets are addresses to particular stages or `.dvc` files,
++    only those are loaded, instead of collecting the whole repo.
++    (see `Index.targets_view` for the details on the arguments)
++    """
++    stages = None
++    if targets and not with_deps:
++        stages = _collect_target_stages(repo, targets, recursive=recursive)
++
++    index = repo.index if stages is None else Index(repo, stages=stages)
++    return index.targets_view(
++        targets,
++        stage_filter=stage_filter,
++        outs_filter=outs_filter,
++        max_size=max_size,
++        types=types,
++        with_deps=with_deps,
++        recursive=recursive,
++        **kwargs,
++    )
++
++
+ def build_data_index(  # noqa: C901, PLR0912
+     index: Union["Index", "IndexView"],
+     path: str,
+diff -ruN /app/dvc/repo/init.py /gin/dvc/repo/init.py
+--- /app/dvc/repo/init.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/init.py	2026-10-30 07:36:12.169931496 +0000
+@@ -63,7 +63,7 @@
+ 
+         remove(dvc_dir)
+ 
+-    os.mkdir(dvc_dir)
++    os.makedirs(dvc_dir)
+ 
+     config = Config.init(dvc_dir)
+ 
+diff -ruN /app/dvc/repo/push.py /gin/dvc/repo/push.py
+--- /app/dvc/repo/push.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/push.py	2026-10-30 07:36:12.172197278 +0000
+@@ -153,7 +153,7 @@
+         ws_idx = indexes.get("workspace")
+         if ws_idx is not None:
+             _update_meta(
+-                self.index,
++                ws_idx._index,
+                 targets=glob_targets(targets, glob=glob),
+                 remote=remote,
+                 with_deps=with_deps,
+diff -ruN /app/dvc/repo/status.py /gin/dvc/repo/status.py
+--- /app/dvc/repo/status.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/repo/status.py	2026-10-30 07:36:12.171327480 +0000
+@@ -130,7 +130,7 @@
+             remote=remote,
+             all_tags=all_tags,
+             all_commits=all_commits,
+-            recursive=True,
++            recursive=recursive,
+         )
+ 
+     ignored = list(
+diff -ruN /app/dvc/stage/__init__.py /gin/dvc/stage/__init__.py
+--- /app/dvc/stage/__init__.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/stage/__init__.py	2026-10-30 07:36:12.122906686 +0000
+@@ -3,6 +3,7 @@
+ from collections import defaultdict
+ from collections.abc import Iterable
+ from contextlib import suppress
++from copy import copy
+ from dataclasses import dataclass
+ from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union
+ 
+@@ -489,10 +490,12 @@
+         logger.debug("Computed %s md5: '%s'", self, m)
+         return m
+ 
+-    def save(self, allow_missing: bool = False, run_cache: bool = True):
++    def save(
++        self, allow_missing: bool = False, run_cache: bool = True, reload: bool = True
++    ):
+         self.save_deps(allow_missing=allow_missing)
+ 
+-        self.save_outs(allow_missing=allow_missing)
++        self.save_outs(allow_missing=allow_missing, reload=reload)
+ 
+         self.md5 = self.compute_md5()
+ 
+@@ -509,25 +512,30 @@
+                 if not allow_missing:
+                     raise
+ 
+-    def get_versioned_outs(self) -> dict[str, "Output"]:
++    def get_versioned_outs(self, reload: bool = True) -> dict[str, "Output"]:
+         from .exceptions import StageFileDoesNotExistError, StageNotFound
+ 
+-        try:
+-            old = self.reload()
+-        except (StageFileDoesNotExistError, StageNotFound):
+-            return {}
++        if reload:
++            try:
++                outs = self.reload().outs
++            except (StageFileDoesNotExistError, StageNotFound):
++                return {}
++        else:
++            # outputs that are yet to be saved still reflect the dvcfile, but
++            # saving updates them in place
++            outs = [copy(out) for out in self.outs]
+ 
+         return {
+             out.def_path: out
+-            for out in old.outs
++            for out in outs
+             if out.files is not None
+             or (out.meta is not None and out.meta.version_id is not None)
+         }
+ 
+-    def save_outs(self, allow_missing: bool = False):
++    def save_outs(self, allow_missing: bool = False, reload: bool = True):
+         from dvc.output import OutputDoesNotExistError
+ 
+-        old_versioned_outs = self.get_versioned_outs()
++        old_versioned_outs = self.get_versioned_outs(reload=reload)
+         for out in self.outs:
+             try:
+                 out.save()
+diff -ruN /app/dvc/utils/strictyaml.py /gin/dvc/utils/strictyaml.py
+--- /app/dvc/utils/strictyaml.py	2026-10-28 21:04:09.000000000 +0000
++++ /gin/dvc/utils/strictyaml.py	2026-10-30 07:36:12.099819014 +0000
+@@ -279,19 +279,22 @@
+ ) -> Any:
+     open_fn = fs.open if fs else open
+     rev = getattr(fs, "rev", None)
++    # path in a git revision is not a local path, so report it relative to
++    # the current directory in that revision instead
++    rel_path = fs.relpath(path) if fs and rev else path
+ 
+     try:
+         with open_fn(path, encoding=encoding) as fd:  # type: ignore[operator]
+             text = fd.read()
+-        data = parse_yaml(text, path, typ="rt" if round_trip else "safe")
++        data = parse_yaml(text, rel_path, typ="rt" if round_trip else "safe")
+     except UnicodeDecodeError as exc:
+-        raise EncodingError(path, encoding) from exc
++        raise EncodingError(rel_path, encoding) from exc
+     except YAMLFileCorruptedError as exc:
+         cause = exc.__cause__
+-        raise YAMLSyntaxError(path, text, exc, rev=rev) from cause
++        raise YAMLSyntaxError(rel_path, text, exc, rev=rev) from cause
+ 
+     if schema:
+         # not returning validated data, as it may remove
+         # details from CommentedMap that we get from roundtrip parser
+-        validate(data, schema, text=text, path=path, rev=rev)
++        validate(data, schema, text=text, path=rel_path, rev=rev)
+     return data, text

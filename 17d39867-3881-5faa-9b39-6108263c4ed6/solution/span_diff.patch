@@ -1,0 +1,4914 @@
+diff --git a/.github/workflows/benchmarks.yaml b/.github/workflows/benchmarks.yaml
+index 6ae5e83e..d01d90d9 100644
+--- a/.github/workflows/benchmarks.yaml
++++ b/.github/workflows/benchmarks.yaml
+@@ -18,7 +18,7 @@ jobs:
+         with:
+             python-version: "3.13"
+ 
+-      - uses: actions/checkout@v4
++      - uses: actions/checkout@v5
+         with:
+           ref: ${{ github.event.pull_request.base.sha }}
+           fetch-depth: 0
+@@ -32,7 +32,7 @@ jobs:
+       - name: run benchmarks on base branch
+         run: pytest --benchmark-autosave dvc/testing/benchmarks/ -k 'test_init or test_help'
+ 
+-      - uses: actions/checkout@v4
++      - uses: actions/checkout@v5
+         with:
+           fetch-depth: 0
+           clean: false
+diff --git a/.github/workflows/build.yaml b/.github/workflows/build.yaml
+index cb2dd0ed..ed0241ae 100644
+--- a/.github/workflows/build.yaml
++++ b/.github/workflows/build.yaml
+@@ -19,7 +19,7 @@ jobs:
+     name: Build & Verify package
+     runs-on: ubuntu-latest
+     steps:
+-    - uses: actions/checkout@v4
++    - uses: actions/checkout@v5
+       with:
+         fetch-depth: 0
+ 
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 5a2b796f..46fbbe13 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -28,7 +28,7 @@ jobs:
+ 
+     steps:
+     - name: Checkout repository
+-      uses: actions/checkout@v4
++      uses: actions/checkout@v5
+ 
+     - name: Initialize CodeQL
+       uses: github/codeql-action/init@v3
+diff --git a/.github/workflows/plugin_tests.yaml b/.github/workflows/plugin_tests.yaml
+index 36461c8c..ca1e7871 100644
+--- a/.github/workflows/plugin_tests.yaml
++++ b/.github/workflows/plugin_tests.yaml
+@@ -23,11 +23,11 @@ jobs:
+         plugin: ["dvc-s3"]
+ 
+     steps:
+-    - uses: actions/checkout@v4
++    - uses: actions/checkout@v5
+       with:
+         path: dvc
+ 
+-    - uses: actions/checkout@v4
++    - uses: actions/checkout@v5
+       with:
+         repository: iterative/${{ matrix.plugin }}
+         ref: main
+diff --git a/.github/workflows/tests.yaml b/.github/workflows/tests.yaml
+index de46f434..afbfb65c 100644
+--- a/.github/workflows/tests.yaml
++++ b/.github/workflows/tests.yaml
+@@ -26,7 +26,7 @@ jobs:
+       matrix:
+         os: [ubuntu-latest, macos-latest, windows-latest]
+     steps:
+-    - uses: actions/checkout@v4
++    - uses: actions/checkout@v5
+       with:
+         fetch-depth: 0
+     - name: Set up Python
+@@ -118,7 +118,7 @@ jobs:
+           pyv: "3.13"
+           pytestargs: "--splitting-algorithm=least_duration --splits 4 --group 4"
+     steps:
+-    - uses: actions/checkout@v4
++    - uses: actions/checkout@v5
+       with:
+         fetch-depth: 0
+     - name: Set up Python
+diff --git a/.pre-commit-config.yaml b/.pre-commit-config.yaml
+index f5f8801d..6ab38606 100644
+--- a/.pre-commit-config.yaml
++++ b/.pre-commit-config.yaml
+@@ -22,7 +22,7 @@ repos:
+       - id: sort-simple-yaml
+       - id: trailing-whitespace
+   - repo: https://github.com/astral-sh/ruff-pre-commit
+-    rev: 'v0.12.8'
++    rev: 'v0.12.11'
+     hooks:
+       - id: ruff-check
+         args: [--fix, --exit-non-zero-on-fix]
+diff --git a/dvc/_debug.py b/dvc/_debug.py
+index 75b9a002..9751beb9 100644
+--- a/dvc/_debug.py
++++ b/dvc/_debug.py
+@@ -14,7 +14,7 @@ def viztracer_profile(
+     log_async: bool = False,
+ ):
+     try:
+-        import viztracer
++        import viztracer  # ty: ignore[unresolved-import]
+     except ImportError:
+         print("Failed to run profiler, viztracer is not installed")  # noqa: T201
+         yield
+@@ -37,7 +37,7 @@ def yappi_profile(
+     separate_threads: Optional[bool] = False,
+ ):
+     try:
+-        import yappi
++        import yappi  # ty: ignore[unresolved-import]
+     except ImportError:
+         print("Failed to run profiler, yappi is not installed")  # noqa: T201
+         yield
+@@ -79,7 +79,7 @@ def yappi_profile(
+ def instrument(html_output=False):
+     """Run a statistical profiler"""
+     try:
+-        from pyinstrument import Profiler
++        from pyinstrument import Profiler  # ty: ignore[unresolved-import]
+     except ImportError:
+         print("Failed to run profiler, pyinstrument is not installed")  # noqa: T201
+         yield
+@@ -123,7 +123,7 @@ def debug():
+         yield
+     except Exception:
+         try:
+-            import ipdb as pdb  # noqa: T100
++            import ipdb as pdb  # noqa: T100  # ty: ignore[unresolved-import]
+         except ImportError:
+             import pdb  # type: ignore[no-redef]  # noqa: T100
+         pdb.post_mortem()
+diff --git a/dvc/analytics.py b/dvc/analytics.py
+index 4badcb2c..98845724 100644
+--- a/dvc/analytics.py
++++ b/dvc/analytics.py
+@@ -71,6 +71,7 @@ def send(path):
+     thus, the need of removing such file afterwards.
+     """
+     import requests
++    from requests.exceptions import RequestException
+ 
+     url = os.environ.get(DVC_ANALYTICS_ENDPOINT, "https://analytics.dvc.org")
+     headers = {"content-type": "application/json"}
+@@ -85,7 +86,7 @@ def send(path):
+ 
+     try:
+         requests.post(url, json=report, headers=headers, timeout=5)
+-    except requests.exceptions.RequestException as e:
++    except RequestException as e:
+         logger.trace("", exc_info=True)
+         logger.debug("failed to send analytics report %s", str(e))
+ 
+diff --git a/dvc/cli/completion.py b/dvc/cli/completion.py
+index 5d2025bf..e1f82c58 100644
+--- a/dvc/cli/completion.py
++++ b/dvc/cli/completion.py
+@@ -22,6 +22,11 @@ _dvc_compgen_exps() {
+     local _dvc_exps=($(dvc exp list -q --all-commits --names-only))
+     compgen -W "${_dvc_exps[*]}" -- $1
+ }
++
++_dvc_compgen_remotes() {
++    local _dvc_remotes=($(dvc remote list | cut -d' ' -f1))
++    compgen -W "${_dvc_remotes[*]}" -- $1
++}
+ """
+ 
+ ZSH_PREAMBLE = """
+@@ -55,6 +60,10 @@ _dvc_compadd_stages_and_files() {
+ _dvc_compadd_exps() {
+     _describe 'experiments' "($(dvc exp list -q --all-commits --names-only))"
+ }
++
++_dvc_compadd_remotes() {
++    _describe 'remotes' "($(dvc remote list | cut -d' ' -f1))"
++}
+ """
+ 
+ PREAMBLE = {
+@@ -71,3 +80,4 @@ DVCFILES_AND_STAGE = {
+     "zsh": "_dvc_compadd_stages_and_files",
+ }
+ EXPERIMENT = {"bash": "_dvc_compgen_exps", "zsh": "_dvc_compadd_exps"}
++REMOTE = {"bash": "_dvc_compgen_remotes", "zsh": "_dvc_compadd_remotes"}
+diff --git a/dvc/commands/add.py b/dvc/commands/add.py
+index 38146b30..9f2a584b 100644
+--- a/dvc/commands/add.py
++++ b/dvc/commands/add.py
+@@ -101,7 +101,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         help="Remote storage to download to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     parser.add_argument(
+         "--remote-jobs",
+         type=int,
+diff --git a/dvc/commands/artifacts.py b/dvc/commands/artifacts.py
+index 38a8b279..06cfc221 100644
+--- a/dvc/commands/artifacts.py
++++ b/dvc/commands/artifacts.py
+@@ -149,7 +149,7 @@ def add_parser(subparsers, parent_parser):
+             "Remote name to set as a default in the target repository "
+             "(only applicable when downloading from DVC remote)."
+         ),
+-    )
++    ).complete = completion.REMOTE
+     get_parser.add_argument(
+         "--remote-config",
+         type=str,
+diff --git a/dvc/commands/check_ignore.py b/dvc/commands/check_ignore.py
+index d8f2597f..3398f8ef 100644
+--- a/dvc/commands/check_ignore.py
++++ b/dvc/commands/check_ignore.py
+@@ -1,20 +1,28 @@
++from typing import TYPE_CHECKING
++
+ from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+ from dvc.ui import ui
+ 
++if TYPE_CHECKING:
++    from dvc.ignore import CheckIgnoreResult
++
+ 
+ class CmdCheckIgnore(CmdBase):
+     def __init__(self, args):
+         super().__init__(args)
+         self.ignore_filter = self.repo.dvcignore
+ 
+-    def _show_results(self, result):
+-        if not result.match and not self.args.non_matching:
++    def _show_results(self, result: "CheckIgnoreResult"):
++        if not result.match and not self.args.details:
+             return
+ 
+         if self.args.details:
+-            patterns = result.patterns
++            pattern_infos = result.pattern_infos
++            patterns = [str(pi) for pi in pattern_infos]
++            if not patterns and self.args.non_matching:
++                patterns = ["::"]
+             if not self.args.all:
+                 patterns = patterns[-1:]
+ 
+@@ -22,13 +30,11 @@ class CmdCheckIgnore(CmdBase):
+                 ui.write(pattern, result.file, sep="\t")
+         else:
+             ui.write(result.file)
++        return bool(result.pattern_infos)
+ 
+     def _check_one_file(self, target):
+         result = self.ignore_filter.check_ignore(target)
+-        self._show_results(result)
+-        if result.match:
+-            return 0
+-        return 1
++        return bool(self._show_results(result))
+ 
+     def _interactive_mode(self):
+         ret = 1
+@@ -39,14 +45,14 @@ class CmdCheckIgnore(CmdBase):
+                 break
+             if not target:
+                 break
+-            if not self._check_one_file(target):
++            if self._check_one_file(target):
+                 ret = 0
+         return ret
+ 
+     def _normal_mode(self):
+         ret = 1
+         for target in self.args.targets:
+-            if not self._check_one_file(target):
++            if self._check_one_file(target):
+                 ret = 0
+         return ret
+ 
+@@ -76,6 +82,8 @@ class CmdCheckIgnore(CmdBase):
+ 
+ 
+ def add_parser(subparsers, parent_parser):
++    import argparse
++
+     ADD_HELP = "Check whether files or directories are excluded due to `.dvcignore`."
+ 
+     parser = subparsers.add_parser(
+@@ -93,14 +101,7 @@ def add_parser(subparsers, parent_parser):
+         help="Show the exclude patterns along with each target path.",
+     )
+     parser.add_argument(
+-        "-a",
+-        "--all",
+-        action="store_true",
+-        default=False,
+-        help=(
+-            "Include the target paths which don't match any pattern "
+-            "in the `--details` list."
+-        ),
++        "-a", "--all", action="store_true", default=False, help=argparse.SUPPRESS
+     )
+     parser.add_argument(
+         "-n",
+diff --git a/dvc/commands/checkout.py b/dvc/commands/checkout.py
+index 201a5b53..50f25a0b 100644
+--- a/dvc/commands/checkout.py
++++ b/dvc/commands/checkout.py
+@@ -1,5 +1,3 @@
+-import operator
+-
+ from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+@@ -30,7 +28,7 @@ class CmdCheckout(CmdBase):
+ 
+         stats, exc = None, None
+         try:
+-            stats = self.repo.checkout(
++            result = self.repo.checkout(
+                 targets=self.args.targets,
+                 with_deps=self.args.with_deps,
+                 force=self.args.force,
+@@ -40,14 +38,17 @@ class CmdCheckout(CmdBase):
+             )
+         except CheckoutError as _exc:
+             exc = _exc
+-            stats = exc.stats
++            result = exc.result
+ 
+         if self.args.summary:
+             default_message = "No changes."
+-            msg = get_summary(sorted(stats.items(), key=operator.itemgetter(0)))
++            stats = result["stats"]
++            assert isinstance(stats, dict)
++            msg = get_summary(stats.items())
+             ui.write(msg or default_message)
+         else:
+-            log_changes(stats)
++            result.pop("stats", {})
++            log_changes(result)
+ 
+         if exc:
+             raise exc
+diff --git a/dvc/commands/data.py b/dvc/commands/data.py
+index c657749d..a7a43f26 100644
+--- a/dvc/commands/data.py
++++ b/dvc/commands/data.py
+@@ -10,6 +10,7 @@ from dvc.ui import ui
+ from dvc.utils import colorize
+ 
+ if TYPE_CHECKING:
++    from dvc.repo.data import GitInfo
+     from dvc.repo.data import Status as DataStatus
+ 
+ 
+@@ -55,20 +56,15 @@ class CmdDataStatus(CmdBase):
+     def _process_status(status: "DataStatus"):
+         """Flatten stage status, and filter empty stage status contents."""
+         for stage, stage_status in status.items():
+-            items = stage_status
+-            if isinstance(stage_status, dict):
+-                items = {
+-                    file: state
+-                    for state, files in stage_status.items()
+-                    for file in files
+-                }
+-            if not items:
++            if not stage_status or (
++                isinstance(stage_status, dict) and not any(stage_status.values())
++            ):
+                 continue
+-            yield stage, items
++            yield stage, stage_status
+ 
+     @classmethod
+     def _show_status(cls, status: "DataStatus") -> int:  # noqa: C901
+-        git_info = status.pop("git")  # type: ignore[misc]
++        git_info: GitInfo = status.pop("git")  # type: ignore[misc]
+         result = dict(cls._process_status(status))
+         if not result:
+             no_changes = "No changes"
+@@ -90,7 +86,16 @@ class CmdDataStatus(CmdBase):
+                     ui.write(f"  ({hint})")
+ 
+             if isinstance(stage_status, dict):
+-                items = [f"{state}: {file}" for file, state in stage_status.items()]
++                items = [
++                    f"{state}: "
++                    + (
++                        " -> ".join(change.values())
++                        if isinstance(change, dict)
++                        else change
++                    )
++                    for state, changes in stage_status.items()
++                    for change in changes
++                ]
+             else:
+                 items = stage_status
+ 
+@@ -111,6 +116,7 @@ class CmdDataStatus(CmdBase):
+                 targets=self.args.targets,
+                 granular=self.args.granular,
+                 untracked_files=self.args.untracked_files,
++                remote=self.args.remote,
+                 not_in_remote=self.args.not_in_remote,
+                 remote_refresh=self.args.remote_refresh,
+             )
+@@ -127,9 +133,12 @@ class CmdDataStatus(CmdBase):
+ 
+ 
+ def add_parser(subparsers, parent_parser):
++    data_help = "Commands related to data management."
+     data_parser = subparsers.add_parser(
+         "data",
+         parents=[parent_parser],
++        description=append_doc_link(data_help, "data/status"),
++        help=data_help,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+     data_subparsers = data_parser.add_subparsers(
+@@ -182,6 +191,12 @@ def add_parser(subparsers, parent_parser):
+         nargs="?",
+         help="Show untracked files.",
+     )
++    data_status_parser.add_argument(
++        "-r",
++        "--remote",
++        help="Remote storage to check (only applicable with --not-in-remote).",
++        metavar="<name>",
++    ).complete = completion.REMOTE
+     data_status_parser.add_argument(
+         "--not-in-remote",
+         action="store_true",
+diff --git a/dvc/commands/data_sync.py b/dvc/commands/data_sync.py
+index 81f573e6..8f46e682 100644
+--- a/dvc/commands/data_sync.py
++++ b/dvc/commands/data_sync.py
+@@ -22,17 +22,18 @@ class CmdDataBase(CmdBase):
+ 
+ 
+ class CmdDataPull(CmdDataBase):
+-    def log_summary(self, stats):
++    def log_summary(self, result):
+         from dvc.commands.checkout import log_changes
+ 
+-        log_changes(stats)
++        stats = result.pop("stats", {})
++        log_changes(result)
+         super().log_summary(stats)
+ 
+     def run(self):
+         from dvc.exceptions import CheckoutError, DvcException
+ 
+         try:
+-            stats = self.repo.pull(
++            result = self.repo.pull(
+                 targets=self.args.targets,
+                 jobs=self.args.jobs,
+                 remote=self.args.remote,
+@@ -46,10 +47,10 @@ class CmdDataPull(CmdDataBase):
+                 glob=self.args.glob,
+                 allow_missing=self.args.allow_missing,
+             )
+-            self.log_summary(stats)
++            self.log_summary(result)
+         except (CheckoutError, DvcException) as exc:
+-            if stats := getattr(exc, "stats", {}):
+-                self.log_summary(stats)
++            if result := getattr(exc, "result", {}):
++                self.log_summary(result)
+             logger.exception("failed to pull data from the cloud")
+             return 1
+ 
+@@ -149,7 +150,7 @@ def add_parser(subparsers, _parent_parser):
+     )
+     pull_parser.add_argument(
+         "-r", "--remote", help="Remote storage to pull from", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE
+     pull_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -224,7 +225,7 @@ def add_parser(subparsers, _parent_parser):
+     )
+     push_parser.add_argument(
+         "-r", "--remote", help="Remote storage to push to", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE
+     push_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -286,7 +287,7 @@ def add_parser(subparsers, _parent_parser):
+     )
+     fetch_parser.add_argument(
+         "-r", "--remote", help="Remote storage to fetch from", metavar="<name>"
+-    )
++    ).complete = completion.REMOTE
+     fetch_parser.add_argument(
+         "-a",
+         "--all-branches",
+@@ -379,7 +380,7 @@ def add_parser(subparsers, _parent_parser):
+         "--remote",
+         help="Remote storage to compare local cache to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     status_parser.add_argument(
+         "-a",
+         "--all-branches",
+diff --git a/dvc/commands/du.py b/dvc/commands/du.py
+index 486695c5..d089d033 100644
+--- a/dvc/commands/du.py
++++ b/dvc/commands/du.py
+@@ -60,7 +60,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         type=str,
+         help="Remote name to set as a default in the target repository.",
+-    )
++    ).complete = completion.REMOTE
+     du_parser.add_argument(
+         "--remote-config",
+         type=str,
+diff --git a/dvc/commands/experiments/pull.py b/dvc/commands/experiments/pull.py
+index c7a97a46..d55c48ec 100644
+--- a/dvc/commands/experiments/pull.py
++++ b/dvc/commands/experiments/pull.py
+@@ -1,6 +1,6 @@
+ import argparse
+ 
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+ from dvc.log import logger
+@@ -71,7 +71,7 @@ def add_parser(experiments_subparsers, parent_parser):
+         dest="dvc_remote",
+         metavar="<name>",
+         help="Name of the DVC remote to use when pulling cached outputs.",
+-    )
++    ).complete = completion.REMOTE
+     experiments_pull_parser.add_argument(
+         "-j",
+         "--jobs",
+diff --git a/dvc/commands/experiments/push.py b/dvc/commands/experiments/push.py
+index 505f2b24..d48a738c 100644
+--- a/dvc/commands/experiments/push.py
++++ b/dvc/commands/experiments/push.py
+@@ -111,7 +111,7 @@ def add_parser(experiments_subparsers, parent_parser):
+         dest="dvc_remote",
+         metavar="<name>",
+         help="Name of the DVC remote to use when pushing cached outputs.",
+-    )
++    ).complete = completion.REMOTE
+     experiments_push_parser.add_argument(
+         "-j",
+         "--jobs",
+diff --git a/dvc/commands/experiments/show.py b/dvc/commands/experiments/show.py
+index c1a15aae..d166c04c 100644
+--- a/dvc/commands/experiments/show.py
++++ b/dvc/commands/experiments/show.py
+@@ -1,6 +1,6 @@
+ import argparse
+ import re
+-from collections.abc import Iterable
++from collections.abc import Collection, Iterable
+ from datetime import date, datetime
+ from typing import TYPE_CHECKING
+ 
+@@ -59,17 +59,16 @@ def baseline_styler(typ):
+ def show_experiments(
+     td: "TabularData",
+     headers: dict[str, Iterable[str]],
+-    keep=None,
+-    drop=None,
++    keep: Collection[str] = (),
++    drop: Collection[str] = (),
+     pager=True,
+     csv=False,
+     markdown=False,
+     **kwargs,
+ ):
+     if keep:
+-        for col in td.keys():  # noqa: SIM118
+-            if re.match(keep, col):
+-                td.protect(col)
++        keep_re = re.compile("|".join(keep))
++        td.protect(*(col for col in td.keys() if keep_re.match(col)))  # noqa: SIM118
+ 
+     for col in ("State", "Executor"):
+         if td.is_empty(col):
+@@ -110,8 +109,9 @@ def show_experiments(
+         td.drop_duplicates("cols", ignore_empty=False)
+ 
+     cols_to_drop = set()
+-    if drop is not None:
+-        cols_to_drop = {col for col in td.keys() if re.match(drop, col)}  # noqa: SIM118
++    if drop:
++        drop_re = re.compile("|".join(drop))
++        cols_to_drop = {col for col in td.keys() if drop_re.match(col)}  # noqa: SIM118
+     td.drop(*cols_to_drop)
+ 
+     td.render(
+@@ -237,11 +237,15 @@ def add_parser(experiments_subparsers, parent_parser):
+     )
+     experiments_show_parser.add_argument(
+         "--drop",
++        action="append",
++        default=[],
+         help="Remove the columns matching the specified regex pattern.",
+         metavar="<regex_pattern>",
+     )
+     experiments_show_parser.add_argument(
+         "--keep",
++        action="append",
++        default=[],
+         help="Preserve the columns matching the specified regex pattern.",
+         metavar="<regex_pattern>",
+     )
+diff --git a/dvc/commands/gc.py b/dvc/commands/gc.py
+index 0a993db5..63026222 100644
+--- a/dvc/commands/gc.py
++++ b/dvc/commands/gc.py
+@@ -1,6 +1,6 @@
+ import os
+ 
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.command import CmdBase
+ from dvc.cli.utils import append_doc_link
+ from dvc.log import logger
+@@ -188,7 +188,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         help="Remote storage to collect garbage in",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     gc_parser.add_argument(
+         "--skip-failed",
+         action="store_true",
+diff --git a/dvc/commands/get.py b/dvc/commands/get.py
+index 2bbf39f2..92fa9aa3 100644
+--- a/dvc/commands/get.py
++++ b/dvc/commands/get.py
+@@ -121,7 +121,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         type=str,
+         help="Remote name to set as a default in the target repository.",
+-    )
++    ).complete = completion.REMOTE
+     get_parser.add_argument(
+         "--remote-config",
+         type=str,
+diff --git a/dvc/commands/imp.py b/dvc/commands/imp.py
+index 9b143775..edc7c879 100644
+--- a/dvc/commands/imp.py
++++ b/dvc/commands/imp.py
+@@ -115,7 +115,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         type=str,
+         help="Remote name to set as a default in the target repository.",
+-    )
++    ).complete = completion.REMOTE
+     import_parser.add_argument(
+         "--remote-config",
+         type=str,
+diff --git a/dvc/commands/imp_url.py b/dvc/commands/imp_url.py
+index 24e72546..c4f854b7 100644
+--- a/dvc/commands/imp_url.py
++++ b/dvc/commands/imp_url.py
+@@ -73,7 +73,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         help="Remote storage to download to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     no_download_exec_group = import_parser.add_mutually_exclusive_group()
+     no_download_exec_group.add_argument(
+         "--no-exec",
+diff --git a/dvc/commands/init.py b/dvc/commands/init.py
+index 5f6d7424..79862a06 100644
+--- a/dvc/commands/init.py
++++ b/dvc/commands/init.py
+@@ -42,7 +42,7 @@ class CmdInit(CmdBaseNoRepo):
+ 
+         try:
+             with Repo.init(
+-                ".",
++                self.args.directory,
+                 no_scm=self.args.no_scm,
+                 force=self.args.force,
+                 subdir=self.args.subdir,
+@@ -57,10 +57,11 @@ class CmdInit(CmdBaseNoRepo):
+ 
+ def add_parser(subparsers, parent_parser):
+     """Setup parser for `dvc init`."""
+-    INIT_HELP = "Initialize DVC in the current directory."
++    INIT_HELP = "Initialize DVC repository."
+     INIT_DESCRIPTION = (
+-        "Initialize DVC in the current directory. Expects directory\n"
+-        "to be a Git repository unless --no-scm option is specified."
++        "Initialize DVC repository in the given directory (defaults to the current "
++        "working directory).\n"
++        "Expects directory to be a Git repository unless --no-scm option is specified."
+     )
+ 
+     init_parser = subparsers.add_parser(
+@@ -70,6 +71,14 @@ def add_parser(subparsers, parent_parser):
+         help=INIT_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
++    init_parser.add_argument(
++        "directory",
++        nargs="?",
++        default=".",
++        help=(
++            "Directory to initialize DVC in. Defaults to the current working directory."
++        ),
++    )
+     init_parser.add_argument(
+         "--no-scm",
+         action="store_true",
+diff --git a/dvc/commands/ls/__init__.py b/dvc/commands/ls/__init__.py
+index bfc1bd67..d409d7ec 100644
+--- a/dvc/commands/ls/__init__.py
++++ b/dvc/commands/ls/__init__.py
+@@ -250,7 +250,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         type=str,
+         help="Remote name to set as a default in the target repository.",
+-    )
++    ).complete = completion.REMOTE
+     list_parser.add_argument(
+         "--remote-config",
+         type=str,
+diff --git a/dvc/commands/remote.py b/dvc/commands/remote.py
+index 325eeda2..bf727cad 100644
+--- a/dvc/commands/remote.py
++++ b/dvc/commands/remote.py
+@@ -1,4 +1,4 @@
+-from dvc.cli import formatter
++from dvc.cli import completion, formatter
+ from dvc.cli.utils import append_doc_link
+ from dvc.commands.config import CmdConfig
+ from dvc.ui import ui
+@@ -210,7 +210,9 @@ def add_parser(subparsers, parent_parser):
+         help=REMOTE_DEFAULT_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_default_parser.add_argument("name", nargs="?", help="Name of the remote")
++    remote_default_parser.add_argument(
++        "name", nargs="?", help="Name of the remote"
++    ).complete = completion.REMOTE
+     remote_default_parser.add_argument(
+         "-u",
+         "--unset",
+@@ -228,7 +230,9 @@ def add_parser(subparsers, parent_parser):
+         help=REMOTE_MODIFY_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_modify_parser.add_argument("name", help="Name of the remote")
++    remote_modify_parser.add_argument(
++        "name", help="Name of the remote"
++    ).complete = completion.REMOTE
+     remote_modify_parser.add_argument("option", help="Name of the option to modify.")
+     remote_modify_parser.add_argument(
+         "value", nargs="?", help="(optional) Value of the option."
+@@ -260,7 +264,9 @@ def add_parser(subparsers, parent_parser):
+         help=REMOTE_REMOVE_HELP,
+         formatter_class=formatter.RawDescriptionHelpFormatter,
+     )
+-    remote_remove_parser.add_argument("name", help="Name of the remote to remove.")
++    remote_remove_parser.add_argument(
++        "name", help="Name of the remote to remove."
++    ).complete = completion.REMOTE
+     remote_remove_parser.set_defaults(func=CmdRemoteRemove)
+     REMOTE_RENAME_HELP = "Rename a DVC remote"
+     remote_rename_parser = remote_subparsers.add_parser(
+diff --git a/dvc/commands/update.py b/dvc/commands/update.py
+index 660e0376..9cb6eeb8 100644
+--- a/dvc/commands/update.py
++++ b/dvc/commands/update.py
+@@ -74,7 +74,7 @@ def add_parser(subparsers, parent_parser):
+         "--remote",
+         help="Remote storage to perform updates to",
+         metavar="<name>",
+-    )
++    ).complete = completion.REMOTE
+     update_parser.add_argument(
+         "-j",
+         "--jobs",
+diff --git a/dvc/daemon.py b/dvc/daemon.py
+index 432cc2ce..406d1b21 100644
+--- a/dvc/daemon.py
++++ b/dvc/daemon.py
+@@ -32,10 +32,10 @@ def _win_detached_subprocess(args: Sequence[str], **kwargs) -> int:
+     assert os.name == "nt"
+ 
+     from subprocess import (  # type: ignore[attr-defined]
+-        CREATE_NEW_PROCESS_GROUP,
+-        CREATE_NO_WINDOW,
+-        STARTF_USESHOWWINDOW,
+-        STARTUPINFO,
++        CREATE_NEW_PROCESS_GROUP,  # ty: ignore[unresolved-import]
++        CREATE_NO_WINDOW,  # ty: ignore[unresolved-import]
++        STARTF_USESHOWWINDOW,  # ty: ignore[unresolved-import]
++        STARTUPINFO,  # ty: ignore[unresolved-import]
+     )
+ 
+     # https://stackoverflow.com/a/7006424
+diff --git a/dvc/dagascii.py b/dvc/dagascii.py
+index f8623ffe..6d20ed42 100644
+--- a/dvc/dagascii.py
++++ b/dvc/dagascii.py
+@@ -195,7 +195,7 @@ def _build_sugiyama_layout(vertices, edges):
+ 
+     sug.yspace = VertexViewer.HEIGHT
+     sug.xspace = minw
+-    sug.route_edge = route_with_lines
++    sug.route_edge = route_with_lines  # ty: ignore[unresolved-attribute]
+ 
+     sug.draw()
+ 
+diff --git a/dvc/dvcfile.py b/dvc/dvcfile.py
+index 1a150e8c..c84ff857 100644
+--- a/dvc/dvcfile.py
++++ b/dvc/dvcfile.py
+@@ -162,6 +162,9 @@ class FileMixin:
+     def dump(self, stage, **kwargs):
+         raise NotImplementedError
+ 
++    def dump_stages(self, stages, **kwargs):
++        raise NotImplementedError
++
+     def merge(self, ancestor, other, allowed=None):
+         raise NotImplementedError
+ 
+@@ -198,6 +201,13 @@ class SingleStageFile(FileMixin):
+         dump_yaml(self.path, serialize.to_single_stage_file(stage, **kwargs))
+         self.repo.scm_context.track_file(self.relpath)
+ 
++    def dump_stages(self, stages, **kwargs) -> None:
++        if not stages:
++            return
++
++        assert len(stages) == 1, "SingleStageFile can only dump one stage."
++        return self.dump(stages[0], **kwargs)
++
+     def remove_stage(self, stage):  # noqa: ARG002
+         self.remove()
+ 
+@@ -228,17 +238,27 @@ class ProjectFile(FileMixin):
+ 
+     def dump(self, stage, update_pipeline=True, update_lock=True, **kwargs):
+         """Dumps given stage appropriately in the dvcfile."""
++        return self.dump_stages(
++            [stage], update_pipeline=update_pipeline, update_lock=update_lock, **kwargs
++        )
++
++    def dump_stages(self, stages, update_pipeline=True, update_lock=True, **kwargs):
+         from dvc.stage import PipelineStage
+ 
+-        assert isinstance(stage, PipelineStage)
++        if not stages:
++            return
++
++        for stage in stages:
++            assert isinstance(stage, PipelineStage)
++
+         if self.verify:
+             check_dvcfile_path(self.repo, self.path)
+ 
+-        if update_pipeline and not stage.is_data_source:
+-            self._dump_pipeline_file(stage)
++        if update_pipeline:
++            self._dump_pipeline_file(stages)
+ 
+         if update_lock:
+-            self._dump_lockfile(stage, **kwargs)
++            self._dump_lockfile(stages, **kwargs)
+ 
+     def dump_dataset(self, dataset):
+         with modify_yaml(self.path, fs=self.repo.fs) as data:
+@@ -260,32 +280,37 @@ class ProjectFile(FileMixin):
+                 raw.append(dataset)
+         self.repo.scm_context.track_file(self.relpath)
+ 
+-    def _dump_lockfile(self, stage, **kwargs):
+-        self._lockfile.dump(stage, **kwargs)
++    def _dump_lockfile(self, stages, **kwargs):
++        self._lockfile.dump_stages(stages, **kwargs)
+ 
+     @staticmethod
+     def _check_if_parametrized(stage, action: str = "dump") -> None:
+         if stage.raw_data.parametrized:
+             raise ParametrizedDumpError(f"cannot {action} a parametrized {stage}")
+ 
+-    def _dump_pipeline_file(self, stage):
+-        self._check_if_parametrized(stage)
+-        stage_data = serialize.to_pipeline_file(stage)
++    def _dump_pipeline_file(self, stages):
++        stages = stages if isinstance(stages, list) else [stages]
++        if not stages:
++            return
++
++        for stage in stages:
++            self._check_if_parametrized(stage)
+ 
+         with modify_yaml(self.path, fs=self.repo.fs) as data:
+             if not data:
+                 logger.info("Creating '%s'", self.relpath)
+ 
+             data["stages"] = data.get("stages", {})
+-            existing_entry = stage.name in data["stages"]
+-            action = "Modifying" if existing_entry else "Adding"
+-            logger.info("%s stage '%s' in '%s'", action, stage.name, self.relpath)
+-
+-            if existing_entry:
+-                orig_stage_data = data["stages"][stage.name]
+-                apply_diff(stage_data[stage.name], orig_stage_data)
+-            else:
+-                data["stages"].update(stage_data)
++            for stage in stages:
++                stage_data = serialize.to_pipeline_file(stage)
++                existing_entry = stage.name in data["stages"]
++                action = "Modifying" if existing_entry else "Adding"
++                logger.info("%s stage '%s' in '%s'", action, stage.name, self.relpath)
++                if existing_entry:
++                    orig_stage_data = data["stages"][stage.name]
++                    apply_diff(stage_data[stage.name], orig_stage_data)
++                else:
++                    data["stages"].update(stage_data)
+ 
+         self.repo.scm_context.track_file(self.relpath)
+ 
+@@ -399,9 +424,12 @@ class Lockfile(FileMixin):
+             data.setdefault("stages", {})
+         self.repo.scm_context.track_file(self.relpath)
+ 
+-    def dump(self, stage, **kwargs):
+-        stage_data = serialize.to_lockfile(stage, **kwargs)
++    def dump_stages(self, stages, **kwargs):
++        if not stages:
++            return
+ 
++        is_modified = False
++        log_updated = False
+         with modify_yaml(self.path, fs=self.repo.fs) as data:
+             if not data:
+                 data.update({"schema": "2.0"})
+@@ -409,17 +437,24 @@ class Lockfile(FileMixin):
+                 logger.info("Generating lock file '%s'", self.relpath)
+ 
+             data["stages"] = data.get("stages", {})
+-            modified = data["stages"].get(stage.name, {}) != stage_data.get(
+-                stage.name, {}
+-            )
+-            if modified:
+-                logger.info("Updating lock file '%s'", self.relpath)
+-
+-            data["stages"].update(stage_data)
++            for stage in stages:
++                stage_data = serialize.to_lockfile(stage, **kwargs)
++                modified = data["stages"].get(stage.name, {}) != stage_data.get(
++                    stage.name, {}
++                )
++                if modified:
++                    is_modified = True
++                    if not log_updated:
++                        logger.info("Updating lock file '%s'", self.relpath)
++                        log_updated = True
++                data["stages"].update(stage_data)
+ 
+-        if modified:
++        if is_modified:
+             self.repo.scm_context.track_file(self.relpath)
+ 
++    def dump(self, stage, **kwargs):
++        self.dump_stages([stage], **kwargs)
++
+     def remove_stage(self, stage):
+         if not self.exists():
+             return
+diff --git a/dvc/exceptions.py b/dvc/exceptions.py
+index f72b0dd6..ef72049d 100644
+--- a/dvc/exceptions.py
++++ b/dvc/exceptions.py
+@@ -242,11 +242,11 @@ class UploadError(FileTransferError):
+ 
+ 
+ class CheckoutError(DvcException):
+-    def __init__(self, target_infos: list[str], stats: dict[str, list[str]]):
++    def __init__(self, target_infos: list[str], result: dict):
+         from dvc.utils import error_link
+ 
+         self.target_infos = target_infos
+-        self.stats = stats
++        self.result = result
+         targets = [str(t) for t in target_infos]
+         m = (
+             "Checkout failed for following targets:\n{}\nIs your "
+diff --git a/dvc/fs/callbacks.py b/dvc/fs/callbacks.py
+index d30ad4f2..59053008 100644
+--- a/dvc/fs/callbacks.py
++++ b/dvc/fs/callbacks.py
+@@ -1,8 +1,8 @@
+ from contextlib import ExitStack
+ from typing import TYPE_CHECKING, BinaryIO, Optional, Union
+ 
+-import fsspec
+ from fsspec.callbacks import DEFAULT_CALLBACK, Callback  # noqa: F401
++from fsspec.callbacks import TqdmCallback as _TqdmCallback
+ 
+ from dvc.progress import Tqdm
+ from dvc.utils.objects import cached_property
+@@ -14,7 +14,7 @@ if TYPE_CHECKING:
+     from dvc.ui._rich_progress import RichTransferProgress
+ 
+ 
+-class TqdmCallback(fsspec.callbacks.TqdmCallback):
++class TqdmCallback(_TqdmCallback):
+     def __init__(
+         self,
+         size: Optional[int] = None,
+diff --git a/dvc/fs/dvc_path.py b/dvc/fs/dvc_path.py
+index 1a181f8b..9de54e47 100644
+--- a/dvc/fs/dvc_path.py
++++ b/dvc/fs/dvc_path.py
+@@ -15,7 +15,7 @@ Examples
+ 
+ from urllib.parse import urlsplit
+ 
+-from upath import UPath
++from upath import UPath  # ty: ignore[unresolved-import]
+ 
+ 
+ class DVCPath(UPath):
+diff --git a/dvc/ignore.py b/dvc/ignore.py
+index a622fb1f..e102ec5f 100644
+--- a/dvc/ignore.py
++++ b/dvc/ignore.py
+@@ -1,8 +1,9 @@
++import functools
+ import os
+ import re
+-from collections import namedtuple
++from collections.abc import Iterable, Iterator
+ from itertools import chain, groupby, takewhile
+-from typing import TYPE_CHECKING, Optional
++from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Optional, Union, overload
+ 
+ from pathspec.patterns import GitWildMatchPattern
+ from pathspec.util import normalize_file
+@@ -13,7 +14,9 @@ from dvc.log import logger
+ from dvc.pathspec_math import PatternInfo, merge_patterns
+ 
+ if TYPE_CHECKING:
+-    from dvc.fs import AnyFSPath, FileSystem
++    from typing_extensions import Self
++
++    from dvc.fs import FileSystem
+ 
+ logger = logger.getChild(__name__)
+ 
+@@ -21,36 +24,79 @@ logger = logger.getChild(__name__)
+ class DvcIgnore:
+     DVCIGNORE_FILE = ".dvcignore"
+ 
+-    def __call__(self, root, dirs, files):
++    def __call__(
++        self, root: str, dirs: list[str], files: list[str]
++    ) -> tuple[list[str], list[str]]:
+         raise NotImplementedError
+ 
+ 
+ class DvcIgnorePatterns(DvcIgnore):
+-    def __init__(self, pattern_list, dirname, sep):
++    def __init__(
++        self, pattern_list: Iterable[Union[PatternInfo, str]], dirname: str, sep: str
++    ) -> None:
+         from pathspec.patterns.gitwildmatch import _DIR_MARK
+ 
+-        if pattern_list and isinstance(pattern_list[0], str):
+-            pattern_list = [PatternInfo(pattern, "") for pattern in pattern_list]
++        pattern_infos = [
++            pattern if isinstance(pattern, PatternInfo) else PatternInfo(pattern, "")
++            for pattern in pattern_list
++        ]
+ 
+         self.sep = sep
+-        self.pattern_list = pattern_list
++        self.pattern_list: list[PatternInfo] = []
+         self.dirname = dirname
++        self.find_matching_pattern = functools.cache(self._find_matching_pattern)
++
++        regex_pattern_list: list[tuple[str, bool, bool, PatternInfo]] = []
++        for count, pattern_info in enumerate(pattern_infos):
++            regex, ignore = GitWildMatchPattern.pattern_to_regex(pattern_info.patterns)
++            if regex is not None and ignore is not None:
++                self.pattern_list.append(pattern_info)
++                regex = regex.replace(f"<{_DIR_MARK}>", f"<{_DIR_MARK}{count}>")
++                regex_pattern_list.append(
++                    (regex, ignore, pattern_info.patterns.endswith("/"), pattern_info)
++                )
+ 
+-        self.regex_pattern_list = []
+-        for count, pattern in enumerate(pattern_list):
+-            pattern, group = GitWildMatchPattern.pattern_to_regex(pattern.patterns)
+-            if pattern:
+-                pattern = pattern.replace(f"<{_DIR_MARK}>", f"<{_DIR_MARK}{count}>")
+-                self.regex_pattern_list.append((pattern, group))
++        def keyfunc(item: tuple[str, bool, bool, PatternInfo]) -> tuple[bool, bool]:
++            _, ignore, dir_only_pattern, _ = item
++            return ignore, dir_only_pattern
+ 
+-        self.ignore_spec = [
+-            (ignore, re.compile("|".join(item[0] for item in group)))
+-            for ignore, group in groupby(self.regex_pattern_list, lambda x: x[1])
+-            if ignore is not None
++        self.ignore_spec: list[
++            tuple[
++                re.Pattern[str],
++                bool,
++                bool,
++                dict[Optional[str], tuple[str, PatternInfo]],
++            ]
+         ]
++        self.ignore_spec = []
++        for (ignore, dir_only_pattern), group in groupby(
++            regex_pattern_list, key=keyfunc
++        ):
++            if ignore:
++                # For performance, we combine all exclude patterns.
++                # But we still need to figure out which pattern matched which rule,
++                # (eg: to show in `dvc check-ignore`).
++                # So, we use named groups and keep a map of group name to pattern.
++                pattern_map: dict[Optional[str], tuple[str, PatternInfo]] = {
++                    f"rule_{i}": (regex, pi)
++                    for i, (regex, _, _, pi) in enumerate(group)
++                }
++                combined_regex = "|".join(
++                    f"(?P<{name}>{regex})" for name, (regex, _) in pattern_map.items()
++                )
++                self.ignore_spec.append(
++                    (re.compile(combined_regex), ignore, dir_only_pattern, pattern_map)
++                )
++            else:
++                # unignored patterns are not combined with `|`.
++                for regex, _, _, pi in group:
++                    pattern_map = {None: (regex, pi)}
++                    self.ignore_spec.append(
++                        (re.compile(regex), ignore, dir_only_pattern, pattern_map)
++                    )
+ 
+     @classmethod
+-    def from_file(cls, path, fs, name):
++    def from_file(cls, path: str, fs: "FileSystem", name: str) -> "Self":
+         assert fs.isabs(path)
+         dirname = fs.normpath(fs.dirname(path))
+         with fs.open(path, encoding="utf-8") as fobj:
+@@ -62,13 +108,15 @@ class DvcIgnorePatterns(DvcIgnore):
+ 
+         return cls(path_spec_lines, dirname, fs.sep)
+ 
+-    def __call__(self, root: list[str], dirs: list[str], files: list[str]):
++    def __call__(
++        self, root: str, dirs: list[str], files: list[str]
++    ) -> tuple[list[str], list[str]]:
+         files = [f for f in files if not self.matches(root, f)]
+         dirs = [d for d in dirs if not self.matches(root, d, True)]
+ 
+         return dirs, files
+ 
+-    def _get_normalize_path(self, dirname, basename):
++    def _get_normalize_path(self, dirname: str, basename: str) -> Optional[str]:
+         # NOTE: `relpath` is too slow, so we have to assume that both
+         # `dirname` and `self.dirname` are relative or absolute together.
+ 
+@@ -81,62 +129,105 @@ class DvcIgnorePatterns(DvcIgnore):
+             # NOTE: `os.path.join` is ~x5.5 slower
+             path = f"{rel}{self.sep}{basename}"
+         else:
+-            return False
++            return None
+ 
+         if os.name == "nt":
+             return normalize_file(path)
+         return path
+ 
+-    def matches(self, dirname, basename, is_dir=False, details: bool = False):
+-        path = self._get_normalize_path(dirname, basename)
+-        if not path:
+-            return False
+-
+-        if details:
+-            return self._ignore_details(path, is_dir)
+-        return self.ignore(path, is_dir)
+-
+-    def ignore(self, path, is_dir):
+-        def matches(pattern, path, is_dir) -> bool:
+-            matches_ = bool(pattern.match(path))
++    @overload
++    def matches(
++        self,
++        dirname: str,
++        basename: str,
++        is_dir: bool = False,
++        details: Literal[False] = ...,
++    ) -> bool: ...
+ 
+-            if is_dir:
+-                matches_ |= bool(pattern.match(f"{path}/"))
++    @overload
++    def matches(
++        self,
++        dirname: str,
++        basename: str,
++        is_dir: bool = False,
++        details: Literal[True] = ...,
++    ) -> tuple[bool, list[PatternInfo]]: ...
+ 
+-            return matches_
++    @overload
++    def matches(
++        self,
++        dirname: str,
++        basename: str,
++        is_dir: bool = False,
++        details: bool = False,
++    ) -> Union[bool, tuple[bool, list[PatternInfo]]]: ...
+ 
++    def matches(
++        self,
++        dirname: str,
++        basename: str,
++        is_dir: bool = False,
++        details: bool = False,
++    ) -> Union[bool, tuple[bool, list[PatternInfo]]]:
++        path = self._get_normalize_path(dirname, basename)
+         result = False
+-
+-        for ignore, pattern in self.ignore_spec[::-1]:
+-            if matches(pattern, path, is_dir):
+-                result = ignore
+-                break
+-        return result
+-
+-    def _ignore_details(self, path, is_dir: bool):
+-        result = []
+-        for (regex, _), pattern_info in list(
+-            zip(self.regex_pattern_list, self.pattern_list)
++        _match: list[PatternInfo] = []
++        if path:
++            result, _match = self._ignore(path, is_dir)
++        return (result, _match) if details else result
++
++    def _find_matching_pattern(
++        self, path: str, is_dir: bool
++    ) -> tuple[bool, list[PatternInfo]]:
++        paths = [path]
++        if is_dir and not path.endswith("/"):
++            paths.append(f"{path}/")
++
++        for pattern, ignore, dir_only_pattern, pattern_map in reversed(
++            self.ignore_spec
+         ):
+-            # skip system pattern
+-            if not pattern_info.file_info:
++            if dir_only_pattern and not is_dir:
+                 continue
++            for p in paths:
++                match = pattern.match(p)
++                if not match:
++                    continue
++                if ignore:
++                    group_name, _match = next(
++                        (
++                            (name, _match)
++                            for name, _match in match.groupdict().items()
++                            if name.startswith("rule_") and _match is not None
++                        )
++                    )
++                else:
++                    # unignored patterns are not combined with `|`,
++                    # so there are no groups.
++                    group_name = None
++                _regex, pattern_info = pattern_map[group_name]
++                return ignore, [pattern_info]
++        return False, []
++
++    def _ignore(self, path: str, is_dir: bool) -> tuple[bool, list[PatternInfo]]:
++        parts = path.split("/")
++        result = False
++        matches: list[PatternInfo] = []
++        for i in range(1, len(parts) + 1):
++            rel_path = "/".join(parts[:i])
++            result, _matches = self.find_matching_pattern(
++                rel_path, is_dir or i < len(parts)
++            )
++            if i < len(parts) and not result:
++                continue
++            matches.extend(_matches)
++            if result:
++                break
++        return result, matches
+ 
+-            regex = re.compile(regex)
+-
+-            matches = bool(regex.match(path))
+-            if is_dir:
+-                matches |= bool(regex.match(f"{path}/"))
+-
+-            if matches:
+-                result.append(pattern_info.file_info)
+-
+-        return result
+-
+-    def __hash__(self):
++    def __hash__(self) -> int:
+         return hash(self.dirname + ":" + str(self.pattern_list))
+ 
+-    def __eq__(self, other):
++    def __eq__(self, other: object) -> bool:
+         if not isinstance(other, DvcIgnorePatterns):
+             return NotImplemented
+         return (self.dirname == other.dirname) & (
+@@ -144,21 +235,18 @@ class DvcIgnorePatterns(DvcIgnore):
+             == [pattern.patterns for pattern in other.pattern_list]
+         )
+ 
+-    def __bool__(self):
++    def __bool__(self) -> bool:
+         return bool(self.pattern_list)
+ 
+ 
+-CheckIgnoreResult = namedtuple(  # noqa: PYI024
+-    "CheckIgnoreResult", ["file", "match", "patterns"]
+-)
+-
+-
+-def _no_match(path):
+-    return CheckIgnoreResult(path, False, ["::"])
++class CheckIgnoreResult(NamedTuple):
++    file: str
++    match: bool
++    pattern_infos: list[PatternInfo]
+ 
+ 
+ class DvcIgnoreFilter:
+-    def __init__(self, fs, root_dir):
++    def __init__(self, fs: "FileSystem", root_dir: str) -> None:
+         from dvc.repo import Repo
+ 
+         default_ignore_patterns = [
+@@ -193,7 +281,7 @@ class DvcIgnoreFilter:
+             ignore_subrepos=True,
+         )
+ 
+-    def _get_key(self, path):
++    def _get_key(self, path: str) -> tuple[str, ...]:
+         parts = self.fs.relparts(path, self.root_dir)
+         if parts == (os.curdir,):
+             return ()
+@@ -241,7 +329,7 @@ class DvcIgnoreFilter:
+             for dname in dnames:
+                 self._update_sub_repo(self.fs.join(dirname, dname), ignore_trie)
+ 
+-    def _update_sub_repo(self, path, ignore_trie: Trie):
++    def _update_sub_repo(self, path: str, ignore_trie: Trie) -> None:
+         from dvc.repo import Repo
+ 
+         if path == self.root_dir:
+@@ -268,7 +356,9 @@ class DvcIgnoreFilter:
+         else:
+             ignore_trie[key] = new_pattern
+ 
+-    def __call__(self, root, dirs, files, ignore_subrepos=True):
++    def __call__(
++        self, root: str, dirs: list[str], files: list[str], ignore_subrepos: bool = True
++    ) -> tuple[list[str], list[str]]:
+         abs_root = self.fs.abspath(root)
+         ignore_pattern = self._get_trie_pattern(
+             abs_root, dnames=dirs, ignore_subrepos=ignore_subrepos
+@@ -277,7 +367,24 @@ class DvcIgnoreFilter:
+             dirs, files = ignore_pattern(abs_root, dirs, files)
+         return dirs, files
+ 
+-    def ls(self, fs, path, detail=True, **kwargs):
++    @overload
++    def ls(
++        self, fs: "FileSystem", path: str, detail: Literal[True], **kwargs: Any
++    ) -> list[dict[str, Any]]: ...
++
++    @overload
++    def ls(
++        self, fs: "FileSystem", path: str, detail: Literal[False], **kwargs
++    ) -> list[str]: ...
++
++    @overload
++    def ls(
++        self, fs: "FileSystem", path: str, detail: bool = True, **kwargs
++    ) -> Union[list[str], list[dict[str, Any]]]: ...
++
++    def ls(
++        self, fs: "FileSystem", path: str, detail: bool = True, **kwargs: Any
++    ) -> Union[list[str], list[dict[str, Any]]]:
+         fs_dict = {}
+         dirs = []
+         nondirs = []
+@@ -297,22 +404,29 @@ class DvcIgnoreFilter:
+ 
+         return [fs_dict[name] for name in chain(dirs, nondirs)]
+ 
+-    def walk(self, fs: "FileSystem", path: "AnyFSPath", **kwargs):
++    def walk(
++        self, fs: "FileSystem", path: str, **kwargs: Any
++    ) -> Iterator[
++        Union[
++            tuple[str, list[str], list[str]],
++            tuple[str, dict[str, dict], dict[str, dict]],
++        ]
++    ]:
+         detail = kwargs.get("detail", False)
+         ignore_subrepos = kwargs.pop("ignore_subrepos", True)
+         if fs.protocol == Schemes.LOCAL:
+             for root, dirs, files in fs.walk(path, **kwargs):
+                 if detail:
+-                    all_dnames = set(dirs.keys())
+-                    all_fnames = set(files.keys())
++                    assert isinstance(dirs, dict)
++                    assert isinstance(files, dict)
+                     dnames, fnames = self(
+                         root,
+-                        all_dnames,
+-                        all_fnames,
++                        list(dirs),
++                        list(files),
+                         ignore_subrepos=ignore_subrepos,
+                     )
+-                    list(map(dirs.pop, all_dnames - set(dnames)))
+-                    list(map(files.pop, all_fnames - set(fnames)))
++                    list(map(dirs.pop, dirs.keys() - set(dnames)))
++                    list(map(files.pop, files.keys() - set(fnames)))
+                 else:
+                     dirs[:], files[:] = self(
+                         root, dirs, files, ignore_subrepos=ignore_subrepos
+@@ -321,7 +435,7 @@ class DvcIgnoreFilter:
+         else:
+             yield from fs.walk(path, **kwargs)
+ 
+-    def find(self, fs: "FileSystem", path: "AnyFSPath", **kwargs):
++    def find(self, fs: "FileSystem", path: str, **kwargs: Any) -> Iterator[str]:
+         if fs.protocol == Schemes.LOCAL:
+             for root, _, files in self.walk(fs, path, **kwargs):
+                 for file in files:
+@@ -331,7 +445,7 @@ class DvcIgnoreFilter:
+             yield from fs.find(path)
+ 
+     def _get_trie_pattern(
+-        self, dirname, dnames: Optional["list"] = None, ignore_subrepos=True
++        self, dirname: str, dnames: Optional[list[str]] = None, ignore_subrepos=True
+     ) -> Optional["DvcIgnorePatterns"]:
+         if ignore_subrepos:
+             ignores_trie = self.ignores_trie_fs
+@@ -367,7 +481,7 @@ class DvcIgnoreFilter:
+ 
+     def _is_ignored(
+         self, path: str, is_dir: bool = False, ignore_subrepos: bool = True
+-    ):
++    ) -> bool:
+         if self._outside_repo(path):
+             return False
+         dirname, basename = self.fs.split(self.fs.normpath(path))
+@@ -389,24 +503,23 @@ class DvcIgnoreFilter:
+         path = self.fs.abspath(path)
+         return self._is_ignored(path, False, ignore_subrepos=ignore_subrepos)
+ 
+-    def _outside_repo(self, path):
++    def _outside_repo(self, path: str) -> bool:
+         return not self.fs.isin_or_eq(path, self.root_dir)
+ 
+-    def check_ignore(self, target):
++    def check_ignore(self, target: str) -> CheckIgnoreResult:
+         # NOTE: can only be used in `dvc check-ignore`, see
+         # https://github.com/iterative/dvc/issues/5046
+         full_target = self.fs.abspath(target)
++        matched_patterns: list[PatternInfo] = []
++        ignore = False
+         if not self._outside_repo(full_target):
+             dirname, basename = self.fs.split(self.fs.normpath(full_target))
+             pattern = self._get_trie_pattern(dirname)
+             if pattern:
+-                matches = pattern.matches(
+-                    dirname, basename, self.fs.isdir(full_target), True
++                ignore, matched_patterns = pattern.matches(
++                    dirname, basename, self.fs.isdir(full_target), details=True
+                 )
+-
+-                if matches:
+-                    return CheckIgnoreResult(target, True, matches)
+-        return _no_match(target)
++        return CheckIgnoreResult(target, ignore, matched_patterns)
+ 
+     def is_ignored(
+         self, fs: "FileSystem", path: str, ignore_subrepos: bool = True
+@@ -424,7 +537,7 @@ class DvcIgnoreFilter:
+         )
+ 
+ 
+-def init(path):
++def init(path: Union[str, os.PathLike[str]]) -> str:
+     dvcignore = os.path.join(path, DvcIgnore.DVCIGNORE_FILE)
+     if os.path.exists(dvcignore):
+         return dvcignore
+@@ -439,7 +552,7 @@ def init(path):
+     return dvcignore
+ 
+ 
+-def destroy(path):
++def destroy(path: Union[str, os.PathLike[str]]) -> None:
+     from dvc.utils.fs import remove
+ 
+     dvcignore = os.path.join(path, DvcIgnore.DVCIGNORE_FILE)
+diff --git a/dvc/output.py b/dvc/output.py
+index 48acf499..485bfe47 100644
+--- a/dvc/output.py
++++ b/dvc/output.py
+@@ -45,7 +45,7 @@ if TYPE_CHECKING:
+     from dvc_data.hashfile.obj import HashFile
+     from dvc_data.index import DataIndexKey
+ 
+-    from .ignore import DvcIgnoreFilter
++    from .ignore import CheckIgnoreResult, DvcIgnoreFilter
+ 
+ logger = logger.getChild(__name__)
+ 
+@@ -267,9 +267,9 @@ class OutputIsStageFileError(DvcException):
+ 
+ 
+ class OutputIsIgnoredError(DvcException):
+-    def __init__(self, match):
+-        lines = "\n".join(match.patterns)
+-        super().__init__(f"Path '{match.file}' is ignored by\n{lines}")
++    def __init__(self, result: "CheckIgnoreResult"):
++        pi = result.pattern_infos[-1]
++        super().__init__(f"Path {result.file!r} is ignored by {pi!s}")
+ 
+ 
+ class CheckoutCallback(TqdmCallback):
+@@ -1203,8 +1203,9 @@ class Output:
+         if stage:
+             abs_path = os.path.join(stage.wdir, path)
+             if self._is_path_dvcignore(abs_path):
+-                check = stage.repo.dvcignore.check_ignore(abs_path)
+-                raise self.IsIgnoredError(check)
++                check: CheckIgnoreResult = stage.repo.dvcignore.check_ignore(abs_path)
++                if check.match:
++                    raise self.IsIgnoredError(check)
+ 
+     def _check_can_merge(self, out):
+         if self.protocol != out.protocol:
+@@ -1452,25 +1453,43 @@ class Output:
+         self.remote = other.remote
+         self.can_push = other.can_push
+ 
+-    def merge_version_meta(self, other: "Output"):
++    def _get_versioned_meta(
++        self,
++    ) -> Optional[
++        tuple["HashInfo", Optional["Meta"], Optional[Union["HashFile", "Tree"]]]
++    ]:
++        if self.files is not None or (
++            self.meta is not None and self.meta.version_id is not None
++        ):
++            old_obj = self.obj if self.obj is not None else self.get_obj()
++            return self.hash_info, self.meta, old_obj
++        return None
++
++    def merge_version_meta(
++        self,
++        old_hi: "HashInfo",
++        old_meta: Optional["Meta"],
++        old_obj: Optional[Union["HashFile", "Tree"]],
++    ):
+         """Merge version meta for files which are unchanged from other."""
+         if not self.hash_info:
+             return
+         if self.hash_info.isdir:
+-            return self._merge_dir_version_meta(other)
+-        if self.hash_info != other.hash_info:
++            return self._merge_dir_version_meta(old_hi, old_obj)
++        if self.hash_info != old_hi:
+             return
+-        self.meta = other.meta
++        self.meta = old_meta
+ 
+-    def _merge_dir_version_meta(self, other: "Output"):
++    def _merge_dir_version_meta(
++        self, old_hi: "HashInfo", old_obj: Optional[Union["HashFile", "Tree"]]
++    ):
+         from dvc_data.hashfile.tree import update_meta
+ 
+-        if not self.obj or not other.hash_info.isdir:
++        if not self.obj or not old_hi.isdir:
+             return
+-        other_obj = other.obj if other.obj is not None else other.get_obj()
+         assert isinstance(self.obj, Tree)
+-        assert isinstance(other_obj, Tree)
+-        updated = update_meta(self.obj, other_obj)
++        assert isinstance(old_obj, Tree)
++        updated = update_meta(self.obj, old_obj)
+         assert updated.hash_info == self.obj.hash_info
+         self.obj = updated
+         self.files = updated.as_list(with_meta=True)
+diff --git a/dvc/pathspec_math.py b/dvc/pathspec_math.py
+index 88fbf9cd..59e84b62 100644
+--- a/dvc/pathspec_math.py
++++ b/dvc/pathspec_math.py
+@@ -2,13 +2,19 @@
+ # Including changing base dir of path specification patterns and merging
+ # of two path specification patterns with different base
+ # All the operations follow the documents of `gitignore`
+-from collections import namedtuple
++from typing import NamedTuple
+ 
+ from pathspec.util import normalize_file
+ 
+ from dvc.utils import relpath
+ 
+-PatternInfo = namedtuple("PatternInfo", ["patterns", "file_info"])  # noqa: PYI024
++
++class PatternInfo(NamedTuple):
++    patterns: str
++    file_info: str
++
++    def __str__(self) -> str:
++        return self.file_info or f":{self.patterns}"
+ 
+ 
+ def _not_ignore(rule):
+diff --git a/dvc/repo/checkout.py b/dvc/repo/checkout.py
+index 06cff4e3..919fb0a4 100644
+--- a/dvc/repo/checkout.py
++++ b/dvc/repo/checkout.py
+@@ -1,4 +1,5 @@
+ import os
++from collections import defaultdict
+ from typing import TYPE_CHECKING
+ 
+ from dvc.exceptions import (
+@@ -14,7 +15,9 @@ from dvc.utils import relpath
+ from . import locked
+ 
+ if TYPE_CHECKING:
+-    from dvc_data.index import BaseDataIndex, DataIndexEntry
++    from dvc.repo.index import IndexView
++    from dvc_data.index import BaseDataIndex, DataIndexEntry, DataIndexKey
++    from dvc_data.index.diff import Change
+     from dvc_objects.fs.base import FileSystem
+ 
+ logger = logger.getChild(__name__)
+@@ -36,10 +39,12 @@ def _remove_unused_links(repo):
+     return ret
+ 
+ 
+-def _build_out_changes(index, changes):
++def _build_out_changes(
++    index: "IndexView", changes: dict["DataIndexKey", "Change"]
++) -> dict["DataIndexKey", tuple[str, dict[str, int]]]:
+     from dvc_data.index.checkout import MODIFY
+ 
+-    out_keys = []
++    out_keys: list[DataIndexKey] = []
+     for out in index.outs:
+         if not out.use_cache:
+             continue
+@@ -47,19 +52,28 @@ def _build_out_changes(index, changes):
+         ws, key = out.index_key
+         if ws != "repo":
+             continue
+-
+         out_keys.append(key)
+ 
+-    out_changes = {}
++    out_stats: dict[DataIndexKey, dict[str, int]]
++    out_stats = defaultdict(lambda: defaultdict(int))
++
++    out_changes: dict[DataIndexKey, tuple[str, dict[str, int]]] = {}
+     for key, change in changes.items():
++        typ = change.typ
++        isdir = change.new and change.new.isdir
+         for out_key in out_keys:
+             if len(out_key) > len(key) or key[: len(out_key)] != out_key:
+                 continue
+ 
++            stats = out_stats[out_key]
++            if not isdir:
++                stats[typ] += 1
++
+             if key == out_key:
+-                out_changes[out_key] = change.typ
+-            elif not out_changes.get(out_key):
+-                out_changes[out_key] = MODIFY
++                out_changes[out_key] = typ, stats
++            elif out_key not in out_changes:
++                typ = MODIFY
++                out_changes[out_key] = typ, stats
+             break
+ 
+     return out_changes
+@@ -107,14 +121,13 @@ def checkout(  # noqa: C901
+     from dvc.stage.exceptions import StageFileBadNameError, StageFileDoesNotExistError
+     from dvc_data.index.checkout import ADD, DELETE, MODIFY, apply, compare
+ 
+-    stats: dict[str, list[str]] = {
+-        "added": [],
+-        "deleted": [],
+-        "modified": [],
+-    }
++    stats = {"modified": 0, "added": 0, "deleted": 0}
++    changes: dict[str, list[str]] = {"modified": [], "added": [], "deleted": []}
++
+     if not targets:
+         targets = [None]
+-        stats["deleted"] = _remove_unused_links(self)
++        changes["deleted"] = _remove_unused_links(self)
++        stats["deleted"] = len(changes["deleted"])
+ 
+     if isinstance(targets, str):
+         targets = [targets]
+@@ -127,8 +140,10 @@ def checkout(  # noqa: C901
+             raise CheckoutErrorSuggestGit(target) from exc
+         raise  # noqa: PLE0704
+ 
+-    view = self.index.targets_view(
+-        targets, recursive=recursive, with_deps=with_deps, onerror=onerror
++    from .index import index_from_targets
++
++    view = index_from_targets(
++        self, targets=targets, recursive=recursive, with_deps=with_deps, onerror=onerror
+     )
+ 
+     with ui.progress(unit="entry", desc="Building workspace index", leave=True) as pb:
+@@ -174,16 +189,26 @@ def checkout(  # noqa: C901
+     out_changes = _build_out_changes(view, diff.changes)
+ 
+     typ_map = {ADD: "added", DELETE: "deleted", MODIFY: "modified"}
+-    for key, typ in out_changes.items():
++    for key, (typ, _stats) in out_changes.items():
+         out_path = self.fs.join(self.root_dir, *key)
+ 
+         if out_path in failed:
+             self.fs.remove(out_path, recursive=True)
+-        else:
+-            self.state.save_link(out_path, self.fs)
+-            stats[typ_map[typ]].append(_fspath_dir(out_path))
++            continue
+ 
+-    if failed and not allow_missing:
+-        raise CheckoutError([relpath(out_path) for out_path in failed], stats)
++        self.state.save_link(out_path, self.fs)
++        for t, count in _stats.items():
++            stats_typ = typ_map[t]
++            stats[stats_typ] += count
++
++        changes[typ_map[typ]].append(_fspath_dir(out_path))
+ 
+-    return stats
++    for changelist in changes.values():
++        # group directories first, then files. But keep them alphabetically sorted
++        changelist.sort(key=lambda p: (not p.endswith(os.sep), p))
++
++    result = changes | {"stats": stats}
++    if failed and not allow_missing:
++        result["failed"] = [relpath(out_path) for out_path in failed]
++        raise CheckoutError([relpath(out_path) for out_path in failed], result)
++    return result
+diff --git a/dvc/repo/collect.py b/dvc/repo/collect.py
+index 31805e95..37829786 100644
+--- a/dvc/repo/collect.py
++++ b/dvc/repo/collect.py
+@@ -43,13 +43,13 @@ def _collect_paths(
+ 
+ 
+ def _filter_outs(
+-    outs: Outputs, fs_paths: StrPaths, duplicates=False
++    repo: "Repo", outs: Outputs, fs_paths: StrPaths, duplicates=False
+ ) -> tuple[Outputs, StrPaths]:
+     res_outs: Outputs = []
+     fs_res_paths = fs_paths
+ 
+     for out in outs:
+-        fs_path = out.repo.dvcfs.from_os_path(out.fs_path)
++        fs_path = repo.dvcfs.from_os_path(out.fs_path)
+         if fs_path in fs_paths:
+             res_outs.append(out)
+             if not duplicates:
+@@ -77,4 +77,4 @@ def collect(
+ 
+     target_paths = _collect_paths(repo, targets, recursive=recursive)
+ 
+-    return _filter_outs(outs, target_paths, duplicates=duplicates)
++    return _filter_outs(repo, outs, target_paths, duplicates=duplicates)
+diff --git a/dvc/repo/commit.py b/dvc/repo/commit.py
+index cea727f2..986af04b 100644
+--- a/dvc/repo/commit.py
++++ b/dvc/repo/commit.py
+@@ -1,3 +1,4 @@
++from itertools import groupby
+ from typing import TYPE_CHECKING
+ 
+ from dvc import prompt
+@@ -52,29 +53,38 @@ def commit(
+     data_only=False,
+     relink=True,
+ ):
+-    stages_info = [
+-        info
+-        for info in self.stage.collect_granular(
+-            target, with_deps=with_deps, recursive=recursive
+-        )
+-        if not data_only or info.stage.is_data_source
+-    ]
+-    for stage_info in stages_info:
+-        stage = stage_info.stage
+-        if force:
+-            stage.save(allow_missing=allow_missing)
+-        else:
+-            changes = stage.changed_entries()
+-            if any(changes):
+-                prompt_to_commit(stage, changes, force=force)
++    committed_stages = []
++    groups = groupby(
++        [
++            info
++            for info in self.stage.collect_granular(
++                target, with_deps=with_deps, recursive=recursive
++            )
++            if not data_only or info.stage.is_data_source
++        ],
++        key=lambda info: info.stage.dvcfile,
++    )
++
++    for dvcfile, stages_info_group in groups:
++        to_dump = []
++        for stage_info in stages_info_group:
++            stage = stage_info.stage
++            if force:
+                 stage.save(allow_missing=allow_missing)
+-        stage.commit(
+-            filter_info=stage_info.filter_info,
+-            allow_missing=allow_missing,
+-            relink=relink,
+-        )
+-        stage.dump(update_pipeline=False)
+-    return [s.stage for s in stages_info]
++            else:
++                changes = stage.changed_entries()
++                if any(changes):
++                    prompt_to_commit(stage, changes, force=force)
++                    stage.save(allow_missing=allow_missing)
++            stage.commit(
++                filter_info=stage_info.filter_info,
++                allow_missing=allow_missing,
++                relink=relink,
++            )
++            to_dump.append(stage)
++        dvcfile.dump_stages(to_dump, update_pipeline=False)
++        committed_stages.extend(to_dump)
++    return committed_stages
+ 
+ 
+ @locked
+diff --git a/dvc/repo/data.py b/dvc/repo/data.py
+index dc5f2b4b..e539e4c5 100644
+--- a/dvc/repo/data.py
++++ b/dvc/repo/data.py
+@@ -41,6 +41,14 @@ def _adapt_path(change: "Change") -> str:
+     return os.path.sep.join(key)
+ 
+ 
++def _adapt_path_from_entry(entry: "DataIndexEntry") -> str:
++    key = entry.key
++    assert key
++    if entry.meta and entry.meta.isdir:
++        key = (*key, "")
++    return os.sep.join(key)
++
++
+ def _get_missing_paths(
+     to_check: Mapping["FileSystem", Mapping[str, Iterable["DataIndexEntry"]]],
+     batch_size: Optional[int] = None,
+@@ -59,11 +67,7 @@ def _get_missing_paths(
+                 continue
+ 
+             for entry in paths_map[cache_path]:
+-                key = entry.key
+-                assert key
+-                if entry.meta and entry.meta.isdir:
+-                    key = (*key, "")
+-                yield os.path.sep.join(key)
++                yield _adapt_path_from_entry(entry)
+ 
+ 
+ class StorageCallback(Callback):
+@@ -82,6 +86,21 @@ class StorageCallback(Callback):
+         self.parent_cb.relative_update(value - self.value)
+ 
+ 
++class Rename(TypedDict):
++    old: str
++    new: str
++
++
++class DiffResult(TypedDict, total=False):
++    modified: list[str]
++    added: list[str]
++    deleted: list[str]
++    renamed: list[Rename]
++    unchanged: list[str]
++    unknown: list[str]
++    not_in_cache: list[str]
++
++
+ def _diff(
+     old: "BaseDataIndex",
+     new: "BaseDataIndex",
+@@ -91,11 +110,25 @@ def _diff(
+     not_in_cache: bool = False,
+     batch_size: Optional[int] = None,
+     callback: "Callback" = DEFAULT_CALLBACK,
+-) -> dict[str, list[str]]:
+-    from dvc_data.index.diff import ADD, DELETE, MODIFY, UNCHANGED, UNKNOWN, diff
++    with_renames: bool = False,
++) -> DiffResult:
++    from dvc_data.index.diff import (
++        ADD,
++        DELETE,
++        MODIFY,
++        RENAME,
++        UNCHANGED,
++        UNKNOWN,
++        diff,
++    )
+ 
+-    ret: dict[str, list[str]] = defaultdict(list)
+-    change_types = {MODIFY: "modified", ADD: "added", DELETE: "deleted"}
++    ret: DiffResult = defaultdict(list)  # type: ignore[assignment]
++    change_types = {
++        MODIFY: "modified",
++        ADD: "added",
++        DELETE: "deleted",
++        RENAME: "renamed",
++    }
+ 
+     to_check: dict[FileSystem, dict[str, list[DataIndexEntry]]] = defaultdict(
+         lambda: defaultdict(list)
+@@ -108,25 +141,38 @@ def _diff(
+         shallow=not granular,
+         hash_only=True,
+         with_unknown=True,
++        with_renames=with_renames,
+         callback=callback,
+     ):
++        typ = change.typ
++
+         # The index is a trie, so even when we filter by a specific path
+         # like `dir/file`, all parent nodes leading to that path (e.g., `dir/`)
+         # still appear in the view. As a result, keys like `dir/` will be present
+         # even if only `dir/file` matches the filter.
+         # We need to skip such entries to avoid showing root of tracked directories.
+-        if filter_keys and not any(change.key[: len(fk)] == fk for fk in filter_keys):
+-            continue
++        if filter_keys:
++            # RENAME does not have a `change.key`
++            if typ == RENAME:
++                assert change.new
++                key = change.new.key
++                # match with "new" key only
++                assert key
++            else:
++                key = change.key
++
++            if not any(key[: len(fk)] == fk for fk in filter_keys):
++                continue
+ 
+         if (
+-            change.typ == UNCHANGED
++            typ == UNCHANGED
+             and (not change.old or not change.old.hash_info)
+             and (not change.new or not change.new.hash_info)
+         ):
+             # NOTE: emulating previous behaviour
+             continue
+ 
+-        if change.typ == UNKNOWN and not change.new:
++        if typ == UNKNOWN and not change.new:
+             # NOTE: emulating previous behaviour
+             continue
+ 
+@@ -136,8 +182,18 @@ def _diff(
+             # check later in batches
+             to_check[cache_fs][cache_path].append(old_entry)
+ 
+-        change_typ = change_types.get(change.typ, change.typ)
+-        ret[change_typ].append(_adapt_path(change))
++        change_typ = change_types.get(typ, typ)
++        if typ == RENAME:
++            assert change.old is not None
++            assert change.new is not None
++            ret["renamed"].append(
++                {
++                    "old": _adapt_path_from_entry(change.old),
++                    "new": _adapt_path_from_entry(change.new),
++                }
++            )
++        else:
++            ret[change_typ].append(_adapt_path(change))  # type: ignore[literal-required]
+ 
+     total_items = sum(
+         len(entries) for paths in to_check.values() for entries in paths.values()
+@@ -150,7 +206,7 @@ def _diff(
+         )
+         if missing_items:
+             ret["not_in_cache"] = missing_items
+-    return dict(ret)
++    return dict(ret)  # type: ignore[return-value]
+ 
+ 
+ class GitInfo(TypedDict, total=False):
+@@ -230,7 +286,8 @@ def _diff_index_to_wtree(
+     filter_keys: Optional[Iterable["DataIndexKey"]] = None,
+     granular: bool = False,
+     batch_size: Optional[int] = None,
+-) -> dict[str, list[str]]:
++    with_renames: bool = False,
++) -> DiffResult:
+     from .index import build_data_index
+ 
+     with ui.progress(desc="Building workspace index", unit="entry") as pb:
+@@ -255,6 +312,7 @@ def _diff_index_to_wtree(
+             filter_keys=filter_keys,
+             granular=granular,
+             not_in_cache=True,
++            with_renames=with_renames,
+             batch_size=batch_size,
+             callback=pb.as_callback(),
+         )
+@@ -265,7 +323,9 @@ def _diff_head_to_index(
+     head: str = "HEAD",
+     filter_keys: Optional[Iterable["DataIndexKey"]] = None,
+     granular: bool = False,
+-) -> dict[str, list[str]]:
++    with_renames: bool = False,
++) -> DiffResult:
++    from dvc.exceptions import NotDvcRepoError
+     from dvc.scm import RevError
+     from dvc_data.index import DataIndex
+ 
+@@ -279,6 +339,11 @@ def _diff_head_to_index(
+     except RevError:
+         logger.debug("failed to switch to '%s'", head)
+         head_view = DataIndex()
++    except NotDvcRepoError as exc:
++        # NOTE: this only gets raised on subdir repos at the moment,
++        # which looks like a bug in `repo.switch`.
++        logger.warning(exc)
++        head_view = DataIndex()
+ 
+     with ui.progress(desc="Calculating diff between head/index", unit="entry") as pb:
+         return _diff(
+@@ -286,6 +351,7 @@ def _diff_head_to_index(
+             index_view,
+             filter_keys=filter_keys,
+             granular=granular,
++            with_renames=with_renames,
+             callback=pb.as_callback(),
+         )
+ 
+@@ -293,8 +359,8 @@ def _diff_head_to_index(
+ class Status(TypedDict):
+     not_in_cache: list[str]
+     not_in_remote: list[str]
+-    committed: dict[str, list[str]]
+-    uncommitted: dict[str, list[str]]
++    committed: DiffResult
++    uncommitted: DiffResult
+     untracked: list[str]
+     unchanged: list[str]
+     git: GitInfo
+@@ -398,26 +464,40 @@ def _prune_keys(filter_keys: Iterable["DataIndexKey"]) -> list["DataIndexKey"]:
+     return result
+ 
+ 
+-def status(
++def status(  # noqa: PLR0913
+     repo: "Repo",
+     targets: Optional[Iterable[Union[os.PathLike[str], str]]] = None,
+     *,
+     granular: bool = False,
+     untracked_files: str = "no",
++    remote: Optional[str] = None,
+     not_in_remote: bool = False,
+     remote_refresh: bool = False,
++    config: Optional[dict] = None,
+     batch_size: Optional[int] = None,
+     head: str = "HEAD",
++    with_renames: bool = True,
+ ) -> Status:
+     from dvc.scm import NoSCMError, SCMError
+ 
++    config = config or {}
++    if remote and not_in_remote:
++        logger.debug("Using remote %r", remote)
++        core = config.setdefault("core", {})
++        core["remote"] = remote
++    repo.config.merge(config)
++
+     targets = targets or []
+     filter_keys: list[DataIndexKey] = [repo.fs.relparts(os.fspath(t)) for t in targets]
+     # try to remove duplicate and overlapping keys
+     filter_keys = _prune_keys(filter_keys)
+ 
+     uncommitted_diff = _diff_index_to_wtree(
+-        repo, filter_keys=filter_keys, granular=granular, batch_size=batch_size
++        repo,
++        filter_keys=filter_keys,
++        granular=granular,
++        batch_size=batch_size,
++        with_renames=with_renames,
+     )
+     unchanged = set(uncommitted_diff.pop("unchanged", []))
+ 
+@@ -432,7 +512,11 @@ def status(
+ 
+     try:
+         committed_diff = _diff_head_to_index(
+-            repo, filter_keys=filter_keys, head=head, granular=granular
++            repo,
++            filter_keys=filter_keys,
++            head=head,
++            granular=granular,
++            with_renames=with_renames,
+         )
+     except (SCMError, NoSCMError):
+         committed_diff = {}
+diff --git a/dvc/repo/diff.py b/dvc/repo/diff.py
+index 0f83efce..a8283e71 100644
+--- a/dvc/repo/diff.py
++++ b/dvc/repo/diff.py
+@@ -45,6 +45,12 @@ def _diff(old, new, data_keys, with_missing=False):
+         with_renames=True,
+         meta_cmp_key=meta_cmp_key,
+         roots=data_keys,
++        # Include unknown entries from missing dir entry, so that they don't
++        # get reported as added/modified/deleted.
++        # Also return unchanged entries so that we can check if they are missing
++        # from cache.
++        with_unknown=True,
++        with_unchanged=with_missing,
+     ):
+         if (change.old and change.old.isdir and not change.old.hash_info) or (
+             change.new and change.new.isdir and not change.new.hash_info
+diff --git a/dvc/repo/experiments/utils.py b/dvc/repo/experiments/utils.py
+index 45cb76d9..e1038d54 100644
+--- a/dvc/repo/experiments/utils.py
++++ b/dvc/repo/experiments/utils.py
+@@ -2,7 +2,7 @@ import os
+ import random
+ import sys
+ from collections import defaultdict
+-from collections.abc import Generator, Iterable, Mapping
++from collections.abc import Generator, Iterable, Mapping, Sequence
+ from functools import wraps
+ from typing import TYPE_CHECKING, Callable, Optional, Union
+ 
+@@ -126,7 +126,7 @@ def iter_remote_refs(scm: "Git", url: str, base: Optional[str] = None, **kwargs)
+ def push_refspec(
+     scm: "Git",
+     url: str,
+-    push_list=list[tuple[Optional[str], str]],
++    push_list: Sequence[tuple[Optional[str], str]],
+     force: bool = False,
+     on_diverged: Optional[Callable[[str, str], bool]] = None,
+     **kwargs,
+diff --git a/dvc/repo/fetch.py b/dvc/repo/fetch.py
+index d4f64e1d..60571bba 100644
+--- a/dvc/repo/fetch.py
++++ b/dvc/repo/fetch.py
+@@ -41,6 +41,8 @@ def _collect_indexes(  # noqa: PLR0913
+     onerror=None,
+     push=False,
+ ):
++    from .index import index_from_targets
++
+     indexes = {}
+     collection_exc = None
+ 
+@@ -68,7 +70,8 @@ def _collect_indexes(  # noqa: PLR0913
+         try:
+             repo.config.merge(config)
+ 
+-            idx = repo.index.targets_view(
++            idx = index_from_targets(
++                repo,
+                 targets,
+                 with_deps=with_deps,
+                 recursive=recursive,
+diff --git a/dvc/repo/index.py b/dvc/repo/index.py
+index ea872086..f28db66b 100644
+--- a/dvc/repo/index.py
++++ b/dvc/repo/index.py
+@@ -17,6 +17,7 @@ from dvc.utils.objects import cached_property
+ if TYPE_CHECKING:
+     from networkx import DiGraph
+     from pygtrie import Trie
++    from typing_extensions import Self
+ 
+     from dvc.dependency import Dependency
+     from dvc.fs.callbacks import Callback
+@@ -66,14 +67,14 @@ def collect_files(
+ 
+     is_local_fs = isinstance(fs, LocalFileSystem)
+ 
+-    def is_ignored(path):
++    def is_ignored(path: str) -> bool:
+         # apply only for the local fs
+         return is_local_fs and scm.is_ignored(path)
+ 
+-    def is_dvcfile_and_not_ignored(root, file):
++    def is_dvcfile_and_not_ignored(root: str, file: str) -> bool:
+         return is_valid_filename(file) and not is_ignored(f"{root}{sep}{file}")
+ 
+-    def is_out_or_ignored(root, directory):
++    def is_out_or_ignored(root: str, directory: str) -> bool:
+         dir_path = f"{root}{sep}{directory}"
+         # trailing slash needed to check if a directory is gitignored
+         return dir_path in outs or is_ignored(f"{dir_path}{sep}")
+@@ -83,6 +84,8 @@ def collect_files(
+         walk_iter = log_walk(walk_iter)
+ 
+     for root, dirs, files in walk_iter:
++        assert isinstance(dirs, list)
++        assert isinstance(files, list)
+         dvcfile_filter = partial(is_dvcfile_and_not_ignored, root)
+         for file in filter(dvcfile_filter, files):
+             file_path = fs.join(root, file)
+@@ -318,32 +321,9 @@ class Index:
+         repo: "Repo",
+         onerror: Optional[Callable[[str, Exception], None]] = None,
+     ) -> "Index":
+-        stages = []
+-        metrics = {}
+-        plots = {}
+-        params = {}
+-        artifacts = {}
+-        datasets = {}
+-        datasets_lock = {}
+-
+         onerror = onerror or repo.stage_collection_error_handler
+-        for _, idx in collect_files(repo, onerror=onerror):
+-            stages.extend(idx.stages)
+-            metrics.update(idx._metrics)
+-            plots.update(idx._plots)
+-            params.update(idx._params)
+-            artifacts.update(idx._artifacts)
+-            datasets.update(idx._datasets)
+-            datasets_lock.update(idx._datasets_lock)
+-        return cls(
+-            repo,
+-            stages=stages,
+-            metrics=metrics,
+-            plots=plots,
+-            params=params,
+-            artifacts=artifacts,
+-            datasets=datasets,
+-            datasets_lock=datasets_lock,
++        return cls.from_indexes(
++            repo, (idx for _, idx in collect_files(repo, onerror=onerror))
+         )
+ 
+     @classmethod
+@@ -364,7 +344,7 @@ class Index:
+             else {},
+         )
+ 
+-    def update(self, stages: Iterable["Stage"]) -> "Index":
++    def update(self, stages: Iterable["Stage"]) -> "Self":
+         stages = set(stages)
+         # we remove existing stages with same hashes at first
+         # and then re-add the new ones later.
+@@ -379,6 +359,36 @@ class Index:
+             datasets=self._datasets,
+         )
+ 
++    @classmethod
++    def from_indexes(cls, repo, idxs: Iterable["Self"]) -> "Self":
++        stages = []
++        metrics = {}
++        plots = {}
++        params = {}
++        artifacts = {}
++        datasets = {}
++        datasets_lock = {}
++
++        for idx in idxs:
++            stages.extend(idx.stages)
++            metrics.update(idx._metrics)
++            plots.update(idx._plots)
++            params.update(idx._params)
++            artifacts.update(idx._artifacts)
++            datasets.update(idx._datasets)
++            datasets_lock.update(idx._datasets_lock)
++
++        return cls(
++            repo,
++            stages=stages,
++            metrics=metrics,
++            plots=plots,
++            params=params,
++            artifacts=artifacts,
++            datasets=datasets,
++            datasets_lock=datasets_lock,
++        )
++
+     @cached_property
+     def outs_trie(self) -> "Trie":
+         from dvc.repo.trie import build_outs_trie
+@@ -735,6 +745,10 @@ class IndexView:
+         for stage in self.stages:
+             yield from stage.deps
+ 
++    @property
++    def index(self) -> "Index":
++        return self._index
++
+     @property
+     def _filtered_outs(self) -> Iterator[tuple["Output", Optional[str]]]:
+         for stage, filter_info in self._stage_infos:
+@@ -927,3 +941,51 @@ def _get_entry_hash_name(
+             return src_entry.hash_info.name
+ 
+     return DEFAULT_ALGORITHM
++
++
++def index_from_targets(
++    repo: "Repo",
++    targets: Optional["TargetType"] = None,
++    stage_filter: Optional[Callable[["Stage"], bool]] = None,
++    outs_filter: Optional[Callable[["Output"], bool]] = None,
++    max_size: Optional[int] = None,
++    types: Optional[list[str]] = None,
++    with_deps: bool = False,
++    recursive: bool = False,
++    **kwargs: Any,
++) -> "IndexView":
++    from dvc.stage.exceptions import StageFileDoesNotExistError, StageNotFound
++    from dvc.utils import parse_target
++
++    index: Optional[Index] = None
++    if targets and all(targets) and not with_deps and not recursive:
++        indexes: list[Index] = []
++        try:
++            for target in targets:
++                if not target:
++                    continue
++                file, name = parse_target(target)
++                if file and not name:
++                    index = Index.from_file(repo, file)
++                else:
++                    stages = repo.stage.collect(target)
++                    index = Index(repo, stages=list(stages))
++                indexes.append(index)
++        except (StageFileDoesNotExistError, StageNotFound):
++            pass
++        else:
++            index = Index.from_indexes(repo, indexes)
++            targets = None
++
++    if index is None:
++        index = repo.index
++    return index.targets_view(
++        targets,
++        stage_filter=stage_filter,
++        outs_filter=outs_filter,
++        max_size=max_size,
++        types=types,
++        recursive=recursive,
++        with_deps=with_deps,
++        **kwargs,
++    )
+diff --git a/dvc/repo/init.py b/dvc/repo/init.py
+index 3d7d383c..c048c23d 100644
+--- a/dvc/repo/init.py
++++ b/dvc/repo/init.py
+@@ -63,7 +63,7 @@ def init(root_dir=os.curdir, no_scm=False, force=False, subdir=False):  # noqa:
+ 
+         remove(dvc_dir)
+ 
+-    os.mkdir(dvc_dir)
++    os.makedirs(dvc_dir, exist_ok=True)
+ 
+     config = Config.init(dvc_dir)
+ 
+diff --git a/dvc/repo/plots/__init__.py b/dvc/repo/plots/__init__.py
+index 30813e9e..6fcf3b82 100644
+--- a/dvc/repo/plots/__init__.py
++++ b/dvc/repo/plots/__init__.py
+@@ -346,14 +346,14 @@ def _get_data_targets(definitions: dict):
+ 
+ 
+ def infer_data_sources(plot_id, config=None):
+-    y = config.get("y", None)
++    y = config.get("y", None) if config else None
+ 
+     if isinstance(y, dict):
+         sources = list(y.keys())
+     else:
+         sources = [plot_id]
+ 
+-    x = config.get("x", None)
++    x = config.get("x", None) if config else None
+     if isinstance(x, dict):
+         sources.append(first(x.keys()))
+ 
+@@ -507,7 +507,7 @@ def _collect_pipeline_files(repo, targets: list[str], props, onerror=None):
+ @error_handler
+ def _collect_definitions(
+     repo: "Repo",
+-    targets=None,
++    targets: list[str],
+     props: Optional[dict] = None,
+     onerror: Optional[Callable] = None,
+     **kwargs,
+diff --git a/dvc/repo/pull.py b/dvc/repo/pull.py
+index d997c99a..ef144397 100644
+--- a/dvc/repo/pull.py
++++ b/dvc/repo/pull.py
+@@ -39,7 +39,7 @@ def pull(  # noqa: PLR0913
+         run_cache=run_cache,
+     )
+     try:
+-        stats = self.checkout(
++        result = self.checkout(
+             targets=expanded_targets,
+             with_deps=with_deps,
+             force=force,
+@@ -47,8 +47,10 @@ def pull(  # noqa: PLR0913
+             allow_missing=allow_missing,
+         )
+     except CheckoutError as exc:
+-        exc.stats["fetched"] = processed_files_count
++        # put fetched counts first
++        exc.result["stats"] = {"fetched": processed_files_count} | exc.result["stats"]
+         raise
+-
+-    stats["fetched"] = processed_files_count
+-    return stats
++    else:
++        # put fetched counts first
++        result["stats"] = {"fetched": processed_files_count} | result["stats"]
++    return result
+diff --git a/dvc/repo/push.py b/dvc/repo/push.py
+index acf31573..2de07ed0 100644
+--- a/dvc/repo/push.py
++++ b/dvc/repo/push.py
+@@ -152,10 +152,12 @@ def push(  # noqa: PLR0913
+     finally:
+         ws_idx = indexes.get("workspace")
+         if ws_idx is not None:
++            from dvc.repo.index import IndexView
++
++            _index = ws_idx.index if isinstance(ws_idx, IndexView) else ws_idx
+             _update_meta(
+-                self.index,
++                _index,
+                 targets=glob_targets(targets, glob=glob),
+-                remote=remote,
+                 with_deps=with_deps,
+                 recursive=recursive,
+             )
+diff --git a/dvc/repo/status.py b/dvc/repo/status.py
+index f0620adf..c32c58b0 100644
+--- a/dvc/repo/status.py
++++ b/dvc/repo/status.py
+@@ -130,7 +130,7 @@ def status(  # noqa: PLR0913
+             remote=remote,
+             all_tags=all_tags,
+             all_commits=all_commits,
+-            recursive=True,
++            recursive=recursive,
+         )
+ 
+     ignored = list(
+diff --git a/dvc/repo/worktree.py b/dvc/repo/worktree.py
+index 7b8e9563..992d1e33 100644
+--- a/dvc/repo/worktree.py
++++ b/dvc/repo/worktree.py
+@@ -152,7 +152,7 @@ def _merge_push_meta(  # noqa: C901
+     else:
+         if entry.hash_info:
+             out.hash_info = entry.hash_info
+-        if out.meta.version_id is None:
++        if out.meta is None or out.meta.version_id is None:
+             out.meta = entry.meta
+     if out.meta:
+         out.meta.remote = remote
+@@ -181,7 +181,7 @@ def _update_worktree_out(
+ ):
+     from dvc_data.index import build
+ 
+-    remote_name = out.remote or out.meta.remote
++    remote_name = out.remote or (out.meta.remote if out.meta is not None else None)
+     if not remote_name:
+         logger.warning("Could not update '%s', it was never pushed to a remote", out)
+         return
+@@ -212,11 +212,12 @@ def _update_worktree_out(
+         logger.warning("Could not update '%s', directory is empty in the remote", out)
+         return
+ 
+-    _fetch_out_changes(out, local_index, remote_index, remote)
++    _fetch_out_changes(repo, out, local_index, remote_index, remote)
+     _update_out_meta(repo, out, local_index, remote_index, remote)
+ 
+ 
+ def _fetch_out_changes(
++    repo: "Repo",
+     out: "Output",
+     local_index: Union["DataIndex", "DataIndexView"],
+     remote_index: Union["DataIndex", "DataIndexView"],
+@@ -242,7 +243,7 @@ def _fetch_out_changes(
+         cb.set_size(total)
+         apply(
+             diff,
+-            out.repo.root_dir,
++            repo.root_dir,
+             out.fs,
+             update_meta=False,
+             storage="data",
+diff --git a/dvc/stage/__init__.py b/dvc/stage/__init__.py
+index 92835fe4..fa1270d6 100644
+--- a/dvc/stage/__init__.py
++++ b/dvc/stage/__init__.py
+@@ -509,34 +509,20 @@ class Stage(params.StageParams):
+                 if not allow_missing:
+                     raise
+ 
+-    def get_versioned_outs(self) -> dict[str, "Output"]:
+-        from .exceptions import StageFileDoesNotExistError, StageNotFound
+-
+-        try:
+-            old = self.reload()
+-        except (StageFileDoesNotExistError, StageNotFound):
+-            return {}
+-
+-        return {
+-            out.def_path: out
+-            for out in old.outs
+-            if out.files is not None
+-            or (out.meta is not None and out.meta.version_id is not None)
+-        }
+-
+     def save_outs(self, allow_missing: bool = False):
+         from dvc.output import OutputDoesNotExistError
+ 
+-        old_versioned_outs = self.get_versioned_outs()
+         for out in self.outs:
++            # old state just before saving so to merge them later
++            old_state = out._get_versioned_meta()
+             try:
+                 out.save()
+             except OutputDoesNotExistError:
+                 if not allow_missing:
+                     raise
+ 
+-            if old_out := old_versioned_outs.get(out.def_path):
+-                out.merge_version_meta(old_out)
++            if old_state:
++                out.merge_version_meta(*old_state)
+ 
+     def ignore_outs(self) -> None:
+         for out in self.outs:
+@@ -579,8 +565,9 @@ class Stage(params.StageParams):
+         from dvc.output import OutputDoesNotExistError
+ 
+         link_failures = []
+-        old_versioned_outs = self.get_versioned_outs()
+         for out in self.filter_outs(filter_info):
++            # old state just before saving so to merge them later
++            old_state = out._get_versioned_meta()
+             try:
+                 out.add(filter_info, **kwargs)
+             except (FileNotFoundError, OutputDoesNotExistError):
+@@ -589,8 +576,8 @@ class Stage(params.StageParams):
+             except CacheLinkError:
+                 link_failures.append(filter_info or out.fs_path)
+ 
+-            if old_out := old_versioned_outs.get(out.def_path):
+-                out.merge_version_meta(old_out)
++            if old_state:
++                out.merge_version_meta(*old_state)
+ 
+         if link_failures:
+             raise CacheLinkError(link_failures)
+diff --git a/dvc/stage/serialize.py b/dvc/stage/serialize.py
+index fef6514b..6cd8b4b0 100644
+--- a/dvc/stage/serialize.py
++++ b/dvc/stage/serialize.py
+@@ -168,6 +168,7 @@ def to_single_stage_lockfile(stage: "Stage", **kwargs) -> dict:
+                     for f in _serialize_tree_obj_to_files(obj)
+                 ]
+         else:
++            assert item.meta is not None
+             meta_d = item.meta.to_dict()
+             meta_d.pop("isdir", None)
+             ret.update(_serialize_hi_to_dict(item.hash_info))
+diff --git a/dvc/testing/benchmarks/fixtures.py b/dvc/testing/benchmarks/fixtures.py
+index 32a05d87..7d2ca14a 100644
+--- a/dvc/testing/benchmarks/fixtures.py
++++ b/dvc/testing/benchmarks/fixtures.py
+@@ -158,7 +158,7 @@ def make_bench(request):
+             # pytest >= 8.4.0
+             wrapped_func = fixture_function._get_wrapped_function()
+         except AttributeError:
+-            wrapped_func = fixture_function.__pytest_wrapped__.obj
++            wrapped_func = fixture_function.__pytest_wrapped__.obj  # ty: ignore[unresolved-attribute]
+         assert inspect.isgeneratorfunction(wrapped_func)
+ 
+         generator = wrapped_func(request)
+diff --git a/dvc/testing/remote_tests.py b/dvc/testing/remote_tests.py
+index 48e8c052..7a6aa574 100644
+--- a/dvc/testing/remote_tests.py
++++ b/dvc/testing/remote_tests.py
+@@ -137,8 +137,12 @@ class TestRemote:
+         remove(tmp_dir / "bar")
+ 
+         stats = dvc.pull()
+-        assert stats["fetched"] == 2
+-        assert set(stats["added"]) == {"foo", "bar"}
++        assert stats == {
++            "added": ["bar", "foo"],
++            "deleted": [],
++            "modified": [],
++            "stats": {"fetched": 2, "added": 2, "deleted": 0, "modified": 0},
++        }
+ 
+     @pytest.mark.xfail(raises=NotImplementedError, strict=False)
+     def test_pull_no_00_prefix(self, tmp_dir, dvc, remote, monkeypatch):
+@@ -163,8 +167,12 @@ class TestRemote:
+         remove(tmp_dir / "bar")
+ 
+         stats = dvc.pull()
+-        assert stats["fetched"] == 2
+-        assert set(stats["added"]) == {"foo", "bar"}
++        assert stats == {
++            "added": ["bar", "foo"],
++            "deleted": [],
++            "modified": [],
++            "stats": {"fetched": 2, "added": 2, "deleted": 0, "modified": 0},
++        }
+ 
+ 
+ class TestRemoteVersionAware:
+diff --git a/dvc/testing/workspace_tests.py b/dvc/testing/workspace_tests.py
+index ba72f7ce..9bec71c5 100644
+--- a/dvc/testing/workspace_tests.py
++++ b/dvc/testing/workspace_tests.py
+@@ -163,7 +163,12 @@ class TestImportURLVersionAware:
+ 
+         (remote_version_aware / "data_dir" / "foo").write_text("foo")
+         dvc.update(no_download=True)
+-        assert dvc.pull()["fetched"] == 2
++        assert dvc.pull() == {
++            "modified": [],
++            "added": ["data_dir" + os.sep],
++            "deleted": [],
++            "stats": {"fetched": 2, "modified": 0, "added": 2, "deleted": 0},
++        }
+         assert (tmp_dir / "data_dir").read_text() == {
+             "foo": "foo",
+             "subdir": {"file": "file"},
+@@ -174,7 +179,12 @@ class TestImportURLVersionAware:
+         scm.checkout("v1")
+         dvc.cache.local.clear()
+         remove(tmp_dir / "data_dir")
+-        assert dvc.pull()["fetched"] == 1
++        assert dvc.pull() == {
++            "modified": [],
++            "added": ["data_dir" + os.sep],
++            "deleted": [],
++            "stats": {"fetched": 1, "modified": 0, "added": 1, "deleted": 0},
++        }
+         assert (tmp_dir / "data_dir").read_text() == {"subdir": {"file": "file"}}
+ 
+         dvc.commit(force=True)
+diff --git a/dvc/ui/pager.py b/dvc/ui/pager.py
+index 0fc2c1c0..28cfdb2a 100644
+--- a/dvc/ui/pager.py
++++ b/dvc/ui/pager.py
+@@ -44,6 +44,7 @@ def prepare_default_pager(
+ 
+ def make_pager(cmd=None):
+     def _pager(text):
++        assert cmd
+         return pydoc.tempfilepager(pydoc.plain(text), cmd)
+ 
+     return _pager if cmd else pydoc.plainpager
+diff --git a/dvc/updater.py b/dvc/updater.py
+index 179e6578..ffe3a6b2 100644
+--- a/dvc/updater.py
++++ b/dvc/updater.py
+@@ -99,13 +99,14 @@ class Updater:
+         import json
+ 
+         import requests
++        from requests.exceptions import RequestException
+ 
+         url = os.environ.get(DVC_UPDATER_ENDPOINT, self.URL)
+         logger.debug("Checking updates in %s", url)
+         try:
+             resp = requests.get(url, timeout=self.TIMEOUT_GET)
+             info = resp.json()
+-        except requests.exceptions.RequestException as exc:
++        except RequestException as exc:
+             logger.trace("", exc_info=True)
+             logger.debug("Failed to retrieve latest version: %s", exc)
+             return
+diff --git a/dvc/utils/__init__.py b/dvc/utils/__init__.py
+index d8dc31af..ee057521 100644
+--- a/dvc/utils/__init__.py
++++ b/dvc/utils/__init__.py
+@@ -8,6 +8,7 @@ import sys
+ from typing import TYPE_CHECKING, Optional
+ 
+ import colorama
++from colorama import AnsiToWin32
+ 
+ if TYPE_CHECKING:
+     from typing import TextIO
+@@ -205,7 +206,7 @@ def boxify(message, border_color=None):
+ def _visual_width(line):
+     """Get the number of columns required to display a string"""
+ 
+-    return len(re.sub(colorama.ansitowin32.AnsiToWin32.ANSI_CSI_RE, "", line))
++    return len(re.sub(AnsiToWin32.ANSI_CSI_RE, "", line))
+ 
+ 
+ def _visual_center(line, width):
+diff --git a/dvc/utils/strictyaml.py b/dvc/utils/strictyaml.py
+index 50926c65..9a9a5301 100644
+--- a/dvc/utils/strictyaml.py
++++ b/dvc/utils/strictyaml.py
+@@ -20,6 +20,7 @@ from dvc.utils.serialize import (
+     parse_yaml,
+     parse_yaml_for_update,
+ )
++from dvc_objects.fs.local import LocalFileSystem
+ 
+ if TYPE_CHECKING:
+     from rich.syntax import Syntax
+@@ -34,15 +35,24 @@ _T = TypeVar("_T")
+ merge_conflict_marker = re.compile("^([<=>]{7}) .*$", re.MULTILINE)
+ 
+ 
+-def make_relpath(path: str) -> str:
+-    import os
++def make_relpath(fs_path: str, fs: "Optional[FileSystem]" = None) -> str:
++    from os import curdir, pardir, sep
+ 
+     from dvc.utils import relpath
+ 
+-    rel = relpath(path)
+-    prefix = ""
+-    if not rel.startswith(".."):
+-        prefix = "./" if os.name == "posix" else ".\\"
++    if not fs_path:
++        return fs_path
++
++    if fs and not isinstance(fs, LocalFileSystem):
++        rel = fs.relpath(fs_path).replace(fs.sep, sep)
++    else:
++        rel = relpath(fs_path)
++
++    if rel.startswith(sep):
++        # if it is an absolute path, return as it is.
++        # This can happen on Windows when we are on a different drive.
++        return rel
++    prefix = curdir + sep if not rel.startswith(pardir) else ""
+     return prefix + rel
+ 
+ 
+@@ -77,14 +87,14 @@ class YAMLSyntaxError(PrettyDvcException, YAMLFileCorruptedError):
+         exc: Exception,
+         rev: Optional[str] = None,
+     ) -> None:
+-        self.path: str = path
+         self.yaml_text: str = yaml_text
+         self.exc: Exception = exc
+ 
+         merge_conflicts = merge_conflict_marker.search(self.yaml_text)
+         self.hint = " (possible merge conflicts)" if merge_conflicts else ""
+         self.rev: Optional[str] = rev
+-        super().__init__(self.path)
++        super().__init__(path)
++        self.relpath: str = path
+ 
+     def __pretty_exc__(self, **kwargs: Any) -> None:  # noqa: C901
+         from ruamel.yaml.error import MarkedYAMLError
+@@ -134,9 +144,8 @@ class YAMLSyntaxError(PrettyDvcException, YAMLFileCorruptedError):
+             # if there are no other outputs
+             lines.insert(0, "")
+ 
+-        rel = make_relpath(self.path)
+         rev_msg = f" in revision '{self.rev[:7]}'" if self.rev else ""
+-        msg_fmt = f"'{rel}' is invalid{self.hint}{rev_msg}."
++        msg_fmt = f"'{self.relpath}' is invalid{self.hint}{rev_msg}."
+         lines.insert(0, _prepare_message(msg_fmt))
+         for line in lines:
+             ui.error_write(line, styled=True)
+@@ -198,10 +207,9 @@ class YAMLValidationError(PrettyDvcException):
+         self.text = text or ""
+         self.exc = exc
+ 
+-        rel = make_relpath(path) if path else ""
+         self.path = path or ""
+ 
+-        message = f"'{rel}' validation failed"
++        message = f"'{self.path}' validation failed"
+         message += f" in revision '{rev[:7]}'" if rev else ""
+         if len(self.exc.errors) > 1:
+             message += f": {len(self.exc.errors)} errors"
+@@ -288,10 +296,12 @@ def load(
+         raise EncodingError(path, encoding) from exc
+     except YAMLFileCorruptedError as exc:
+         cause = exc.__cause__
+-        raise YAMLSyntaxError(path, text, exc, rev=rev) from cause
++        relpath = make_relpath(path, fs)
++        raise YAMLSyntaxError(relpath, text, exc, rev=rev) from cause
+ 
+     if schema:
++        relpath = make_relpath(path, fs)
+         # not returning validated data, as it may remove
+         # details from CommentedMap that we get from roundtrip parser
+-        validate(data, schema, text=text, path=path, rev=rev)
++        validate(data, schema, text=text, path=relpath, rev=rev)
+     return data, text
+diff --git a/pyproject.toml b/pyproject.toml
+index 013c89ed..6b1ca7f9 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -111,7 +111,7 @@ tests = [
+     "dvc-ssh",
+     "filelock",
+     "pytest>=7,<9",
+-    "pytest-rerunfailures",
++    "pytest-rerunfailures<16.0",
+     "pytest-cov>=4.1.0",
+     "pytest-docker>=1,<4",
+     "pytest-mock",
+diff --git a/tests/func/test_check_ignore.py b/tests/func/test_check_ignore.py
+index 3e00d0a3..2d02cd14 100644
+--- a/tests/func/test_check_ignore.py
++++ b/tests/func/test_check_ignore.py
+@@ -78,7 +78,7 @@ def test_check_ignore_dir(tmp_dir, dvc, path, ret):
+ 
+ 
+ def test_check_ignore_default_dir(tmp_dir, dvc):
+-    assert main(["check-ignore", "-q", ".dvc"]) == 1
++    assert main(["check-ignore", "-q", ".dvc"]) == 0
+ 
+ 
+ def test_check_ignore_out_side_repo(tmp_dir, dvc):
+@@ -125,7 +125,6 @@ def test_check_ignore_details_all(tmp_dir, dvc, capsys):
+ 
+     assert main(["check-ignore", "-d", "-a", "foo"]) == 0
+     out, _ = capsys.readouterr()
+-    assert f"{DvcIgnore.DVCIGNORE_FILE}:1:f*\tfoo\n" in out
+     assert f"{DvcIgnore.DVCIGNORE_FILE}:2:!foo\tfoo\n" in out
+ 
+ 
+diff --git a/tests/func/test_checkout.py b/tests/func/test_checkout.py
+index bf59f557..4759b0bc 100644
+--- a/tests/func/test_checkout.py
++++ b/tests/func/test_checkout.py
+@@ -8,7 +8,7 @@ import pytest
+ from dulwich.porcelain import remove as git_rm
+ 
+ from dvc.cli import main
+-from dvc.dvcfile import PROJECT_FILE, load_file
++from dvc.dvcfile import PROJECT_FILE, FileMixin, SingleStageFile, load_file
+ from dvc.exceptions import CheckoutError, CheckoutErrorSuggestGit, NoOutputOrStageError
+ from dvc.fs import system
+ from dvc.stage.exceptions import StageFileDoesNotExistError
+@@ -36,7 +36,10 @@ def test_checkout(tmp_dir, dvc, copy_script):
+     remove(tmp_dir / "foo")
+     remove("data")
+ 
+-    dvc.checkout(force=True)
++    assert dvc.checkout(force=True) == empty_checkout | {
++        "added": ["data" + os.sep, "foo"],
++        "stats": empty_stats | {"added": 2},
++    }
+     assert (tmp_dir / "foo").read_text() == "foo"
+     assert (tmp_dir / "data").read_text() == {"file": "file"}
+ 
+@@ -65,6 +68,53 @@ def test_checkout_cli(tmp_dir, dvc, copy_script):
+     assert (tmp_dir / "data").read_text() == {"file": "file"}
+ 
+ 
++@pytest.mark.parametrize(
++    "summary,expected_lines",
++    [
++        (
++            True,
++            [
++                "1 file modified, 3 files added and 1 file deleted",
++            ],
++        ),
++        (
++            False,
++            [
++                "M\tbar".expandtabs(),
++                "A\tdir".expandtabs() + os.sep,
++                "A\tfoo".expandtabs(),
++                "A\tlorem".expandtabs(),
++                "D\tipsum".expandtabs(),
++            ],
++        ),
++    ],
++)
++def test_checkout_stats(tmp_dir, dvc, capsys, summary, expected_lines):
++    tmp_dir.dvc_gen(
++        {
++            "foo": "foo",
++            "bar": "bar",
++            "lorem": "lorem",
++            "dir": {"file": "file"},
++            "ipsum": "ipsum",
++            "dolor": "dolor",
++        }
++    )
++    for out in ["foo", "bar", "lorem", "dir"]:
++        remove(tmp_dir / out)
++    (tmp_dir / "ipsum.dvc").unlink()
++    (tmp_dir / "bar").write_text("foobar")
++
++    opts = ["--summary"] if summary else []
++    assert main(["checkout", "--force", *opts]) == 0
++    out, _ = capsys.readouterr()
++    assert out.splitlines() == expected_lines
++
++    main(["checkout"])
++    out, _ = capsys.readouterr()
++    assert not out
++
++
+ def test_remove_files_when_checkout(tmp_dir, dvc, scm):
+     # add the file into a separate branch
+     scm.checkout("branch", True)
+@@ -167,8 +217,9 @@ def test_checkout_missing_md5_in_lock_file_for_outs_deps(tmp_dir, dvc, copy_scri
+         name="copy-file",
+     )
+ 
+-    with pytest.raises(CheckoutError):
++    with pytest.raises(CheckoutError) as exc:
+         dvc.checkout(force=True)
++    assert exc.value.result == empty_checkout | {"failed": ["file1"]}
+ 
+ 
+ def test_checkout_empty_dir(tmp_dir, dvc):
+@@ -179,8 +230,10 @@ def test_checkout_empty_dir(tmp_dir, dvc):
+     stage.outs[0].remove()
+     assert not empty_dir.exists()
+ 
+-    stats = dvc.checkout(force=True)
+-    assert stats["added"] == [os.path.join("empty_dir", "")]
++    assert dvc.checkout(force=True) == empty_checkout | {
++        "added": [os.path.join("empty_dir", "")],
++        "stats": empty_stats | {"added": 0},
++    }
+     assert empty_dir.is_dir()
+     assert not list(empty_dir.iterdir())
+ 
+@@ -188,8 +241,7 @@ def test_checkout_empty_dir(tmp_dir, dvc):
+ def test_checkout_not_cached_file(tmp_dir, dvc):
+     tmp_dir.dvc_gen("foo", "foo")
+     dvc.run(cmd="cp foo bar", deps=["foo"], outs_no_cache=["bar"], name="copy-file")
+-    stats = dvc.checkout(force=True)
+-    assert not any(stats.values())
++    assert dvc.checkout(force=True) == empty_checkout
+ 
+ 
+ def test_checkout_with_deps_cli(tmp_dir, dvc, copy_script):
+@@ -254,8 +306,7 @@ def test_checkout_recursive_not_directory(tmp_dir, dvc):
+     ret = main(["add", "foo"])
+     assert ret == 0
+ 
+-    stats = dvc.checkout(targets=["foo.dvc"], recursive=True)
+-    assert stats == {"added": [], "modified": [], "deleted": []}
++    assert dvc.checkout(targets=["foo.dvc"], recursive=True) == empty_checkout
+ 
+ 
+ def test_checkout_moved_cache_dir_with_symlinks(tmp_dir, dvc):
+@@ -327,8 +378,7 @@ def test_checkout_relink(tmp_dir, dvc, link, link_test_func):
+     assert os.access(data_file, os.W_OK)
+     assert not link_test_func(data_file)
+ 
+-    stats = dvc.checkout(["dir.dvc"], relink=True)
+-    assert stats == empty_checkout
++    assert dvc.checkout(["dir.dvc"], relink=True) == empty_checkout
+     assert link_test_func(data_file)
+ 
+     # NOTE: Windows symlink perms don't propagate to the target and
+@@ -344,12 +394,15 @@ def test_checkout_relink(tmp_dir, dvc, link, link_test_func):
+ def test_partial_checkout(tmp_dir, dvc, target):
+     tmp_dir.dvc_gen({"dir": {"subdir": {"file": "file"}, "other": "other"}})
+     shutil.rmtree("dir")
+-    stats = dvc.checkout([target])
+-    assert stats["added"] == ["dir" + os.sep]
++    assert dvc.checkout([target]) == empty_checkout | {
++        "added": ["dir" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert list(walk_files("dir")) == [os.path.join("dir", "subdir", "file")]
+ 
+ 
+-empty_checkout = {"added": [], "deleted": [], "modified": []}
++empty_stats = {"added": 0, "deleted": 0, "modified": 0}
++empty_checkout = {"added": [], "deleted": [], "modified": [], "stats": empty_stats}
+ 
+ 
+ def test_stats_on_empty_checkout(tmp_dir, dvc, scm):
+@@ -372,11 +425,17 @@ def test_stats_on_checkout(tmp_dir, dvc, scm):
+     )
+     scm.checkout("HEAD~")
+     stats = dvc.checkout()
+-    assert set(stats["deleted"]) == {"dir" + os.sep, "foo", "bar"}
++    assert stats == empty_checkout | {
++        "deleted": ["dir" + os.sep, "bar", "foo"],
++        "stats": empty_stats | {"deleted": 3},
++    }
+ 
+     scm.checkout("-")
+     stats = dvc.checkout()
+-    assert set(stats["added"]) == {"bar", "dir" + os.sep, "foo"}
++    assert stats == empty_checkout | {
++        "added": ["dir" + os.sep, "bar", "foo"],
++        "stats": empty_stats | {"added": 4},
++    }
+ 
+     tmp_dir.gen({"lorem": "lorem", "bar": "new bar", "dir2": {"file": "file"}})
+     (tmp_dir / "foo").unlink()
+@@ -385,18 +444,23 @@ def test_stats_on_checkout(tmp_dir, dvc, scm):
+ 
+     scm.checkout("HEAD~")
+     stats = dvc.checkout()
+-    assert set(stats["modified"]) == {"bar"}
+-    assert set(stats["added"]) == {"foo"}
+-    assert set(stats["deleted"]) == {"lorem", "dir2" + os.sep}
++    assert stats == empty_checkout | {
++        "modified": ["bar"],
++        "added": ["foo"],
++        "deleted": ["dir2" + os.sep, "lorem"],
++        "stats": {"modified": 1, "added": 1, "deleted": 2},
++    }
+ 
+     scm.checkout("-")
+     stats = dvc.checkout()
+-    assert set(stats["modified"]) == {"bar"}
+-    assert set(stats["added"]) == {"dir2" + os.sep, "lorem"}
+-    assert set(stats["deleted"]) == {"foo"}
++    assert stats == empty_checkout | {
++        "modified": ["bar"],
++        "added": ["dir2" + os.sep, "lorem"],
++        "deleted": ["foo"],
++        "stats": {"modified": 1, "added": 2, "deleted": 1},
++    }
+ 
+ 
+-@pytest.mark.xfail(reason="values relpath")
+ def test_checkout_stats_on_failure(tmp_dir, dvc, scm):
+     tmp_dir.dvc_gen(
+         {"foo": "foo", "dir": {"subdir": {"file": "file"}}, "other": "other"},
+@@ -405,20 +469,20 @@ def test_checkout_stats_on_failure(tmp_dir, dvc, scm):
+     stage = load_file(dvc, "foo.dvc").stage
+     tmp_dir.dvc_gen({"foo": "foobar", "other": "other other"}, commit="second")
+ 
+-    # corrupt cache
++    # remove object from cache
+     cache = stage.outs[0].cache_path
+-    os.chmod(cache, 0o644)
+-    with open(cache, "a", encoding="utf-8") as fd:
+-        fd.write("destroy cache")
++    remove(cache)
++
++    (tmp_dir / "foo").unlink()
+ 
+     scm.checkout("HEAD~")
+     with pytest.raises(CheckoutError) as exc:
+         dvc.checkout(force=True)
+ 
+-    assert exc.value.stats == {
+-        **empty_checkout,
++    assert exc.value.result == empty_checkout | {
+         "failed": ["foo"],
+         "modified": ["other"],
++        "stats": empty_stats | {"modified": 1},
+     }
+ 
+ 
+@@ -431,11 +495,19 @@ def test_stats_on_added_file_from_tracked_dir(tmp_dir, dvc, scm):
+     tmp_dir.gen("dir/subdir/newfile", "newfile")
+     tmp_dir.dvc_add("dir", commit="add newfile")
+     scm.checkout("HEAD~")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"deleted": 1},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+     scm.checkout("-")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+ 
+@@ -448,11 +520,19 @@ def test_stats_on_updated_file_from_tracked_dir(tmp_dir, dvc, scm):
+     tmp_dir.gen("dir/subdir/file", "what file?")
+     tmp_dir.dvc_add("dir", commit="update file")
+     scm.checkout("HEAD~")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"modified": 1},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+     scm.checkout("-")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"modified": 1},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+ 
+@@ -465,11 +545,19 @@ def test_stats_on_removed_file_from_tracked_dir(tmp_dir, dvc, scm):
+     (tmp_dir / "dir" / "subdir" / "file").unlink()
+     tmp_dir.dvc_add("dir", commit="removed file from subdir")
+     scm.checkout("HEAD~")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+     scm.checkout("-")
+-    assert dvc.checkout() == {**empty_checkout, "modified": ["dir" + os.sep]}
++    assert dvc.checkout() == {
++        **empty_checkout,
++        "modified": ["dir" + os.sep],
++        "stats": empty_stats | {"deleted": 2},
++    }
+     assert dvc.checkout() == empty_checkout
+ 
+ 
+@@ -511,7 +599,11 @@ def test_checkout_with_relink_existing(tmp_dir, dvc, link):
+     dvc.cache.local.cache_types = [link]
+ 
+     stats = dvc.checkout(relink=True)
+-    assert stats == {**empty_checkout, "added": ["foo"]}
++    assert stats == {
++        **empty_checkout,
++        "added": ["foo"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+ 
+ def test_checkout_with_deps(tmp_dir, dvc):
+@@ -522,11 +614,19 @@ def test_checkout_with_deps(tmp_dir, dvc):
+     (tmp_dir / "foo").unlink()
+ 
+     stats = dvc.checkout(["copy-file"], with_deps=False)
+-    assert stats == {**empty_checkout, "added": ["bar"]}
++    assert stats == {
++        **empty_checkout,
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+     stats = dvc.checkout(["copy-file"], with_deps=True)
+-    assert set(stats["added"]) == {"foo", "bar"}
++    assert stats == {
++        **empty_checkout,
++        "added": ["bar", "foo"],
++        "stats": empty_stats | {"added": 2},
++    }
+ 
+ 
+ def test_checkout_recursive(tmp_dir, dvc):
+@@ -537,9 +637,9 @@ def test_checkout_recursive(tmp_dir, dvc):
+     (tmp_dir / "dir" / "bar").unlink()
+ 
+     stats = dvc.checkout(["dir"], recursive=True)
+-    assert set(stats["added"]) == {
+-        os.path.join("dir", "foo"),
+-        os.path.join("dir", "bar"),
++    assert stats == empty_checkout | {
++        "added": [os.path.join("dir", "bar"), os.path.join("dir", "foo")],
++        "stats": empty_stats | {"added": 2},
+     }
+ 
+ 
+@@ -550,30 +650,51 @@ def test_checkouts_with_different_addressing(tmp_dir, dvc, run_copy):
+ 
+     (tmp_dir / "bar").unlink()
+     (tmp_dir / "ipsum").unlink()
+-    assert set(dvc.checkout(PROJECT_FILE)["added"]) == {"bar", "ipsum"}
++    assert dvc.checkout(PROJECT_FILE) == empty_checkout | {
++        "added": ["bar", "ipsum"],
++        "stats": empty_stats | {"added": 2},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+     (tmp_dir / "ipsum").unlink()
+-    assert set(dvc.checkout(":")["added"]) == {"bar", "ipsum"}
++    assert dvc.checkout(":") == empty_checkout | {
++        "added": ["bar", "ipsum"],
++        "stats": empty_stats | {"added": 2},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert dvc.checkout("copy-foo-bar")["added"] == ["bar"]
++    assert dvc.checkout("copy-foo-bar") == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert dvc.checkout("dvc.yaml:copy-foo-bar")["added"] == ["bar"]
++    assert dvc.checkout("dvc.yaml:copy-foo-bar") == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert dvc.checkout(":copy-foo-bar")["added"] == ["bar"]
++    assert dvc.checkout(":copy-foo-bar") == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+     (tmp_dir / "data").mkdir()
+     with (tmp_dir / "data").chdir():
+-        assert dvc.checkout(relpath(tmp_dir / "dvc.yaml") + ":copy-foo-bar")[
+-            "added"
+-        ] == [relpath(tmp_dir / "bar")]
++        assert dvc.checkout(
++            relpath(tmp_dir / "dvc.yaml") + ":copy-foo-bar"
++        ) == empty_checkout | {
++            "added": [relpath(tmp_dir / "bar")],
++            "stats": empty_stats | {"added": 1},
++        }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert dvc.checkout("bar")["added"] == ["bar"]
++    assert dvc.checkout("bar") == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+ 
+ def test_checkouts_on_same_stage_name_and_output_name(tmp_dir, dvc, run_copy):
+@@ -583,8 +704,14 @@ def test_checkouts_on_same_stage_name_and_output_name(tmp_dir, dvc, run_copy):
+ 
+     (tmp_dir / "bar").unlink()
+     (tmp_dir / "copy-foo-bar").unlink()
+-    assert dvc.checkout("copy-foo-bar")["added"] == ["bar"]
+-    assert dvc.checkout("./copy-foo-bar")["added"] == ["copy-foo-bar"]
++    assert dvc.checkout("copy-foo-bar") == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
++    assert dvc.checkout("./copy-foo-bar") == empty_checkout | {
++        "added": ["copy-foo-bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+ 
+ def test_checkouts_for_pipeline_tracked_outs(tmp_dir, dvc, scm, run_copy):
+@@ -595,20 +722,35 @@ def test_checkouts_for_pipeline_tracked_outs(tmp_dir, dvc, scm, run_copy):
+ 
+     for out in ["bar", "ipsum"]:
+         (tmp_dir / out).unlink()
+-    assert dvc.checkout(["bar"])["added"] == ["bar"]
++    assert dvc.checkout(["bar"]) == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert set(dvc.checkout([PROJECT_FILE])["added"]) == {"bar", "ipsum"}
++    assert dvc.checkout([PROJECT_FILE]) == empty_checkout | {
++        "added": ["bar", "ipsum"],
++        "stats": empty_stats | {"added": 2},
++    }
+ 
+     for out in ["bar", "ipsum"]:
+         (tmp_dir / out).unlink()
+-    assert set(dvc.checkout([stage1.addressing])["added"]) == {"bar"}
++    assert dvc.checkout([stage1.addressing]) == empty_checkout | {
++        "added": ["bar"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "bar").unlink()
+-    assert set(dvc.checkout([stage2.addressing])["added"]) == {"ipsum"}
++    assert dvc.checkout([stage2.addressing]) == empty_checkout | {
++        "added": ["ipsum"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     (tmp_dir / "ipsum").unlink()
+-    assert set(dvc.checkout()["added"]) == {"bar", "ipsum"}
++    assert dvc.checkout() == empty_checkout | {
++        "added": ["bar", "ipsum"],
++        "stats": empty_stats | {"added": 2},
++    }
+ 
+ 
+ def test_checkout_executable(tmp_dir, dvc):
+@@ -618,7 +760,10 @@ def test_checkout_executable(tmp_dir, dvc):
+     contents["outs"][0]["isexec"] = True
+     (tmp_dir / "foo.dvc").dump(contents)
+ 
+-    dvc.checkout("foo")
++    assert dvc.checkout("foo") == empty_checkout | {
++        "modified": ["foo"],
++        "stats": empty_stats | {"modified": 1},
++    }
+ 
+     isexec = os.stat("foo").st_mode & stat.S_IEXEC
+     if os.name == "nt":
+@@ -634,13 +779,22 @@ def test_checkout_partial(tmp_dir, dvc):
+     data_dir = tmp_dir / "data"
+     shutil.rmtree(data_dir)
+ 
+-    dvc.checkout(str(data_dir / "foo"))
++    assert dvc.checkout(str(data_dir / "foo")) == empty_checkout | {
++        "added": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert data_dir.read_text() == {"foo": "foo"}
+ 
+-    dvc.checkout(str(data_dir / "sub_dir" / "baz"))
++    assert dvc.checkout(str(data_dir / "sub_dir" / "baz")) == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert data_dir.read_text() == {"foo": "foo", "sub_dir": {"baz": "baz"}}
+ 
+-    dvc.checkout(str(data_dir / "bar"))
++    assert dvc.checkout(str(data_dir / "bar")) == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert data_dir.read_text() == {
+         "foo": "foo",
+         "bar": "bar",
+@@ -664,36 +818,45 @@ def test_checkout_partial_unchanged(tmp_dir, dvc):
+     sub_dir_file = sub_dir / "baz"
+ 
+     # Nothing changed, nothing added/deleted/modified
+-    stats = dvc.checkout(str(bar))
+-    assert not any(stats.values())
++    assert dvc.checkout(str(bar)) == empty_checkout
+ 
+     # Irrelevant file changed, still nothing added/deleted/modified
+     foo.unlink()
+-    stats = dvc.checkout(str(bar))
+-    assert not any(stats.values())
++    assert dvc.checkout(str(bar)) == empty_checkout
+ 
+     # Relevant change, one modified
+     bar.unlink()
+     stats = dvc.checkout(str(bar))
+-    assert len(stats["modified"]) == 1
++    assert stats == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     # No changes inside data/sub
+-    stats = dvc.checkout(str(sub_dir))
+-    assert not any(stats.values())
++    assert dvc.checkout(str(sub_dir)) == empty_checkout
+ 
+     # Relevant change, one modified
+     sub_dir_file.unlink()
+     stats = dvc.checkout(str(sub_dir))
++    assert stats == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert len(stats["modified"]) == 1
+ 
+     stats = dvc.checkout(str(data_dir / "empty_sub_dir"))
+-    assert stats == {**empty_checkout, "modified": ["data" + os.sep]}
++    assert stats == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"deleted": 1},
++    }
+ 
+-    dvc.checkout(str(data_dir))
++    assert dvc.checkout(str(data_dir)) == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+     # Everything is in place, no action taken
+-    stats = dvc.checkout(str(data_dir))
+-    assert not any(stats.values())
++    assert dvc.checkout(str(data_dir)) == empty_checkout
+ 
+ 
+ def test_checkout_partial_subdir(tmp_dir, dvc):
+@@ -704,14 +867,20 @@ def test_checkout_partial_subdir(tmp_dir, dvc):
+     sub_dir_bar = sub_dir / "baz"
+ 
+     shutil.rmtree(sub_dir)
+-    dvc.checkout(str(sub_dir))
++    assert dvc.checkout(str(sub_dir)) == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 2},
++    }
+     assert data_dir.read_text() == {
+         "foo": "foo",
+         "sub_dir": {"bar": "bar", "baz": "baz"},
+     }
+ 
+     sub_dir_bar.unlink()
+-    dvc.checkout(str(sub_dir_bar))
++    assert dvc.checkout(str(sub_dir_bar)) == empty_checkout | {
++        "modified": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert data_dir.read_text() == {
+         "foo": "foo",
+         "sub_dir": {"bar": "bar", "baz": "baz"},
+@@ -721,12 +890,14 @@ def test_checkout_partial_subdir(tmp_dir, dvc):
+ def test_checkout_file(tmp_dir, dvc):
+     tmp_dir.dvc_gen("foo", "foo")
+ 
+-    stats = dvc.checkout("foo")
+-    assert not any(stats.values())
++    assert dvc.checkout("foo") == empty_checkout
+ 
+     os.unlink("foo")
+     stats = dvc.checkout("foo")
+-    assert stats["added"] == ["foo"]
++    assert stats == empty_checkout | {
++        "added": ["foo"],
++        "stats": empty_stats | {"added": 1},
++    }
+ 
+ 
+ def test_checkout_dir_compat(tmp_dir, dvc):
+@@ -743,7 +914,10 @@ def test_checkout_dir_compat(tmp_dir, dvc):
+         ),
+     )
+     remove("data")
+-    dvc.checkout()
++    assert dvc.checkout() == empty_checkout | {
++        "added": ["data" + os.sep],
++        "stats": empty_stats | {"added": 1},
++    }
+     assert (tmp_dir / "data").read_text() == {"foo": "foo"}
+ 
+ 
+@@ -751,6 +925,29 @@ def test_checkout_cleanup_properly_on_untracked_nested_directories(tmp_dir, scm,
+     tmp_dir.dvc_gen({"datasets": {"dir1": {"file1": "file1"}}})
+     tmp_dir.gen({"datasets": {"dir2": {"dir3": {"file2": "file2"}}}})
+ 
+-    dvc.checkout(force=True)
++    assert dvc.checkout(force=True) == empty_checkout | {
++        "modified": ["datasets" + os.sep],
++        "stats": empty_stats | {"deleted": 3},
++    }
+ 
+     assert (tmp_dir / "datasets").read_text() == {"dir1": {"file1": "file1"}}
++
++
++def test_checkout_loads_specific_file(tmp_dir, dvc, mocker):
++    tmp_dir.dvc_gen("foo", "foo")
++    tmp_dir.dvc_gen("bar", "bar")
++
++    (tmp_dir / "bar").unlink()
++    (tmp_dir / "foo").unlink()
++
++    f = SingleStageFile(dvc, "foo.dvc")
++
++    spy = mocker.spy(FileMixin, "_load")
++    assert dvc.checkout("foo.dvc") == empty_checkout | {
++        "added": ["foo"],
++        "stats": empty_stats | {"added": 1},
++    }
++
++    spy.assert_called_with(f)
++    assert (tmp_dir / "foo").exists()
++    assert not (tmp_dir / "bar").exists()
+diff --git a/tests/func/test_commit.py b/tests/func/test_commit.py
+index 2c91dab6..645da15d 100644
+--- a/tests/func/test_commit.py
++++ b/tests/func/test_commit.py
+@@ -4,7 +4,7 @@ import textwrap
+ import pytest
+ 
+ from dvc.dependency.base import DependencyDoesNotExistError
+-from dvc.dvcfile import PROJECT_FILE
++from dvc.dvcfile import PROJECT_FILE, Lockfile, ProjectFile, SingleStageFile
+ from dvc.fs import localfs
+ from dvc.output import OutputDoesNotExistError
+ from dvc.stage.exceptions import StageCommitError
+@@ -325,3 +325,51 @@ def test_commit_dos2unix(tmp_dir, dvc):
+     dvc.commit("foo.dvc", force=True)
+     content = (tmp_dir / "foo.dvc").read_text()
+     assert "hash: md5" in content
++
++
++def test_commit_multiple_files(tmp_dir, dvc, mocker):
++    tmp_dir.gen({"foo": "foo", "bar": "bar"})
++    stages = dvc.add(["foo", "bar"], no_commit=True)
++    test1_stage = dvc.stage.add(name="test", cmd="echo test", deps=["foo"])
++    test2_stage = dvc.stage.add(name="test2", cmd="echo test2", deps=["foo"])
++
++    subdir = tmp_dir / "subdir"
++    subdir.mkdir()
++    with subdir.chdir():
++        bar_relpath = os.path.relpath(tmp_dir / "bar", subdir)
++        test3_stage = dvc.stage.add(name="test3", cmd="echo test3", deps=[bar_relpath])
++
++    pointerfile_spy = mocker.spy(SingleStageFile, "dump_stages")
++    projectfile_spy = mocker.spy(ProjectFile, "dump_stages")
++    lockfile_spy = mocker.spy(Lockfile, "dump_stages")
++
++    assert set(dvc.commit(force=True)) == {
++        *stages,
++        test1_stage,
++        test2_stage,
++        test3_stage,
++    }
++    pointerfile_spy.assert_has_calls(
++        [
++            mocker.call(stages[0].dvcfile, [stages[0]], update_pipeline=False),
++            mocker.call(stages[1].dvcfile, [stages[1]], update_pipeline=False),
++        ],
++        any_order=True,
++    )
++    projectfile_spy.assert_has_calls(
++        [
++            mocker.call(
++                test1_stage.dvcfile, [test1_stage, test2_stage], update_pipeline=False
++            ),
++            mocker.call(test3_stage.dvcfile, [test3_stage], update_pipeline=False),
++        ],
++        any_order=True,
++    )
++    lockfile_spy.assert_has_calls(
++        [
++            mocker.call(test1_stage.dvcfile._lockfile, [test1_stage, test2_stage]),
++            mocker.call(test3_stage.dvcfile._lockfile, [test3_stage]),
++        ],
++        any_order=True,
++    )
++    assert dvc.status() == {}
+diff --git a/tests/func/test_data_cloud.py b/tests/func/test_data_cloud.py
+index a506a205..74f58cb7 100644
+--- a/tests/func/test_data_cloud.py
++++ b/tests/func/test_data_cloud.py
+@@ -7,6 +7,7 @@ import pytest
+ 
+ import dvc_data
+ from dvc.cli import main
++from dvc.dvcfile import FileMixin, SingleStageFile
+ from dvc.exceptions import CheckoutError
+ from dvc.repo.open_repo import clean_repos
+ from dvc.scm import CloneError
+@@ -16,9 +17,13 @@ from dvc.utils.fs import remove
+ from dvc_data.hashfile.db import HashFileDB
+ from dvc_data.hashfile.db.local import LocalHashFileDB
+ from dvc_data.hashfile.hash_info import HashInfo
++from tests.func.test_checkout import empty_checkout, empty_stats
+ 
++empty_stats = empty_stats | {"fetched": 0}
++empty_pull = empty_checkout | {"stats": empty_stats}
+ 
+-def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
++
++def test_cloud_cli(tmp_dir, dvc, capsys, remote, mocker):  # noqa: PLR0915
+     jobs = 2
+     args = ["-v", "-j", str(jobs)]
+ 
+@@ -41,6 +46,7 @@ def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
+     oids_exist = mocker.spy(LocalHashFileDB, "oids_exist")
+ 
+     assert main(["push", *args]) == 0
++    assert capsys.readouterr().out == "5 files pushed\n"
+     assert os.path.exists(cache)
+     assert os.path.isfile(cache)
+     assert os.path.isfile(cache_dir)
+@@ -53,6 +59,7 @@ def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
+     oids_exist.reset_mock()
+ 
+     assert main(["fetch", *args]) == 0
++    assert capsys.readouterr().out == "5 files fetched\n"
+     assert os.path.exists(cache)
+     assert os.path.isfile(cache)
+     assert os.path.isfile(cache_dir)
+@@ -64,6 +71,7 @@ def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
+     oids_exist.reset_mock()
+ 
+     assert main(["pull", *args]) == 0
++    assert capsys.readouterr().out == "Everything is up to date.\n"
+     assert os.path.exists(cache)
+     assert os.path.isfile(cache)
+     assert os.path.isfile(cache_dir)
+@@ -92,6 +100,7 @@ def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
+     shutil.move(dvc.cache.local.path, dvc.cache.local.path + ".back")
+ 
+     assert main(["fetch", *args]) == 0
++    assert capsys.readouterr().out == "5 files fetched\n"
+ 
+     assert oids_exist.called
+     assert all(
+@@ -100,6 +109,7 @@ def test_cloud_cli(tmp_dir, dvc, remote, mocker):  # noqa: PLR0915
+ 
+     oids_exist.reset_mock()
+     assert main(["pull", "-f", *args]) == 0
++    assert capsys.readouterr().out == "Everything is up to date.\n"
+     assert os.path.exists(cache)
+     assert os.path.isfile(cache)
+     assert os.path.isfile(cache_dir)
+@@ -194,7 +204,11 @@ def test_verify_hashes(tmp_dir, scm, dvc, mocker, tmp_path_factory, local_remote
+ 
+     hash_spy = mocker.spy(dvc_data.hashfile.hash, "file_md5")
+ 
+-    dvc.pull()
++    assert dvc.pull() == empty_pull | {
++        "added": ["dir" + os.sep, "file"],
++        "stats": empty_stats | {"fetched": 3, "added": 2},
++    }
++
+     # NOTE: 2 are for index.data_tree building
+     assert hash_spy.call_count == 3
+ 
+@@ -204,11 +218,11 @@ def test_verify_hashes(tmp_dir, scm, dvc, mocker, tmp_path_factory, local_remote
+     with dvc.config.edit() as conf:
+         conf["remote"]["upstream"]["verify"] = True
+ 
+-    dvc.pull()
++    assert dvc.pull() == empty_pull | {"stats": empty_stats | {"fetched": 3}}
+     assert hash_spy.call_count == 10
+ 
+ 
+-@pytest.mark.flaky(reruns=3)
++# @pytest.mark.flaky(reruns=3)
+ @pytest.mark.parametrize("erepo_type", ["git_dir", "erepo_dir"])
+ def test_pull_git_imports(request, tmp_dir, dvc, scm, erepo_type):
+     erepo = request.getfixturevalue(erepo_type)
+@@ -219,7 +233,7 @@ def test_pull_git_imports(request, tmp_dir, dvc, scm, erepo_type):
+     dvc.imp(os.fspath(erepo), "foo")
+     dvc.imp(os.fspath(erepo), "dir", out="new_dir", rev="HEAD~")
+ 
+-    assert dvc.pull()["fetched"] == 0
++    assert dvc.pull() == empty_pull
+ 
+     for item in ["foo", "new_dir"]:
+         remove(item)
+@@ -227,7 +241,10 @@ def test_pull_git_imports(request, tmp_dir, dvc, scm, erepo_type):
+     os.makedirs(dvc.cache.local.path, exist_ok=True)
+     clean_repos()
+ 
+-    assert dvc.pull(force=True)["fetched"] == 2
++    assert dvc.pull(force=True) == empty_pull | {
++        "added": ["new_dir" + os.sep, "foo"],
++        "stats": empty_stats | {"fetched": 2, "added": 2},
++    }
+ 
+     assert (tmp_dir / "foo").exists()
+     assert (tmp_dir / "foo").read_text() == "foo"
+@@ -247,11 +264,14 @@ def test_pull_external_dvc_imports(tmp_dir, dvc, scm, erepo_dir):
+     dvc.imp(os.fspath(erepo_dir), "foo")
+     dvc.imp(os.fspath(erepo_dir), "dir", out="new_dir", rev="HEAD~")
+ 
+-    assert dvc.pull()["fetched"] == 0
++    assert dvc.pull() == empty_pull
+ 
+     clean(["foo", "new_dir"], dvc)
+ 
+-    assert dvc.pull(force=True)["fetched"] == 2
++    assert dvc.pull(force=True) == empty_pull | {
++        "added": ["new_dir" + os.sep, "foo"],
++        "stats": empty_stats | {"fetched": 2, "added": 2},
++    }
+ 
+     assert (tmp_dir / "foo").exists()
+     assert (tmp_dir / "foo").read_text() == "foo"
+@@ -266,7 +286,10 @@ def test_pull_partial_import(tmp_dir, dvc, local_workspace):
+     stage = dvc.imp_url("remote://workspace/file", os.fspath(dst), no_download=True)
+ 
+     result = dvc.pull("file")
+-    assert result["fetched"] == 1
++    assert result == empty_checkout | {
++        "added": ["file"],
++        "stats": empty_stats | {"fetched": 1, "added": 1},
++    }
+     assert dst.exists()
+ 
+     assert stage.outs[0].get_hash().value == "d10b4c3ff123b26dc068d43a8bef2d23"
+@@ -278,8 +301,9 @@ def test_pull_partial_import_missing(tmp_dir, dvc, local_workspace):
+     dvc.imp_url("remote://workspace/file", os.fspath(dst), no_download=True)
+ 
+     (local_workspace / "file").unlink()
+-    with pytest.raises(CheckoutError):
++    with pytest.raises(CheckoutError) as exc:
+         dvc.pull("file")
++    assert exc.value.result == empty_pull | {"failed": ["file"]}
+     assert not dst.exists()
+ 
+ 
+@@ -289,8 +313,9 @@ def test_pull_partial_import_modified(tmp_dir, dvc, local_workspace):
+     dvc.imp_url("remote://workspace/file", os.fspath(dst), no_download=True)
+ 
+     local_workspace.gen("file", "updated file content")
+-    with pytest.raises(CheckoutError):
++    with pytest.raises(CheckoutError) as exc:
+         dvc.pull("file")
++    assert exc.value.result == empty_pull | {"failed": ["file"]}
+     assert not dst.exists()
+ 
+ 
+@@ -308,7 +333,10 @@ def test_pull_external_dvc_imports_mixed(tmp_dir, dvc, scm, erepo_dir, local_rem
+ 
+     clean(["foo", "bar"], dvc)
+ 
+-    assert dvc.pull()["fetched"] == 2
++    assert dvc.pull() == empty_pull | {
++        "added": ["bar", "foo"],
++        "stats": empty_stats | {"fetched": 2, "added": 2},
++    }
+     assert (tmp_dir / "foo").read_text() == "foo"
+     assert (tmp_dir / "bar").read_text() == "bar"
+ 
+@@ -329,34 +357,44 @@ def recurse_list_dir(d):
+ 
+ 
+ def test_dvc_pull_pipeline_stages(tmp_dir, dvc, run_copy, local_remote):
+-    (stage0,) = tmp_dir.dvc_gen("foo", "foo")
+-    stage1 = run_copy("foo", "bar", name="copy-foo-bar")
+-    stage2 = run_copy("bar", "foobar", name="copy-bar-foobar")
++    (stage0,) = tmp_dir.dvc_gen("bar", "bar")
++    stage1 = run_copy("bar", "foo", name="copy-bar-foo")
++    stage2 = run_copy("foo", "foobar", name="copy-foo-foobar")
+     dvc.push()
+ 
+-    outs = ["foo", "bar", "foobar"]
++    outs = ["bar", "foo", "foobar"]
+ 
+     clean(outs, dvc)
+-    dvc.pull()
++    assert dvc.pull() == empty_pull | {
++        "added": outs,
++        "stats": empty_stats | {"fetched": 1, "added": 3},
++    }
+     assert all((tmp_dir / file).exists() for file in outs)
+ 
+     for out, stage in zip(outs, [stage0, stage1, stage2]):
+         for target in [stage.addressing, out]:
+             clean(outs, dvc)
+             stats = dvc.pull([target])
+-            assert stats["fetched"] == 1
+-            assert stats["added"] == [out]
++            assert stats == empty_pull | {
++                "added": [out],
++                "stats": empty_stats | {"fetched": 1, "added": 1},
++            }
+             assert os.path.exists(out)
+             assert not any(os.path.exists(out) for out in set(outs) - {out})
+ 
+     clean(outs, dvc)
+     stats = dvc.pull([stage2.addressing], with_deps=True)
+-    assert len(stats["added"]) == 3
+-    assert set(stats["added"]) == set(outs)
++    assert stats == empty_pull | {
++        "added": outs,
++        "stats": empty_stats | {"fetched": 1, "added": 3},
++    }
+ 
+     clean(outs, dvc)
+     stats = dvc.pull([os.curdir], recursive=True)
+-    assert set(stats["added"]) == set(outs)
++    assert stats == empty_pull | {
++        "added": outs,
++        "stats": empty_stats | {"fetched": 1, "added": 3},
++    }
+ 
+ 
+ def test_pipeline_file_target_ops(tmp_dir, dvc, run_copy, local_remote):
+@@ -373,7 +411,7 @@ def test_pipeline_file_target_ops(tmp_dir, dvc, run_copy, local_remote):
+ 
+     remove(dvc.stage_cache.cache_dir)
+ 
+-    dvc.push()
++    assert dvc.push() == 3
+ 
+     outs = ["foo", "lorem", "ipsum", "baz", "lorem2"]
+ 
+@@ -381,20 +419,26 @@ def test_pipeline_file_target_ops(tmp_dir, dvc, run_copy, local_remote):
+     assert len(recurse_list_dir(path)) == 3
+ 
+     clean(outs, dvc)
+-    assert set(dvc.pull(["dvc.yaml"])["added"]) == {"lorem2", "baz"}
++    assert dvc.pull(["dvc.yaml"]) == empty_pull | {
++        "added": ["baz", "lorem2"],
++        "stats": empty_stats | {"fetched": 2, "added": 2},
++    }
+ 
+     clean(outs, dvc)
+-    assert set(dvc.pull()["added"]) == set(outs)
++    assert dvc.pull() == empty_pull | {
++        "added": ["baz", "foo", "ipsum", "lorem", "lorem2"],
++        "stats": empty_stats | {"fetched": 3, "added": 5},
++    }
+ 
+     # clean everything in remote and push
+     from dvc.testing.tmp_dir import TmpDir
+ 
+     clean(TmpDir(path).iterdir())
+-    dvc.push(["dvc.yaml:copy-ipsum-baz"])
++    assert dvc.push(["dvc.yaml:copy-ipsum-baz"]) == 1
+     assert len(recurse_list_dir(path)) == 1
+ 
+     clean(TmpDir(path).iterdir())
+-    dvc.push(["dvc.yaml"])
++    assert dvc.push(["dvc.yaml"]) == 2
+     assert len(recurse_list_dir(path)) == 2
+ 
+     with pytest.raises(StageNotFound):
+@@ -439,23 +483,36 @@ def test_fetch_stats(tmp_dir, dvc, fs, msg, capsys, local_remote):
+ 
+ 
+ def test_pull_stats(tmp_dir, dvc, capsys, local_remote):
+-    tmp_dir.dvc_gen({"foo": "foo", "bar": "bar"})
++    tmp_dir.dvc_gen(
++        {
++            "foo": "foo",
++            "bar": "bar",
++            "lorem": "lorem",
++            "dir": {"file": "file"},
++            "ipsum": "ipsum",
++            "dolor": "dolor",
++        }
++    )
+     dvc.push()
+-    clean(["foo", "bar"], dvc)
++    clean(["foo", "bar", "dir", "lorem"], dvc)
++
++    (tmp_dir / "ipsum.dvc").unlink()
+     (tmp_dir / "bar").write_text("foobar")
+ 
+     assert main(["pull", "--force"]) == 0
+-
+     out, _ = capsys.readouterr()
+-    assert "M\tbar".expandtabs() in out
+-    assert "A\tfoo".expandtabs() in out
+-    assert "2 files fetched" in out
+-    assert "1 file added" in out
+-    assert "1 file modified" in out
++    assert out.splitlines() == [
++        "M\tbar".expandtabs(),
++        "A\tdir".expandtabs() + os.sep,
++        "A\tfoo".expandtabs(),
++        "A\tlorem".expandtabs(),
++        "D\tipsum".expandtabs(),
++        "6 files fetched, 1 file modified, 3 files added and 1 file deleted",
++    ]
+ 
+     main(["pull"])
+     out, _ = capsys.readouterr()
+-    assert "Everything is up to date." in out
++    assert out == "Everything is up to date.\n"
+ 
+ 
+ @pytest.mark.parametrize(
+@@ -474,26 +531,32 @@ def test_push_pull_all(tmp_dir, scm, dvc, local_remote, key, expected):
+     assert dvc.push(**{key: True}) == expected
+ 
+     clean(["foo", "bar", "baz"], dvc)
+-    assert dvc.pull(**{key: True})["fetched"] == expected
++    assert dvc.pull(**{key: True}) == empty_pull | {
++        "added": ["bar", "foo"],
++        "stats": empty_stats | {"fetched": expected, "added": 2},
++    }
+ 
+ 
+ def test_push_pull_fetch_pipeline_stages(tmp_dir, dvc, run_copy, local_remote):
+     tmp_dir.dvc_gen("foo", "foo")
+     run_copy("foo", "bar", name="copy-foo-bar")
+ 
+-    dvc.push("copy-foo-bar")
++    assert dvc.push("copy-foo-bar") == 1
+     assert len(recurse_list_dir(local_remote.url)) == 1
+     # pushing everything so as we can check pull/fetch only downloads
+     # from specified targets
+-    dvc.push()
++    assert dvc.push() == 0
+     clean(["foo", "bar"], dvc)
+ 
+-    dvc.pull("copy-foo-bar")
++    assert dvc.pull("copy-foo-bar") == empty_pull | {
++        "added": ["bar"],
++        "stats": empty_stats | {"fetched": 1, "added": 1},
++    }
+     assert (tmp_dir / "bar").exists()
+     assert len(recurse_list_dir(dvc.cache.local.path)) == 1
+     clean(["bar"], dvc)
+ 
+-    dvc.fetch("copy-foo-bar")
++    assert dvc.fetch("copy-foo-bar") == 1
+     assert len(recurse_list_dir(dvc.cache.local.path)) == 1
+ 
+ 
+@@ -504,7 +567,10 @@ def test_pull_partial(tmp_dir, dvc, local_remote):
+     clean(["foo"], dvc)
+ 
+     stats = dvc.pull(os.path.join("foo", "bar"))
+-    assert stats["fetched"] == 2
++    assert stats == empty_pull | {
++        "added": [os.path.join("foo", "")],
++        "stats": empty_stats | {"fetched": 2, "added": 1},
++    }
+     assert (tmp_dir / "foo").read_text() == {"bar": {"baz": "baz"}}
+ 
+ 
+@@ -539,7 +605,10 @@ def test_output_remote(tmp_dir, dvc, make_remote):
+ 
+     clean(["foo", "bar", "data"], dvc)
+ 
+-    dvc.pull()
++    assert dvc.pull() == empty_pull | {
++        "added": ["data" + os.sep, "bar", "foo"],
++        "stats": empty_stats | {"fetched": 5, "added": 4},
++    }
+ 
+     assert set(dvc.cache.local.all()) == {
+         "37b51d194a7513e45b56f6524f2d51f2",
+@@ -572,7 +641,10 @@ def test_target_remote(tmp_dir, dvc, make_remote):
+ 
+     clean(["foo", "data"], dvc)
+ 
+-    dvc.pull(remote="myremote")
++    assert dvc.pull(remote="myremote") == empty_pull | {
++        "added": ["data" + os.sep, "foo"],
++        "stats": empty_stats | {"fetched": 4, "added": 3},
++    }
+ 
+     assert set(dvc.cache.local.all()) == {
+         "acbd18db4cc2f85cedef654fccc4a4d8",
+@@ -629,7 +701,10 @@ def test_output_target_remote(tmp_dir, dvc, make_remote):
+     clean(["foo", "bar", "data"], dvc)
+ 
+     # pull foo and data from for_foo remote
+-    dvc.pull(remote="for_foo", allow_missing=True)
++    assert dvc.pull(remote="for_foo", allow_missing=True) == empty_pull | {
++        "added": ["data" + os.sep, "foo"],
++        "stats": empty_stats | {"fetched": 4, "added": 3},
++    }
+ 
+     assert set(dvc.cache.local.all()) == expected
+ 
+@@ -637,15 +712,19 @@ def test_output_target_remote(tmp_dir, dvc, make_remote):
+ def test_pull_allow_missing(tmp_dir, dvc, local_remote):
+     dvc.stage.add(name="bar", outs=["bar"], cmd="echo bar > bar")
+ 
+-    with pytest.raises(CheckoutError):
++    with pytest.raises(CheckoutError) as exc:
+         dvc.pull()
++    assert exc.value.result == empty_pull | {"failed": ["bar"]}
+ 
+     tmp_dir.dvc_gen("foo", "foo")
+     dvc.push()
+     clean(["foo"], dvc)
+ 
+     stats = dvc.pull(allow_missing=True)
+-    assert stats["fetched"] == 1
++    assert stats == empty_pull | {
++        "added": ["foo"],
++        "stats": empty_stats | {"fetched": 1, "added": 1},
++    }
+ 
+ 
+ def test_pull_granular_excluding_import_that_cannot_be_pulled(
+@@ -667,14 +746,47 @@ def test_pull_granular_excluding_import_that_cannot_be_pulled(
+     shutil.rmtree("dir")
+     dvc.cache.local.clear()
+ 
+-    assert dvc.pull(stage.addressing) == {
++    assert dvc.pull(stage.addressing) == empty_pull | {
+         "added": [join("dir", "")],
+-        "deleted": [],
+-        "modified": [],
+-        "fetched": 3,
++        "stats": empty_stats | {"added": 2, "fetched": 3},
+     }
+ 
+     with pytest.raises(CloneError, match="SCM error"):
+         dvc.pull()
+     with pytest.raises(CloneError, match="SCM error"):
+         dvc.pull(imp_stage.addressing)
++
++
++def test_loads_single_file(tmp_dir, dvc, local_remote, mocker):
++    tmp_dir.dvc_gen("foo", "foo")
++    tmp_dir.dvc_gen("bar", "bar")
++
++    foo_dvcfile = SingleStageFile(dvc, "foo.dvc")
++    bar_dvcfile = SingleStageFile(dvc, "bar.dvc")
++
++    spy = mocker.spy(FileMixin, "_load")
++    assert dvc.push("foo.dvc") == 1
++    spy.assert_called_with(foo_dvcfile)
++    spy.reset_mock()
++
++    assert dvc.push("bar.dvc") == 1
++    spy.assert_called_with(bar_dvcfile)
++    spy.reset_mock()
++
++    dvc.cache.local.clear()
++    (tmp_dir / "bar").unlink()
++    (tmp_dir / "foo").unlink()
++
++    assert dvc.pull("foo.dvc") == {
++        "added": ["foo"],
++        "deleted": [],
++        "modified": [],
++        "stats": {"added": 1, "deleted": 0, "modified": 0, "fetched": 1},
++    }
++    spy.assert_called_with(foo_dvcfile)
++    assert (tmp_dir / "foo").exists()
++    assert not (tmp_dir / "bar").exists()
++    spy.reset_mock()
++
++    assert dvc.fetch("bar.dvc") == 1
++    spy.assert_called_with(bar_dvcfile)
+diff --git a/tests/func/test_data_status.py b/tests/func/test_data_status.py
+index f45c53a8..cf9f3b07 100644
+--- a/tests/func/test_data_status.py
++++ b/tests/func/test_data_status.py
+@@ -1,3 +1,4 @@
++import shutil
+ from collections.abc import Iterable
+ from functools import partial
+ from os import fspath
+@@ -137,18 +138,25 @@ def test_tracked_directory_deep(M, tmp_dir, dvc, scm):
+     }
+ 
+ 
+-def test_new_empty_git_repo(M, tmp_dir, scm):
+-    dvc = Repo.init()
++@pytest.mark.parametrize("git_repo_state", ["unborn", "committed"])
++@pytest.mark.parametrize("subdir", [True, False])
++def test_new_dvc_repo(M, tmp_dir, scm, subdir, git_repo_state):
++    if git_repo_state == "committed":
++        tmp_dir.scm_gen("test", "test", commit="init")
++
++    is_empty = git_repo_state == "unborn"
++    dir_ = tmp_dir / "sub" if subdir else tmp_dir
++    dvc = Repo.init(dir_, subdir=subdir)
+     assert dvc.data_status() == {
+         **EMPTY_STATUS,
+-        "git": M.dict(is_empty=True, is_dirty=True),
++        "git": M.dict(is_dirty=True, is_empty=is_empty),
+     }
+ 
+-    tmp_dir.gen("foo", "foo")
+-    dvc.add(["foo"])
++    dir_.gen("foo", "foo")
++    dvc.add([dir_ / "foo"])
+     assert dvc.data_status() == {
+         **EMPTY_STATUS,
+-        "git": M.dict(is_empty=True, is_dirty=True),
++        "git": M.dict(is_empty=is_empty, is_dirty=True),
+         "committed": {"added": ["foo"]},
+     }
+ 
+@@ -398,6 +406,42 @@ def test_missing_dir_object_from_index(M, tmp_dir, dvc, scm):
+     }
+ 
+ 
++def test_remote_check(M, tmp_dir, dvc, scm, make_remote):
++    make_remote("default", default=True)
++    make_remote("myremote", default=False)
++
++    tmp_dir.dvc_gen({"dir": {"foo": "foo", "bar": "bar"}})
++    tmp_dir.dvc_gen("foobar", "foobar")
++    assert dvc.push() == 4
++    scm.add_commit(["dir.dvc", "foobar.dvc", ".gitignore"], message="add files")
++
++    entries = M.unordered("foobar", join("dir", ""))
++    granular_entries = M.unordered(
++        "foobar", join("dir", ""), join("dir", "foo"), join("dir", "bar")
++    )
++    expected_ng = EMPTY_STATUS | {"git": M.dict(), "unchanged": entries}
++    expected_g = EMPTY_STATUS | {
++        "not_in_remote": [],
++        "git": M.dict(),
++        "unchanged": granular_entries,
++    }
++
++    opts = {"not_in_remote": True, "remote_refresh": True}
++    assert dvc.data_status(**opts) == expected_ng
++    assert dvc.data_status(granular=True, **opts) == expected_g
++
++    opts |= {"remote": "myremote"}
++    assert dvc.data_status(**opts) == expected_ng | {"not_in_remote": entries}
++    assert dvc.data_status(granular=True, **opts) == expected_g | {
++        "not_in_remote": granular_entries
++    }
++
++    dvc.push(remote="myremote")
++
++    assert dvc.data_status(**opts) == expected_ng
++    assert dvc.data_status(granular=True, **opts) == expected_g
++
++
+ def test_missing_remote_cache(M, tmp_dir, dvc, scm, local_remote):
+     tmp_dir.dvc_gen({"dir": {"foo": "foo", "bar": "bar"}})
+     tmp_dir.dvc_gen("foobar", "foobar")
+@@ -964,3 +1008,206 @@ def test_missing_cache_remote_check(M, tmp_dir, dvc, scm, local_remote):
+         "git": M.dict(),
+         "not_in_remote": [join("dir", "")],
+     }
++
++
++@pytest.mark.parametrize(
++    "targets,expected_non_granular,expected_granular",
++    [
++        param(
++            None,
++            {
++                "committed": {
++                    "renamed": [
++                        {"old": join("dir", ""), "new": join("dir2", "")},
++                        {"old": "file", "new": "file2"},
++                    ],
++                },
++                "uncommitted": {"modified": [join("dir2", "")]},
++            },
++            {
++                "committed": {
++                    "renamed": [
++                        {"old": join("dir", ""), "new": join("dir2", "")},
++                        {"old": join("dir", "bar"), "new": join("dir2", "bar")},
++                        {"old": join("dir", "foo"), "new": join("dir2", "foo")},
++                        {"old": "file", "new": "file2"},
++                    ],
++                },
++                "uncommitted": {
++                    "modified": [join("dir2", "")],
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++        param(
++            ["dir"],
++            {"committed": {"deleted": [join("dir", "")]}},
++            {
++                "committed": {
++                    "deleted": m.unordered(
++                        join("dir", ""), join("dir", "bar"), join("dir", "foo")
++                    )
++                }
++            },
++        ),
++        param(
++            ["dir2"],
++            {
++                "committed": {"added": [join("dir2", "")]},
++                "uncommitted": {"modified": [join("dir2", "")]},
++            },
++            {
++                "committed": {
++                    "added": m.unordered(
++                        join("dir2", ""),
++                        join("dir2", "bar"),
++                        join("dir2", "foo"),
++                    ),
++                },
++                "uncommitted": {
++                    "modified": [join("dir2", "")],
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++        param(
++            [join("dir", "bar")], {}, {"committed": {"deleted": [join("dir", "bar")]}}
++        ),
++        param(
++            [join("dir", "foo")], {}, {"committed": {"deleted": [join("dir", "foo")]}}
++        ),
++        param(
++            [join("dir2", "bar")], {}, {"committed": {"added": [join("dir2", "bar")]}}
++        ),
++        param(
++            [join("dir2", "foobar")],
++            {},
++            {"uncommitted": {"added": [join("dir2", "foobar")]}},
++        ),
++        param(
++            ["file"],
++            {"committed": {"deleted": ["file"]}},
++            {"committed": {"deleted": ["file"]}},
++        ),
++        param(
++            ["file2"],
++            {"committed": {"added": ["file2"]}},
++            {"committed": {"added": ["file2"]}},
++        ),
++        param(
++            ["dir", "dir2"],
++            {
++                "committed": {
++                    "renamed": [{"old": join("dir", ""), "new": join("dir2", "")}],
++                },
++                "uncommitted": {"modified": [join("dir2", "")]},
++            },
++            {
++                "committed": {
++                    "renamed": [
++                        {"old": join("dir", ""), "new": join("dir2", "")},
++                        {"old": join("dir", "bar"), "new": join("dir2", "bar")},
++                        {"old": join("dir", "foo"), "new": join("dir2", "foo")},
++                    ]
++                },
++                "uncommitted": {
++                    "modified": [join("dir2", "")],
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++        param(
++            ["file", "file2"],
++            {"committed": {"renamed": [{"old": "file", "new": "file2"}]}},
++            {"committed": {"renamed": [{"old": "file", "new": "file2"}]}},
++        ),
++        param(
++            [join("dir", "foo"), join("dir2", "foobar")],
++            {},
++            {
++                "committed": {"deleted": [join("dir", "foo")]},
++                "uncommitted": {"added": [join("dir2", "foobar")]},
++            },
++        ),
++        param(
++            [join("dir2", "foo"), join("dir2", "foobar")],
++            {},
++            {
++                "committed": {"added": [join("dir2", "foo")]},
++                "uncommitted": {
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++        param(
++            ["dir2", "file2"],
++            {
++                "committed": {"added": m.unordered(join("dir2", ""), "file2")},
++                "uncommitted": {"modified": [join("dir2", "")]},
++            },
++            {
++                "committed": {
++                    "added": m.unordered(
++                        join("dir2", ""),
++                        join("dir2", "bar"),
++                        join("dir2", "foo"),
++                        "file2",
++                    )
++                },
++                "uncommitted": {
++                    "modified": [join("dir2", "")],
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++        param(
++            ["dir2", join("dir2", "foobar"), "file"],
++            {
++                "uncommitted": {"modified": [join("dir2", "")]},
++                "committed": {"added": [join("dir2", "")], "deleted": ["file"]},
++            },
++            {
++                "committed": {
++                    "added": m.unordered(
++                        join("dir2", ""), join("dir2", "bar"), join("dir2", "foo")
++                    ),
++                    "deleted": ["file"],
++                },
++                "uncommitted": {
++                    "modified": [join("dir2", "")],
++                    "renamed": [
++                        {"old": join("dir2", "foo"), "new": join("dir2", "foobar")}
++                    ],
++                },
++            },
++        ),
++    ],
++)
++def test_renames(
++    M, tmp_dir, scm, dvc, targets, expected_non_granular, expected_granular
++):
++    tmp_dir.dvc_gen(
++        {"dir": {"foo": "foo", "bar": "bar"}, "file": "file"}, commit="add dir and file"
++    )
++    dvc.move("dir", "dir2")
++    dvc.move("file", "file2")
++    shutil.move(tmp_dir / "dir2" / "foo", tmp_dir / "dir2" / "foobar")
++
++    assert (
++        dvc.data_status(with_renames=True, targets=targets)
++        == EMPTY_STATUS | {"git": M.dict()} | expected_non_granular
++    )
++    assert (
++        dvc.data_status(granular=True, with_renames=True, targets=targets)
++        == EMPTY_STATUS | {"git": M.dict()} | expected_granular
++    )
+diff --git a/tests/func/test_diff.py b/tests/func/test_diff.py
+index 32776761..a3ae8d83 100644
+--- a/tests/func/test_diff.py
++++ b/tests/func/test_diff.py
+@@ -2,7 +2,6 @@ import hashlib
+ import os
+ 
+ import pytest
+-from funcy import first
+ 
+ from dvc.exceptions import DvcException
+ from dvc.utils.fs import remove
+@@ -96,6 +95,81 @@ def test_no_cache_entry(tmp_dir, scm, dvc):
+     }
+ 
+ 
++def test_diff_no_cache(tmp_dir, scm, dvc):
++    (stage,) = tmp_dir.dvc_gen({"dir": {"file": "file content"}}, commit="first")
++    scm.tag("v1")
++    dvc.cache.local.clear()
++    old_digest = stage.outs[0].hash_info.value
++    dir_path = os.path.join("dir", "")
++
++    default_result = {
++        "added": [],
++        "deleted": [],
++        "modified": [],
++        "renamed": [],
++        "not in cache": [],
++    }
++
++    assert dvc.diff("v1") == default_result | {
++        "not in cache": [{"path": dir_path, "hash": old_digest}],
++    }
++    assert dvc.diff("HEAD", "v1") == {}
++    assert dvc.diff("v1", "HEAD") == {}
++
++    (stage,) = tmp_dir.dvc_gen(
++        {"dir": {"file": "modified file content"}}, commit="first"
++    )
++    scm.tag("v2")
++    new_digest = stage.outs[0].hash_info.value
++
++    assert dvc.diff("v2") == {}
++    assert dvc.diff("v1") == default_result | {
++        "modified": [
++            {"path": dir_path, "hash": {"old": old_digest, "new": new_digest}}
++        ],
++        "not in cache": [{"path": dir_path, "hash": old_digest}],
++    }
++    assert dvc.diff("v1", "v2") == default_result | {
++        "modified": [
++            {"path": dir_path, "hash": {"old": old_digest, "new": new_digest}}
++        ],
++    }
++
++    remove(dvc.cache.local.path)
++    # drop the cache so that we can test as if we don't know what entries are
++    # in the missing cache entry.
++    dvc.drop_data_index()
++
++    assert dvc.diff("v2") == default_result | {
++        "not in cache": [{"path": dir_path, "hash": new_digest}],
++    }
++    assert dvc.diff("v1") == default_result | {
++        "modified": [
++            {"path": dir_path, "hash": {"old": old_digest, "new": new_digest}}
++        ],
++        "not in cache": [{"path": dir_path, "hash": old_digest}],
++    }
++    assert dvc.diff("v2", "v1") == default_result | {
++        "modified": [
++            {"path": dir_path, "hash": {"old": new_digest, "new": old_digest}}
++        ],
++    }
++    assert dvc.diff("v1", "v2") == default_result | {
++        "modified": [
++            {"path": dir_path, "hash": {"old": old_digest, "new": new_digest}}
++        ],
++    }
++    assert dvc.diff() == default_result | {
++        "not in cache": [{"path": dir_path, "hash": new_digest}],
++    }
++
++    remove(str(tmp_dir / "dir"))
++    assert dvc.diff() == default_result | {
++        "deleted": [{"path": dir_path, "hash": new_digest}],
++        "not in cache": [{"path": dir_path, "hash": new_digest}],
++    }
++
++
+ @pytest.mark.parametrize("delete_data", [True, False])
+ def test_deleted(tmp_dir, scm, dvc, delete_data):
+     tmp_dir.dvc_gen("file", "text", commit="add file")
+@@ -256,44 +330,6 @@ def test_directories(tmp_dir, scm, dvc):
+     }
+ 
+ 
+-def test_diff_no_cache(tmp_dir, scm, dvc):
+-    tmp_dir.dvc_gen({"dir": {"file": "file content"}}, commit="first")
+-    scm.tag("v1")
+-
+-    tmp_dir.dvc_gen({"dir": {"file": "modified file content"}}, commit="second")
+-    scm.tag("v2")
+-
+-    remove(dvc.cache.local.path)
+-
+-    # invalidate_dir_info to force cache loading
+-    dvc.cache.local._dir_info = {}
+-
+-    diff = dvc.diff("v1", "v2")
+-    assert diff["added"] == []
+-    assert diff["deleted"] == []
+-    assert first(diff["modified"])["path"] == os.path.join("dir", "")
+-    assert diff["not in cache"] == []
+-
+-    (tmp_dir / "dir" / "file").unlink()
+-    remove(str(tmp_dir / "dir"))
+-    diff = dvc.diff()
+-    assert diff["added"] == []
+-    assert diff["deleted"] == [
+-        {
+-            "path": os.path.join("dir", ""),
+-            "hash": "f0f7a307d223921557c929f944bf5303.dir",
+-        }
+-    ]
+-    assert diff["renamed"] == []
+-    assert diff["modified"] == []
+-    assert diff["not in cache"] == [
+-        {
+-            "path": os.path.join("dir", ""),
+-            "hash": "f0f7a307d223921557c929f944bf5303.dir",
+-        }
+-    ]
+-
+-
+ def test_diff_dirty(tmp_dir, scm, dvc):
+     tmp_dir.dvc_gen(
+         {"file": "file_content", "dir": {"dir_file1": "dir file content"}},
+diff --git a/tests/func/test_repo_index.py b/tests/func/test_repo_index.py
+index ebcbee85..34db5cbb 100644
+--- a/tests/func/test_repo_index.py
++++ b/tests/func/test_repo_index.py
+@@ -4,7 +4,8 @@ from itertools import chain
+ import pytest
+ from pygtrie import Trie
+ 
+-from dvc.repo.index import Index
++from dvc.exceptions import NoOutputOrStageError
++from dvc.repo.index import Index, index_from_targets
+ from dvc.stage import Stage
+ 
+ 
+@@ -402,3 +403,31 @@ def test_data_index(tmp_dir, dvc, local_cloud, erepo_dir):
+ 
+     assert data.storage_map[("ifoo_partial",)].remote.read_only
+     assert data.storage_map[("idir_partial",)].remote.read_only
++
++
++def test_index_from_targets(tmp_dir, dvc):
++    stage1 = dvc.stage.add(name="stage1", cmd="echo hello")
++    stage2 = dvc.stage.add(name="stage2", cmd="echo hello world")
++
++    (foo_stage,) = tmp_dir.dvc_gen("foo", "foo")
++
++    index = index_from_targets(dvc, ["stage1"])
++    assert index.stages == [stage1]
++
++    index = index_from_targets(dvc, ["stage2"])
++    assert index.stages == [stage2]
++
++    index = index_from_targets(dvc, ["dvc.yaml"])
++    assert set(index.stages) == {stage1, stage2}
++
++    index = index_from_targets(dvc, ["dvc.yaml:stage2"])
++    assert index.stages == [stage2]
++
++    index = index_from_targets(dvc, ["foo.dvc"])
++    assert index.stages == [foo_stage]
++
++    index = index_from_targets(dvc, ["stage1", "foo.dvc"])
++    assert set(index.stages) == {foo_stage, stage1}
++
++    with pytest.raises(NoOutputOrStageError):
++        index = index_from_targets(dvc, ["not-existing-stage"])
+diff --git a/tests/func/test_run_cache.py b/tests/func/test_run_cache.py
+index b25ee537..f7dc6a98 100644
+--- a/tests/func/test_run_cache.py
++++ b/tests/func/test_run_cache.py
+@@ -20,7 +20,12 @@ def test_push_pull(tmp_dir, dvc, erepo_dir, run_copy, local_remote):
+     erepo_dir.add_remote(config=local_remote.config)
+     with erepo_dir.chdir():
+         assert not os.path.exists(erepo_dir.dvc.stage_cache.cache_dir)
+-        assert erepo_dir.dvc.pull(run_cache=True)["fetched"] == 0
++        assert erepo_dir.dvc.pull(run_cache=True) == {
++            "added": [],
++            "deleted": [],
++            "modified": [],
++            "stats": {"fetched": 0, "added": 0, "deleted": 0, "modified": 0},
++        }
+         assert os.listdir(erepo_dir.dvc.stage_cache.cache_dir)
+ 
+ 
+diff --git a/tests/func/test_virtual_directory.py b/tests/func/test_virtual_directory.py
+index 16947749..3c67db96 100644
+--- a/tests/func/test_virtual_directory.py
++++ b/tests/func/test_virtual_directory.py
+@@ -1,3 +1,4 @@
++import os
+ import shutil
+ from os.path import join
+ 
+@@ -180,7 +181,12 @@ def test_partial_checkout_and_update(M, tmp_dir, dvc, remote):
+     dvc.cache.local.clear()
+     shutil.rmtree("dir")
+ 
+-    assert dvc.pull("dir/subdir") == M.dict(added=[join("dir", "")], fetched=11)
++    assert dvc.pull("dir/subdir") == {
++        "added": ["dir" + os.sep],
++        "deleted": [],
++        "modified": [],
++        "stats": {"added": 10, "deleted": 0, "fetched": 11, "modified": 0},
++    }
+     assert (tmp_dir / "dir").read_text() == {"subdir": dir1}
+ 
+     tmp_dir.gen({"dir": {"subdir": {"file": "file"}}})
+diff --git a/tests/func/utils/test_strict_yaml.py b/tests/func/utils/test_strict_yaml.py
+index 7aba6c44..64874571 100644
+--- a/tests/func/utils/test_strict_yaml.py
++++ b/tests/func/utils/test_strict_yaml.py
+@@ -1,4 +1,4 @@
+-import os
++from os import curdir, pardir, sep
+ 
+ import pytest
+ from ruamel.yaml import __with_libyaml__ as ruamel_clib
+@@ -372,18 +372,22 @@ def test_on_revision(
+     assert expected.format(short_rev=scm.get_rev()[:7]) in err
+ 
+ 
+-def test_make_relpath(tmp_dir, monkeypatch):
++def test_make_relpath(tmp_dir, dvc, scm, monkeypatch):
+     from dvc.utils.strictyaml import make_relpath
+ 
++    gitfs = scm.get_fs("HEAD")
+     path = tmp_dir / "dvc.yaml"
+-    expected_path = "./dvc.yaml" if os.name == "posix" else ".\\dvc.yaml"
++    expected_path = curdir + sep + "dvc.yaml"
+     assert make_relpath(path) == expected_path
++    assert make_relpath("/dvc.yaml", gitfs) == expected_path
+ 
+     (tmp_dir / "dir").mkdir(exist_ok=True)
+     monkeypatch.chdir("dir")
++    gitfs.chdir("/dir")
+ 
+-    expected_path = "../dvc.yaml" if os.name == "posix" else "..\\dvc.yaml"
++    expected_path = pardir + sep + "dvc.yaml"
+     assert make_relpath(path) == expected_path
++    assert make_relpath("/dvc.yaml", gitfs) == expected_path
+ 
+ 
+ def test_fallback_exception_message(tmp_dir, dvc, mocker, caplog):
+diff --git a/tests/unit/command/test_data_status.py b/tests/unit/command/test_data_status.py
+index 63c7a167..9436716e 100644
+--- a/tests/unit/command/test_data_status.py
++++ b/tests/unit/command/test_data_status.py
+@@ -19,12 +19,14 @@ def mocked_status():
+             "deleted": ["dir/baz"],
+             "modified": ["dir/foobar"],
+             "unknown": ["dir/unknown1"],
++            "renamed": [{"old": "dir/", "new": "dir2/"}],
+         },
+         uncommitted={
+             "added": ["dir/baz"],
+             "modified": ["dir/bar"],
+             "deleted": ["dir/foobar"],
+             "unknown": ["dir2/unknown2"],
++            "renamed": [{"old": "dir2/file-old", "new": "dir2/file-new"}],
+         },
+         untracked=["untracked"],
+         unchanged=["dir/foo"],
+@@ -43,6 +45,8 @@ def test_cli(dvc, mocker, mocked_status):
+             "--unchanged",
+             "--untracked-files",
+             "--granular",
++            "--remote",
++            "myremote",
+         ]
+     )
+ 
+@@ -53,6 +57,7 @@ def test_cli(dvc, mocker, mocked_status):
+         targets=[],
+         untracked_files="all",
+         not_in_remote=False,
++        remote="myremote",
+         remote_refresh=True,
+         granular=True,
+     )
+@@ -121,6 +126,7 @@ DVC committed changes:
+         deleted: dir/baz
+         modified: dir/foobar
+         unknown: dir/unknown1
++        renamed: dir/ -> dir2/
+ 
+ DVC uncommitted changes:
+   (use "dvc commit <file>..." to track changes)
+@@ -129,6 +135,7 @@ DVC uncommitted changes:
+         modified: dir/bar
+         deleted: dir/foobar
+         unknown: dir2/unknown2
++        renamed: dir2/file-old -> dir2/file-new
+ """
+     if "--untracked-files" in args:
+         expected_out += """
+diff --git a/tests/unit/output/test_output.py b/tests/unit/output/test_output.py
+index bf86b88b..172fc787 100644
+--- a/tests/unit/output/test_output.py
++++ b/tests/unit/output/test_output.py
+@@ -6,7 +6,7 @@ from funcy import first
+ from voluptuous import MultipleInvalid, Schema
+ 
+ from dvc.fs import RemoteMissingDepsError
+-from dvc.ignore import _no_match
++from dvc.ignore import CheckIgnoreResult
+ from dvc.output import CHECKSUM_SCHEMA, Output
+ from dvc.stage import Stage
+ from dvc.utils.fs import remove
+@@ -88,7 +88,9 @@ def test_get_used_objs(exists, expected_message, mocker, caplog):
+     mocker.patch.object(stage.repo, "root_dir", os.getcwd())
+     mocker.patch.object(stage.repo.dvcignore, "is_ignored", return_value=False)
+     mocker.patch.object(
+-        stage.repo.dvcignore, "check_ignore", return_value=_no_match("path")
++        stage.repo.dvcignore,
++        "check_ignore",
++        return_value=CheckIgnoreResult("path", False, []),
+     )
+     stage.repo.fs.version_aware = False
+     stage.repo.fs.PARAM_CHECKSUM = "md5"
+diff --git a/tests/unit/test_dvcfile.py b/tests/unit/test_dvcfile.py
+index 11641388..11a00064 100644
+--- a/tests/unit/test_dvcfile.py
++++ b/tests/unit/test_dvcfile.py
+@@ -90,6 +90,39 @@ def test_dump_stage(tmp_dir, dvc):
+     assert list(dvcfile.stages.values()) == [stage]
+ 
+ 
++def test_dump_multiple_pipeline_stages(tmp_dir, dvc):
++    stage1 = PipelineStage(dvc, cmd="cmd1", name="stage1", path="dvc.yaml")
++    stage2 = PipelineStage(dvc, cmd="cmd2", name="stage2", path="dvc.yaml")
++    dvcfile = load_file(dvc, "dvc.yaml")
++
++    dvcfile.dump_stages([stage1, stage2], update_lock=False, update_pipeline=False)
++    assert not (tmp_dir / LOCK_FILE).exists()
++    assert not (tmp_dir / PROJECT_FILE).exists()
++
++    dvcfile.dump_stages([stage1, stage2], update_pipeline=False)
++    assert not (tmp_dir / PROJECT_FILE).exists()
++    assert (tmp_dir / LOCK_FILE).parse() == {
++        "schema": "2.0",
++        "stages": {"stage1": {"cmd": "cmd1"}, "stage2": {"cmd": "cmd2"}},
++    }
++
++    dvcfile.dump_stages([stage1, stage2], update_lock=False)
++    assert (tmp_dir / PROJECT_FILE).parse() == {
++        "stages": {"stage1": {"cmd": "cmd1"}, "stage2": {"cmd": "cmd2"}}
++    }
++
++
++def test_dump_stages_single_stage(tmp_dir, dvc):
++    stage = dvc.stage.create(
++        fname="foo.dvc", outs=["out"], deps=["dep"], single_stage=True
++    )
++    stage.dvcfile.dump_stages([stage])
++    assert (tmp_dir / "foo.dvc").parse() == {
++        "deps": [{"hash": "md5", "path": "dep"}],
++        "outs": [{"hash": "md5", "path": "out"}],
++    }
++
++
+ @pytest.mark.parametrize("file", ["stage.dvc", "dvc.yaml"])
+ def test_stage_load_file_exists_but_dvcignored(tmp_dir, dvc, scm, file):
+     (tmp_dir / file).write_text("")
+diff --git a/tests/unit/test_ignore.py b/tests/unit/test_ignore.py
+index e24a39e7..3dfa458c 100644
+--- a/tests/unit/test_ignore.py
++++ b/tests/unit/test_ignore.py
+@@ -1,4 +1,5 @@
+ import os
++from os.path import join
+ 
+ import pytest
+ 
+@@ -202,3 +203,154 @@ def test_should_ignore_dir(omit_dir, sub_dir):
+ 
+     assert set(new_dirs) == {"dir1", "dir2"}
+     assert set(new_files) == {"file1", "file2", omit_dir}
++
++
++def test_ignore_complex(tmp_dir, dvc):
++    from dvc.fs import localfs
++
++    spec = """\
++# Ignore everything
++1/**
++# Except directories (leaves all files ignored)
++!1/**/
++# Don't ignore files in 3
++!seq/**/3/**
++
++data/
++!data/keep.csv
++
++data2/**
++!data2/**/
++!data2/**/*.csv
++
++ignore.txt
++!no-ignore.txt
++"""
++    (tmp_dir / ".dvcignore").write_text(spec)
++    (tmp_dir / "1" / "2" / "3").mkdir(parents=True, exist_ok=True)
++    (tmp_dir / "1" / "2" / "shouldIgnore.txt").touch()
++    (tmp_dir / "1" / "2" / "3" / "shouldKeep.txt").touch()
++    (tmp_dir / "data" / "subdir").mkdir(parents=True, exist_ok=True)
++    (tmp_dir / "data2" / "subdir").mkdir(parents=True, exist_ok=True)
++    (tmp_dir / "data" / "keep.csv").touch()
++    (tmp_dir / "data" / "other.csv").touch()
++    (tmp_dir / "data" / "subdir" / "file.txt").touch()
++    (tmp_dir / "data2" / "keep.csv").touch()
++    (tmp_dir / "data2" / "other.txt").touch()
++    (tmp_dir / "data2" / "subdir" / "keep.csv").touch()
++    (tmp_dir / "data2" / "subdir" / "other.txt").touch()
++    (tmp_dir / "ignore.txt").touch()
++    (tmp_dir / "no-ignore.txt").touch()
++
++    ignore_file = DvcIgnorePatterns.from_file(
++        os.fspath(tmp_dir / ".dvcignore"), localfs, ".dvcignore"
++    )
++    dvc.__dict__.pop("dvcignore", None)
++
++    def matches(path):
++        result, _matches = ignore_file.matches(
++            os.fspath(tmp_dir), path, (tmp_dir / path).is_dir(), details=True
++        )
++        return result, [str(m) for m in _matches]
++
++    for path, *expected in [
++        ("1", False, [".dvcignore:4:!1/**/"]),
++        (join("1", ""), False, [".dvcignore:4:!1/**/"]),
++        (join("1", "2"), False, [".dvcignore:4:!1/**/"]),
++        (join("1", "2", ""), False, [".dvcignore:4:!1/**/"]),
++        (join("1", "2", "shouldIgnore.txt"), True, [".dvcignore:2:1/**"]),
++        (join("1", "2", "3"), False, [".dvcignore:4:!1/**/"]),
++        (join("1", "2", "3", ""), False, [".dvcignore:4:!1/**/"]),
++        (join("1", "2", "3", "shouldKeep.txt"), True, [".dvcignore:2:1/**"]),
++        ("data", True, [".dvcignore:8:data/"]),
++        (join("data", ""), True, [".dvcignore:8:data/"]),
++        (join("data", "keep.csv"), True, [".dvcignore:8:data/"]),
++        (join("data", "other.csv"), True, [".dvcignore:8:data/"]),
++        (join("data", "subdir", "file.txt"), True, [".dvcignore:8:data/"]),
++        ("data2", False, [".dvcignore:12:!data2/**/"]),
++        (join("data2", ""), False, [".dvcignore:12:!data2/**/"]),
++        (join("data2", "keep.csv"), False, [".dvcignore:13:!data2/**/*.csv"]),
++        (join("data2", "other.txt"), True, [".dvcignore:11:data2/**"]),
++        (join("data2", "subdir"), False, [".dvcignore:12:!data2/**/"]),
++        (join("data2", "subdir", ""), False, [".dvcignore:12:!data2/**/"]),
++        (join("data2", "subdir", "keep.csv"), False, [".dvcignore:13:!data2/**/*.csv"]),
++        (join("data2", "subdir", "other.txt"), True, [".dvcignore:11:data2/**"]),
++        ("ignore.txt", True, [".dvcignore:15:ignore.txt"]),
++        ("no-ignore.txt", False, [".dvcignore:16:!no-ignore.txt"]),
++    ]:
++        assert matches(path) == tuple(expected), f"for {path}"
++
++    def sorted_walk(path):
++        for root, dirs, files in dvc.dvcignore.walk(localfs, path):
++            dirs.sort()
++            files.sort()
++            yield root, dirs, files
++
++    assert list(sorted_walk(os.curdir)) == [
++        (
++            os.curdir,
++            ["1", "data2"],
++            [".dvcignore", "no-ignore.txt"],
++        ),
++        ("1", ["2"], []),
++        (join("1", "2"), ["3"], []),
++        (join("1", "2", "3"), [], []),
++        ("data2", ["subdir"], ["keep.csv"]),
++        (join("data2", "subdir"), [], ["keep.csv"]),
++    ]
++
++
++def test_ignore_unignore_from_git_example(tmp_dir, dvc, scm):
++    from dvc.fs import localfs
++
++    spec = """\
++# exclude everything except directory foo/bar
++/*
++!/foo
++/foo/*
++!/foo/bar
++"""
++    (tmp_dir / ".dvcignore").write_text(spec)
++    for d in [
++        tmp_dir,
++        tmp_dir / "foo",
++        tmp_dir / "foo" / "bar",
++        tmp_dir / "foo" / "baz",
++        tmp_dir / "foobar",
++    ]:
++        d.mkdir(parents=True, exist_ok=True)
++        (d / "myfile").touch()
++
++    ignore_file = DvcIgnorePatterns.from_file(
++        os.fspath(tmp_dir / ".dvcignore"), localfs, ".dvcignore"
++    )
++    dvc.__dict__.pop("dvcignore", None)
++
++    def matches(path):
++        result, _matches = ignore_file.matches(
++            os.fspath(tmp_dir), path, (tmp_dir / path).is_dir(), details=True
++        )
++        return result, [str(m) for m in _matches]
++
++    for path, *expected in [
++        ("foo", False, [".dvcignore:3:!/foo"]),
++        (join("foo", ""), False, [".dvcignore:3:!/foo"]),
++        (join("foo", "myfile"), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "bar"), False, [".dvcignore:5:!/foo/bar"]),
++        (join("foo", "bar", ""), False, [".dvcignore:5:!/foo/bar"]),
++        # matching pattern differs from git for foo/bar/myfile
++        (join("foo", "bar", "myfile"), False, [".dvcignore:5:!/foo/bar"]),
++        (join("foo", "baz"), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "baz", ""), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "baz", "myfile"), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "foobar"), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "foobar", ""), True, [".dvcignore:4:/foo/*"]),
++        (join("foo", "foobar", "myfile"), True, [".dvcignore:4:/foo/*"]),
++    ]:
++        assert matches(path) == tuple(expected), f"for {path}"
++
++    assert sorted(dvc.dvcignore.walk(localfs, os.curdir), key=lambda r: r[0]) == [
++        (os.curdir, ["foo"], []),
++        ("foo", ["bar"], []),
++        (join("foo", "bar"), [], ["myfile"]),
++    ]

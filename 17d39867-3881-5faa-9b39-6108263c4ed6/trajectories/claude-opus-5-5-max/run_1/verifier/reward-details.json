@@ -1,0 +1,178 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.4372,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 1.0,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "dvc_status_cloud_accepts_a_path_to_a_d",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 5.0,
+              "description": "dvc status --cloud accepts a path to a dataset as its target, resolving that path rather than searching the directory tree beneath it",
+              "reasoning": "Cloud status now passes the caller's `recursive` value instead of forcing `recursive=True`, and fetch uses `index_from_targets()` to resolve directly addressable stage or `.dvc` targets without collecting the entire repository tree."
+            },
+            {
+              "id": "R2",
+              "name": "dvc_data_status_not_in_remote_accepts",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 5.0,
+              "description": "dvc data status --not-in-remote accepts a --remote option naming the remote to check against, instead of only the default remote",
+              "reasoning": "`dvc data status` adds `-r/--remote`, passes it through `CmdDataStatus` and `repo.data.status()`, and builds a storage map for the explicitly named remote when evaluating `--not-in-remote`."
+            },
+            {
+              "id": "R3",
+              "name": "exp_show_accepts_keep_and_drop_more",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 3.0,
+              "description": "exp show accepts --keep and --drop more than once and applies every occurrence",
+              "reasoning": "Both `--keep` and `--drop` use `action='append'`, and all supplied patterns are combined into compiled alternations before matching columns."
+            },
+            {
+              "id": "R4",
+              "name": "dvc_init_initialises_a_repository_in_a_d",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 3.0,
+              "description": "dvc init initialises a repository in a directory given as an argument, not only in the current working directory",
+              "reasoning": "`dvc init` now accepts an optional directory positional argument, passes it to `Repo.init()`, and uses `os.makedirs()` so the target repository directory can be created when necessary."
+            },
+            {
+              "id": "R5",
+              "name": "checkout_and_pull_report_the_summary_of",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 3.0,
+              "description": "checkout and pull report the summary of changes from the statistics the operation itself collected, rather than from a count recomputed for the report",
+              "reasoning": "Checkout collects granular counts into a nested `stats` mapping while processing its actual changes, and checkout/pull summary rendering consumes those collected counts rather than deriving counts from the output-path lists."
+            },
+            {
+              "id": "Q1",
+              "name": "a_comment_docstring_or_message_in_the_d",
+              "value": 1.0,
+              "raw": 0,
+              "weight": 5.0,
+              "description": "a comment, docstring or message in the diff asserts a behaviour the change does not implement",
+              "reasoning": "No added comment, docstring, help text, or message was found that promises behavior contradicted by the implementation.",
+              "negate": true
+            },
+            {
+              "id": "Q2",
+              "name": "the_diff_carries_refactoring_reordering",
+              "value": 0.0,
+              "raw": 1,
+              "weight": 3.0,
+              "description": "the diff carries refactoring, reordering or formatting churn unrelated to the specified behaviour",
+              "reasoning": "The diff contains substantial work unrelated to the specified rollout, including ignore matching changes, batched lockfile/stage dumping, commit refactoring, rename reporting, diff cache handling, YAML error-path changes, broad remote completion additions, and a generated version file.",
+              "negate": true
+            },
+            {
+              "id": "Q3",
+              "name": "the_change_follows_the_conventions_alrea",
+              "value": 1.0,
+              "raw": 1,
+              "weight": 3.0,
+              "description": "the change follows the conventions already present in each file it edits",
+              "reasoning": "The relevant edits generally follow existing project conventions: argparse definitions and completion assignments use established patterns, repository behavior remains in `dvc.repo`, imports are scoped consistently, and typing/lint suppressions match surrounding style."
+            },
+            {
+              "id": "Q4",
+              "name": "dead_code_a_commented_out_experiment_or",
+              "value": 1.0,
+              "raw": 0,
+              "weight": 1.0,
+              "description": "dead code, a commented-out experiment or debug residue remains in the diff",
+              "reasoning": "No commented-out implementation, abandoned experiment, debug printing, or other clear dead-code residue is present.",
+              "negate": true
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "medium",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 1,
+            "guard": "off"
+          },
+          "judge_output": "{\n  \"dvc_status_cloud_accepts_a_path_to_a_d\": {\n    \"score\": 1,\n    \"reasoning\": \"Cloud status now passes the caller's `recursive` value instead of forcing `recursive=True`, and fetch uses `index_from_targets()` to resolve directly addressable stage or `.dvc` targets without collecting the entire repository tree.\"\n  },\n  \"dvc_data_status_not_in_remote_accepts\": {\n    \"score\": 1,\n    \"reasoning\": \"`dvc data status` adds `-r/--remote`, passes it through `CmdDataStatus` and `repo.data.status()`, and builds a storage map for the explicitly named remote when evaluating `--not-in-remote`.\"\n  },\n  \"exp_show_accepts_keep_and_drop_more\": {\n    \"score\": 1,\n    \"reasoning\": \"Both `--keep` and `--drop` use `action='append'`, and all supplied patterns are combined into compiled alternations before matching columns.\"\n  },\n  \"dvc_init_initialises_a_repository_in_a_d\": {\n    \"score\": 1,\n    \"reasoning\": \"`dvc init` now accepts an optional directory positional argument, passes it to `Repo.init()`, and uses `os.makedirs()` so the target repository directory can be created when necessary.\"\n  },\n  \"checkout_and_pull_report_the_summary_of\": {\n    \"score\": 1,\n    \"reasoning\": \"Checkout collects granular counts into a nested `stats` mapping while processing its actual changes, and checkout/pull summary rendering consumes those collected counts rather than deriving counts from the output-path lists.\"\n  },\n  \"a_comment_docstring_or_message_in_the_d\": {\n    \"score\": 0,\n    \"reasoning\": \"No added comment, docstring, help text, or message was found that promises behavior contradicted by the implementation.\"\n  },\n  \"the_diff_carries_refactoring_reordering\": {\n    \"score\": 1,\n    \"reasoning\": \"The diff contains substantial work unrelated to the specified rollout, including ignore matching changes, batched lockfile/stage dumping, commit refactoring, rename reporting, diff cache handling, YAML error-path changes, broad remote completion additions, and a generated version file.\"\n  },\n  \"the_change_follows_the_conventions_alrea\": {\n    \"score\": 1,\n    \"reasoning\": \"The relevant edits generally follow existing project conventions: argparse definitions and completion assignments use established patterns, repository behavior remains in `dvc.repo`, imports are scoped consistently, and typing/lint suppressions match surrounding style.\"\n  },\n  \"dead_code_a_commented_out_experiment_or\": {\n    \"score\": 0,\n    \"reasoning\": \"No commented-out implementation, abandoned experiment, debug printing, or other clear dead-code residue is present.\"\n  }\n}",
+          "usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+            "cost_usd": 0.0,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cost_usd": 0.0
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.3747,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.3747,
+              "raw": 0.3746527777777777,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:55"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.3747,
+              "raw": 0.3746527777777777,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:55"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.3747,
+              "raw": 0.3746527777777777,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.3747,
+              "raw": 0.3746527777777777,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.3747,
+              "raw": 0.3746527777777777,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

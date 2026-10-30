@@ -1,0 +1,62 @@
+{
+  "acceptance_rule": "a FAIL blocks delivery. The oracle must score 1.0 and the empty submission 0.0 on these exact bytes.",
+  "base_image": "python:3.12-slim",
+  "base_image_note": "a mutable tag rather than an index digest, so a rebuild after upstream republishes it resolves different base bytes. Everything installed on top is hash-locked; the base layer is not, and that is recorded rather than claimed otherwise.",
+  "build_flag": "--provenance=false",
+  "conditions": "artifacts owned by the solver as 10001 and read-only, verifier runs as 10002, --network none on both halves",
+  "halves": {
+    "nop": {
+      "egress_attempts": 0,
+      "pytest": "94 failed, 2881 passed, 10 skipped, 1 error",
+      "reward": 0.0,
+      "drift_note": "the previous measurement of this half recorded 95 failed and 2880 passed. This re-measurement records 94 and 2881 on the same bytes. One must-keep node moves between the two runs, so the nop half is not bit-reproducible at single-test granularity; the reward is 0.0 either way because no required node passes without the fix. The moving node is not in the required set.",
+      "components": {
+        "deterministic": 0.0,
+        "judge_thresholded": 0.0,
+        "judge_weight": 0.1
+      }
+    },
+    "oracle": {
+      "egress_attempts": 0,
+      "failures_note": "the three failures are ungraded: tests.func.test_daemon carries no graded node at all, and test_ls::test_show_tree is not among that module's graded nodes. Both spawn subprocesses or assert on environment the task does not fix.",
+      "pytest": "3 failed, 2990 passed, 10 skipped, 2 xpassed",
+      "reward": 1.0,
+      "components": {
+        "deterministic": 1.0,
+        "judge_thresholded": 1.0,
+        "judge_weight": 0.1
+      },
+      "repeats": "four oracle runs recorded 1.0: three on the predecessor image and one on this digest after the prose corrections, which changed comments only"
+    }
+  },
+  "harbor_reward_kit": "0.2.4",
+  "interpreter": "CPython 3.12.16",
+  "judged_channel": {
+    "status": "weighted",
+    "alpha_equivalent": 0.05,
+    "weight": 0.1,
+    "model": "openai/gpt-5.6-sol",
+    "aggregation": "threshold",
+    "threshold": 0.5,
+    "carrier": "tests/judge.toml, in the verifier image at /tests",
+    "consumer": "rewardkit, in this verifier, same invocation as the deterministic criteria",
+    "criteria": 9,
+    "note": "scored inside the verifier and thresholded before it reaches the weighted mean, so the component is 1.0 or 0.0 rather than a continuous opinion. The bar is Reward Kit's own default. Observed rubric spread: the reference fix between 0.7419 and 0.8065, an empty diff between 0.0323 and 0.2903, so the bar sits in a wide gap and the thresholded output did not move across runs. A continuous contribution would both put the reference fix permanently below 1.0 and make the reward irreproducible. Residue the deterministic channel cannot see still forfeits the full 10 percent when it drops the rubric under the bar, which is what Q4 charges for. The credential is required: rewardkit runs both channels in one asyncio.TaskGroup with no exception guard, so a judge that cannot reach its model leaves no reward written at all. The runner passes it at invocation with harbor run --ve and nothing about it is sealed."
+  },
+  "measured_on": "the packaged bundle bytes, with the judge reachable so the judged criteria executed rather than skipping. The oracle half is the image's own /app/dvc with solution/fix.patch applied, preserving the setuptools_scm build product dvc/_version.py. The judge reached gpt-5.6-sol through an author-side protocol adapter that ships nowhere in this bundle.",
+  "node_counts": {
+    "baseline_manifest_nodes": 2991,
+    "excluded": 1,
+    "groups": 15,
+    "must_keep_passing": 2880,
+    "required_to_pass": 111
+  },
+  "platform": "linux/arm64",
+  "schema": "scout.bundle-gate/v1",
+  "sets_provenance": "both sets and the baseline manifest are derived from these two runs on this image at the fixed graded path. An earlier pass measured them on scratch images under an unpinned pytest, and nine must-keep ids did not survive: five embed the absolute working directory, four were rendered with expanded parameter labels where the pinned pytest emits synthetic ones. Nothing had regressed, but a set measured anywhere other than the image that grades it cannot be trusted.",
+  "setuid_binaries_in_verifier": 0,
+  "verdict": "PASS",
+  "verifier_image": "sha256:68b249138417a11308764f977a28e605cbcf465c25270e3438e98a0815cf8ec0",
+  "verifier_image_note": "built with --provenance=false; buildx attestations carry per-build provenance and change the image id even when every layer is identical",
+  "superseded_measurement": "sha256:9ee24bf278d62887cfacee6c42cd176b6a9ee7da13596eb755cc90d2a07c077d"
+}

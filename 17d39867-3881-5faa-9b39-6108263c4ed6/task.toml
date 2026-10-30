@@ -1,0 +1,219 @@
+schema_version = "1.4"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent
+# environment before teardown. [verifier].environment_mode is "separate", so these are also the
+# only bytes that reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/dvc    the package tree the solver evolves; the graded deliverable. dvc/testing is
+#               admitted with it and then discarded: the verifier restores that subtree from the
+#               target revision before any test runs, because seventeen graded files import
+#               dvc.testing and the reference needs its three files. Admitting it is harmless
+#               once it is restored, and excluding it would starve the oracle.
+#   /app/tests  the test tree as the solver left it, carried solely so the RL-NO-TEST-EDIT
+#               assertion can compare it against the bytes the image shipped. It is discarded
+#               before any test runs.
+artifacts = [
+  "/app/dvc",
+  "/app/tests",
+]
+
+[task]
+name = "scout/release-evolution-dvc"
+version = "1.0.0"
+description = "Evolve a pinned data-versioning source tree across a feature release boundary, from the release specification alone, without regressing the existing unit and functional suites."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:83878861"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# The unmodified base tree resolves nothing in the required-to-pass set, so an empty submission
+# scores exactly zero under the bound reward schema.
+null_floor = 0.0
+# The largest share of full reward that losing one node may cost, measured per group against the
+# pinned scorer. Fifteen equally weighted groups put the ceiling at one whole group, 0.0667, which
+# is what losing the single node of a one-node group costs. Losing one of the 32 cases in the
+# largest group costs 0.0021, so 0.0667 is the tightest ceiling the ladder admits.
+discrimination_weight = 0.0667
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "no-network"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 7200.0
+# An agent driven by a model needs a route to one. "no-network" here does not harden the task,
+# it makes it unrunnable: every solver resolves a model endpoint at trial time, and baking the
+# CLI into the image removes only the install-time need, never the run-time one. The red line is
+# therefore scoped to the verifier, which is the phase where outside influence would corrupt a
+# grade. The allowlist carries only the host-gateway ranges the model bridge listens on, so the
+# container still holds no provider credential and still cannot reach the public internet.
+#
+# The key is `allowed_hosts`, which is the only name Harbor binds. PhaseNetworkPolicyConfig
+# declares `allowed_hosts` and nothing on that model is extra='forbid', so a near-miss spelling
+# is dropped in silence rather than refused, and explicit_phase_policy() then resolves
+# NetworkPolicy(network_mode=ALLOWLIST, allowed_hosts=[]). That is allowlist mode with no
+# reachable host: the same unrunnable agent as "no-network", wearing a manifest that reads
+# correct. Harbor has no port granularity here either, so an allowed host is a host and not a
+# host:port, and any unrelated service on these ranges is reachable for the run's duration.
+network_mode = "allowlist"
+allowed_hosts = ["192.168.65.0/24", "172.16.0.0/12"]
+user = "10001:10001"
+
+[verifier]
+timeout_sec = 5400.0
+network_mode = "allowlist"
+# The judged channel is a Reward Kit judge inside this container, so the grading phase needs a
+# route to a model. The allowlist is the same two private host-gateway ranges the agent plane
+# carries: the verifier reaches a model bridge on the host and no public address. A runner whose
+# judge model is a hosted endpoint must widen allowed_hosts itself. Harbor has no port
+# granularity, so anything else listening on these ranges is reachable for the run.
+allowed_hosts = ["192.168.65.0/24", "172.16.0.0/12"]
+environment_mode = "separate"
+# The uid the grading container runs as, declared here rather than left implicit in the
+# Dockerfile. It is distinct from the agent's 10001 so no agent artifact arrives owning anything
+# the scorer reads. Launcher-versus-runner separation inside the verifier is not yet implemented:
+# pytest and the scorer still share this uid, so agent code imported during collection runs as
+# the uid that owns /tests.
+user = "10002:10002"
+
+[verifier.environment]
+network_mode = "allowlist"
+# The judged channel is a Reward Kit judge inside this container, so the grading phase needs a
+# route to a model. The allowlist is the same two private host-gateway ranges the agent plane
+# carries: the verifier reaches a model bridge on the host and no public address. A runner whose
+# judge model is a hosted endpoint must widen allowed_hosts itself. Harbor has no port
+# granularity, so anything else listening on these ranges is reachable for the run.
+allowed_hosts = ["192.168.65.0/24", "172.16.0.0/12"]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-10-27"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/iterative/dvc"
+base_commit = "225bfa6a19652b3d923259c13887d6aa97ac8117"
+event_timestamp = "2025-09-02T13:34:43Z"
+
+[span_provenance]
+enumerated_objective_count = 14
+pr_count = 0
+pr_count_note = """
+Pull request numbers are deliberately withheld. The release prose is handed over whole and the
+solver never receives a tag, a pull request number, or a diff, because any one of them is a
+retrieval handle to the published answer. The objectives are enumerated positionally rather than
+by upstream identifier.
+"""
+objective_f2p_reconciliation = "unestablished"
+objective_f2p_reconciliation_note = """
+The instruction enumerates 14 objectives and the graded set resolves into 15 measuring groups
+across 14 touched test files, but none of those counts is a mapping and this field claims none.
+The group total exceeds the file total because tests/func/test_data_cloud contributes two groups,
+one at module level and one for its TestRemote class. Which objective each group measures, and
+which objectives no identifier measures, needs the per-objective reconciliation that
+tests/group_map.json records as absent. Reading a one-to-one correspondence out of these counts
+would be exactly the coverage claim the control exists to prevent.
+
+The authoritative tree is tests/unit plus tests/func to reach the coverage that exists: the span
+touches four unit files and ten functional files, so grading the unit tree alone would have
+measured four of those fourteen files, four of the fifteen graded groups, and left most of the
+specification unobservable. tests/integration and tests/remotes are excluded because they require
+network services the task denies, and tests/func/test_import_db.py is excluded because it needs a
+database service.
+"""
+realized_breadth_subsystems = [
+  "checkout and workspace materialisation",
+  "data cloud push and pull",
+  "repository index",
+  "data status reporting",
+  "ignore-file handling",
+  "stage and dvcfile parsing",
+]
+# The release span's package change surface, per solution/grounding.yaml upstream_change_surface.
+# The reference patch carries 50 of these 53: it is the span minus the 3 files under dvc/testing,
+# which the verifier restores from the target revision before grading. 50 is the patch's file
+# count and is not this surface.
+package_files_changed = 53
+test_files_changed = 14
+
+[interface_spec]
+bound = true
+bound_note = """
+Six symbols, each signature read from the target revision rather than asserted. The set is not
+exhaustive and instruction.md says so: objectives absent from it require the interface to be
+derived. The control exists because a solver that implements the right behaviour behind a
+different name, arity or return shape fails tests it has functionally satisfied: the sibling conan
+bundle lost 47 nodes to exactly that, a helper returning an int where the suite asserts a str. The
+option contracts matter as much as the names here, since append-versus-overwrite and
+flag-versus-nargs are not derivable from prose.
+"""
+
+[[interface_spec.symbol]]
+objective = "status --cloud resolves a dataset path target"
+module = "dvc.repo.status"
+symbol = "_cloud_status"
+parameters = "self, targets, jobs, remote, all_branches, with_deps, all_tags, recursive, all_commits"
+returns = "the cloud status mapping. status() dispatches here when cloud is set and to _local_status otherwise, so the target must be resolved as a path to a dataset rather than searched for beneath a directory."
+
+[[interface_spec.symbol]]
+objective = "data status --not-in-remote names a remote"
+module = "dvc.commands.data"
+symbol = "CmdDataStatus"
+parameters = "the data status parser gains -r / --remote with metavar <name>"
+returns = "no return; the option is declared on data_status_parser with completion.REMOTE and is only applicable alongside --not-in-remote. Accepting the flag without threading it to remote selection does not satisfy the objective."
+
+[[interface_spec.symbol]]
+objective = "exp show accumulates --keep and --drop"
+module = "dvc.commands.experiments.show"
+symbol = "add_parser"
+parameters = "experiments_show_parser --keep and --drop"
+returns = "no return; both options carry action append and default empty-list, so every occurrence accumulates. An implementation that overwrites on repeat, or that uses nargs, does not satisfy the objective."
+
+[[interface_spec.symbol]]
+objective = "init accepts a target directory"
+module = "dvc.repo.init"
+symbol = "init"
+parameters = "root_dir=os.curdir, no_scm=False, force=False, subdir=False"
+returns = "a Repo constructed on root_dir. Every path the initialisation writes derives from that argument; changing the process working directory instead leaves the rest of the command observing a directory the caller did not name."
+
+[[interface_spec.symbol]]
+objective = "checkout reports a granular summary"
+module = "dvc.repo.checkout"
+symbol = "checkout"
+parameters = "self, targets, with_deps, force, relink, recursive, allow_missing"
+returns = "a dict, the collected changes merged with a stats key, as changes combined with a single stats entry. The reported figures come from the statistics the operation itself collected, not from a count recomputed by re-walking the tree afterwards."
+
+[[interface_spec.symbol]]
+objective = "load only the stage a target addresses"
+module = "dvc.repo.index"
+symbol = "index_from_targets"
+parameters = "a module-level function, not a method on Index: repo, targets, stage_filter, outs_filter, max_size, types, with_deps, recursive, and the remaining keyword arguments Index.targets_view accepts"
+returns = "the view Index.targets_view returns for those targets. Reaching the same behaviour through a method on Index leaves the module-level name the graded tests import undefined."
+
+[instruction_following_state]
+state = "deferred"
+state_note = """
+Deferred, and declared rather than left silent. Trajectory-level instruction following needs a
+recorded agent trajectory, which this bundle does not collect: the verifier sees the final diff
+and the test report and nothing else. Scoring instruction adherence from the final diff alone
+would read tidy output as obedience, so the channel stays absent instead of guessing.
+"""

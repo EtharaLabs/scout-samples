@@ -1,0 +1,9543 @@
+{
+  "events": 3172,
+  "note": "full stream is agent/stream.jsonl; this is the turn-level digest",
+  "schema_version": "scout-run/1",
+  "turns": [
+    {
+      "subtype": "init",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "background_tasks_changed",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_updated",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "background_tasks_changed",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "background_tasks_changed",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_updated",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "background_tasks_changed",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "api_retry",
+      "type": "system"
+    },
+    {
+      "subtype": "api_retry",
+      "type": "system"
+    },
+    {
+      "subtype": "api_retry",
+      "type": "system"
+    },
+    {
+      "subtype": "api_retry",
+      "type": "system"
+    },
+    {
+      "subtype": "api_retry",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "task_started",
+      "type": "system"
+    },
+    {
+      "subtype": "task_notification",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "thinking_tokens",
+      "type": "system"
+    },
+    {
+      "subtype": "success",
+      "type": "result"
+    }
+  ]
+}

@@ -79,8 +79,4 @@ Released under the MIT License. See [LICENSE](LICENSE).
 - Security and benchmark-integrity disclosure: [SECURITY.md](SECURITY.md)
 - Contribution route: [CONTRIBUTING.md](CONTRIBUTING.md)
 
----
-
-## Copyright
-
 Copyright (c) 2026 Green Rider Technology LLP (Ethara AI). All rights reserved.

@@ -1,0 +1,241 @@
+# Judged channel for the networkx flow, connectivity and centrality bundle.
+#
+# Carries one tenth of the reward. Every criterion is POSITIVE and COMPOUND: each Q item requires
+# that the diff implement behaviour AND that the honesty property hold, so an empty diff fails all
+# eleven and the no-op cannot collect a vacuous pass.
+#
+# Any unreachable judge makes Reward Kit raise rather than degrade and suppresses the whole
+# reward.json
+# including the deterministic channel. The runner MUST give the verifier a route to an
+# OpenAI-compatible endpoint for this judge; without one, no reward.json is written at all.
+
+# Q4 (graded test tree untouched) was REMOVED rather than reworded. final.diff deliberately excludes
+# the test subtrees, so a judge reading it cannot establish that they were untouched: the criterion
+# asked for a verdict the evidence cannot support. The deterministic channel already enforces
+# RL-NO-TEST-EDIT with a hard gate that zeroes the whole score, so the judged duplicate added noise
+# and no coverage. A sibling judge said exactly this when it refused the criterion.
+
+[judge]
+judge = "openai/gpt-5.6-sol"
+files = ["/logs/verifier/final.diff"]
+reasoning_effort = "high"
+samples = 3
+
+[scoring]
+aggregation = "weighted-mean"
+
+[[criterion]]
+
+id = "R1"
+description = "A single shared accessor resolves edge capacity and the flow algorithms use it rather than each resolving capacity itself."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "INVARIANT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "one callable-returning accessor exists and the flow algorithms call it instead of reading the capacity attribute directly"
+evaluation_rule = "EVIDENCE: the hunks in the flow package. PASS when an accessor is introduced and at least two flow algorithms route capacity through it. FAIL when each algorithm still resolves capacity inline."
+
+[[criterion]]
+
+id = "R2"
+description = "The accessor passes a callable specifier through untouched and builds an equivalent callable for a string specifier."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a callable capacity is returned unchanged, a string capacity becomes a callable over the edge attribute, and multigraphs are rejected"
+evaluation_rule = "EVIDENCE: the accessor body. PASS when both branches are present and multigraph input raises. FAIL when the callable branch wraps rather than returns, since the contract is identity."
+
+[[criterion]]
+
+id = "R3"
+description = "A cutoff that the chosen flow function cannot honour is rejected with an error rather than silently ignored."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "ABSENCE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the flow entry point detects a cutoff paired with a flow function that cannot honour it and raises, instead of accepting the argument and discarding it"
+evaluation_rule = "EVIDENCE: the hunks in the maxflow module. PASS when a cutoff combined with an incompatible explicit flow function raises an error. It is NOT required that every cut routine accept or document a cutoff: the release adds this guard at the flow entry point only. FAIL only when a cutoff can be passed and is silently discarded."
+
+[[criterion]]
+
+id = "R4"
+description = "Minimum cuts report the partition the underlying maximum flow induces."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the cut partition derives from the residual network rather than from a heuristic, including the trivial and disconnected cases"
+evaluation_rule = "EVIDENCE: the hunks in the connectivity cut routines. PASS when the partition is read off the residual graph. FAIL when a side is chosen arbitrarily."
+
+[[criterion]]
+
+id = "R6"
+description = "Group betweenness is computed over the group as a whole rather than aggregated from single-node values."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "shortest-path contributions are evaluated against the group set, not summed per member"
+evaluation_rule = "EVIDENCE: the hunks in the group centrality module. PASS when the computation takes the set as the unit. FAIL when it loops members and adds their individual centralities."
+
+[[criterion]]
+
+id = "N1"
+description = "A capacity specifier that is callable is resolved without being invoked too early."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "ABSENCE"
+residue = "whether a callable is DEFERRED or invoked at resolution time is a judgment about evaluation order; both appear as ordinary attribute and call expressions"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a callable capacity specifier is carried through so it is invoked per edge when capacity is needed, rather than being called once at setup and its single result reused"
+evaluation_rule = "EVIDENCE: the hunks in the capacity-accessor path. ANSWER YES IF a callable specifier is stored or wrapped and invoked per edge. ANSWER NO if it is invoked once during resolution and the result reused for every edge, which silently makes capacity constant. Judge EVALUATION ORDER. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N2"
+description = "A rejected cutoff names the incompatibility rather than failing opaquely."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "VALUE"
+residue = "whether a refusal is INFORMATIVE about the incompatibility or merely aborts is a judgment about the error's content, not its presence"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a cutoff the chosen flow function cannot honour is refused with an error that names the incompatibility, rather than aborting with an unrelated failure or silently ignoring the cutoff"
+evaluation_rule = "EVIDENCE: the hunks validating a cutoff. ANSWER YES IF the refusal identifies the incompatibility between the cutoff and the chosen function. ANSWER NO if the cutoff is silently ignored, or the failure surfaces as an unrelated error from deeper code. Judge what the refusal COMMUNICATES. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N3"
+description = "The reported cut partition is the one the computed flow induces."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "whether a partition is INDUCED by the flow or recomputed independently is a relation between two computations that no single line states"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the minimum cut reports the partition that the maximum flow it computed induces, rather than deriving a partition by a separate search that could disagree with that flow"
+evaluation_rule = "EVIDENCE: the hunks reporting a cut partition. ANSWER YES IF the partition is read from the residual structure of the flow just computed. ANSWER NO if a separate traversal or heuristic produces the partition independently of that flow, so the two could disagree. Judge the RELATION between flow and partition. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N4"
+description = "Unreachable nodes are handled by component rather than counted as adjacent."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "treating an unreachable node as distance zero versus excluding it from the component is a semantic choice invisible at the level of the loop that accumulates distances"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "closeness accounts for unreachable nodes by restricting to the reachable component and scaling accordingly, rather than treating an unreachable node as though it were at distance zero"
+evaluation_rule = "EVIDENCE: the hunks in the closeness computation. ANSWER YES IF unreachable nodes are excluded from the accumulation and the result is scaled by what was reachable. ANSWER NO if unreachable nodes contribute a zero distance, which inflates the measure. Judge how UNREACHABILITY is treated. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N5"
+description = "A group measure treats the group as one unit rather than summing its members."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a group measure is COMPUTED OVER THE GROUP or aggregated from individuals is a mathematical judgment; both are loops over the same nodes"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the group measure is computed with the group acting as a single entity on the paths it intercepts, rather than by computing each member's individual measure and adding them"
+evaluation_rule = "EVIDENCE: the hunks computing a group measure. ANSWER YES IF paths are attributed to the group as a whole, so a path through two members is not double counted. ANSWER NO if the result is the sum of per-member measures. Judge the UNIT of computation. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N6"
+description = "One shared accessor serves the algorithms rather than each carrying its own copy."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+dimension = "robustness"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether the algorithms CONVERGE on shared resolution or each duplicates it is a structural judgment about the code's shape"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the capacity resolution is implemented once and used by the flow algorithms, rather than each algorithm carrying a private copy that could drift from the others"
+evaluation_rule = "EVIDENCE: the hunks across the flow modules. ANSWER YES IF the algorithms reach a single shared resolution. ANSWER NO if two or more carry their own duplicate resolution that could diverge. Judge whether the call sites CONVERGE. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N7"
+description = "A specifier given as a name is distinguished from one given as a value."
+type = "binary"
+weight = 1
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "whether a specifier is interpreted as a KEY or as a literal value is a semantic judgment; a string is a valid instance of both readings"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a capacity specifier supplied as an attribute name is looked up on the edge, while one supplied as a value is used directly, so the two readings do not collide"
+evaluation_rule = "EVIDENCE: the hunks interpreting the specifier. ANSWER YES IF the code distinguishes a name to look up from a value to use. ANSWER NO if every specifier is treated one way, so one of the two documented forms silently misbehaves. Judge the DISTINCTION. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."

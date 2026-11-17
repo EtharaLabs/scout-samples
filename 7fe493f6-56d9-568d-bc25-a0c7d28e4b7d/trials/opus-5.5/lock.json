@@ -1,0 +1,68 @@
+{
+    "schema_version": 2,
+    "task": {
+        "name": "7fe493f6-56d9-568d-bc25-a0c7d28e4b7d",
+        "version": "1.0.0",
+        "type": "local",
+        "digest": "sha256:b3829e1f93672ce3cea3d8006d87b00c8d5065b2b94c17ec2efb6a213007566c",
+        "path": "/home/ec2-user/scout-run-20261117/regrade-tasks/7fe493f6-56d9-568d-bc25-a0c7d28e4b7d"
+    },
+    "install_only": false,
+    "timeout_multiplier": 1.0,
+    "agent": {
+        "name": "claude-code",
+        "model_name": "claude-opus-5-5",
+        "base_url": "http://172.17.0.1:8795",
+        "skip_model_parsing": false,
+        "skills": [],
+        "resume_trajectory": false,
+        "extra_allowed_hosts": [
+            "172.17.0.1"
+        ],
+        "kwargs": {
+            "reasoning_effort": "max"
+        },
+        "env": {
+            "ANTHROPIC_AUTH_TOKEN": "brid****ken",
+            "ANTHROPIC_BASE_URL": "http://172.17.0.1:8795"
+        },
+        "mcp_servers": []
+    },
+    "bridge_inputs": {},
+    "skills": [],
+    "environment": {
+        "type": "docker",
+        "force_build": false,
+        "delete": true,
+        "stream": false,
+        "cpu_enforcement_policy": "auto",
+        "memory_enforcement_policy": "auto",
+        "extra_docker_compose": [],
+        "kwargs": {},
+        "extra_allowed_hosts": []
+    },
+    "verifier": {
+        "env": {
+            "OPENAI_BASE_URL": "http://172.17.0.1:8781/v1",
+            "OPENAI_API_BASE": "http://172.17.0.1:8781/v1",
+            "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+        },
+        "disable": false,
+        "environment_mode": "separate"
+    },
+    "artifacts": [],
+    "override_error_policy": {},
+    "source_trial": {
+        "action": "regrade",
+        "type": "local",
+        "trial_id": "65dc6589-aef9-40ce-aa27-96463efcae7f",
+        "path": "/home/ec2-user/scout-run-20261117/jobs/traj-7fe493f6-nx-core/7fe493f6-56d9-568d-bc25-a0c7d28e__zYrKpnh",
+        "task": {
+            "name": "7fe493f6-56d9-568d-bc25-a0c7d28e4b7d",
+            "version": "1.0.0",
+            "type": "local",
+            "digest": "sha256:a86753b4a5dfbf34c90c4e0953cd5aee6b63f488a93fb3996427e915d840fe65",
+            "path": "/home/ec2-user/scout-run-20261117/tasks/7fe493f6-56d9-568d-bc25-a0c7d28e4b7d"
+        }
+    }
+}

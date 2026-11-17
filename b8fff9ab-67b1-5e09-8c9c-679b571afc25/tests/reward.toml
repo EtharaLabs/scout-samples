@@ -1,0 +1,28 @@
+# Harbor Reward Kit scoring config for this bundle.
+#
+# One [[reward]] table named `reward`, which is the key Harbor reads out of
+# /logs/verifier/reward.json and the value the pilot grades on.
+#
+# Aggregation is weighted-mean because the delivery block binds reward_type = continuous.
+# RB-OUTCOME-IMPL carries binary resolution, RB-COVERAGE-REQUIRED the continuous fix rate.
+#
+# The catastrophic red-line penalty does NOT come from the aggregation here: every criterion in
+# test_output.py is gated on _gradable(), so a tripped red line zeroes each term and the mean is
+# zero regardless of how the terms are combined.
+#
+# Both channels run in this one container under a single `rewardkit /tests` invocation, so the
+# value Harbor reads out of reward.json is the whole score and no author-side alpha composes it.
+#
+# The judged channel carries one tenth and reports its RAW weighted mean over a median of three
+# samples; see tests/judge.toml for why the threshold was removed and why every criterion is a
+# positive presence check. Measured consequence: the reference scores judged_raw 1.0 and the no-op
+# scores 0.0, so the tenth is a genuine honesty gate rather than a free rounding.
+
+[[reward]]
+name = "reward"
+aggregation = "weighted-mean"
+weights = { test_output = 0.9, judge = 0.1 }
+
+# Programmatic scoring is keyed by Python filename stem, so this table governs test_output.py.
+[scoring.test_output]
+aggregation = "weighted-mean"

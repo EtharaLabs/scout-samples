@@ -1,0 +1,288 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.4293,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 1.0,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "the_graph_views_hold_their_graph_weakly",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The graph views hold their graph weakly and remain picklable despite it.",
+              "reasoning": "Degree and edge views now expose `_graph` through a weak-reference-backed property, while retaining the graph data mappings needed for reporting. Node and adjacency views do not introduce a strong graph reference, and explicit pickle state handling is provided.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R2",
+              "name": "the_gexf_reader_s_graph_construction_rec",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "The GEXF reader's graph construction receives the file's metadata so declared attributes are applied.",
+              "reasoning": "The reader first parses graph metadata, declarations, defaults, nodes, and edges into records, then passes that complete parsed record to `build_graph`. Attribute declarations are therefore known before node and edge values are decoded, regardless of XML element order.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R3",
+              "name": "a_seedable_random_walk_yields_the_nodes",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A seedable random walk yields the nodes it visits.",
+              "reasoning": "`random_walk` is decorated with `py_random_state`, accepts a seed, and returns a generator that yields the starting node followed by each node reached during the walk.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R5",
+              "name": "a_random_lift_realises_each_original_edg",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A random lift realises each original edge as a matching between node fibres.",
+              "reasoning": "For every original edge, `random_k_lift` independently shuffles `range(k)` and adds one lifted edge from each source-fibre index to the corresponding permuted target-fibre index. This realizes the edge as a perfect matching and handles directed and parallel edges independently.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R6",
+              "name": "the_phase_carrying_laplacian_and_its_spe",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The phase-carrying Laplacian and its spectrum take the graph positionally and their options keyword-only.",
+              "reasoning": "Both `magnetic_laplacian_matrix` and `magnetic_spectrum` take `G` as their sole positional parameter, with `nodelist`, normalization, charge, and weight options placed after `*` and thus keyword-only.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R7",
+              "name": "the_named_graph_and_the_surrounding_help",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "The named graph and the surrounding helpers handle their degenerate inputs.",
+              "reasoning": "The Shrikhande graph is constructed with the correct Cayley shifts, size, degree, name, and directed-graph rejection. The surrounding changes also explicitly handle null graphs, missing nodes, single-node or empty paths, malformed embeddings, multigraph edge attributes, and other degenerate cases.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N1",
+              "name": "a_view_refers_to_its_graph_weakly_so_the",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "A view refers to its graph weakly so the graph can still be collected.",
+              "reasoning": "`_graph_reference` uses `weakref.ref` for NetworkX graph objects, and the views retain only graph data structures strongly. Consequently, keeping a view alive does not keep its graph object alive, while the view remains usable from the retained mappings.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N2",
+              "name": "pickle_support_rebuilds_the_weak_referen",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "Pickle support rebuilds the weak reference on restore rather than trying to serialise it.",
+              "reasoning": "Degree-view pickle state removes `_graph_ref`, serializes the dereferenced graph separately, and restores it through the `_graph` setter, which creates a new weak reference. Edge views likewise serialize `_graph` rather than the weak-reference object and restore through the property.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N3",
+              "name": "a_phase_convention_is_applied_consistent",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A phase convention is applied consistently across the construction.",
+              "reasoning": "The construction forms the symmetric adjacency and antisymmetric orientation term on the same canonical coordinates, applies `exp(2\u03c0iq(A-A^T))`, and multiplies it consistently into the symmetric weights. Reverse entries receive conjugate phases, yielding a Hermitian matrix, while undirected edges have zero phase.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N4",
+              "name": "a_width_measure_derives_from_the_structu",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A width measure derives from the structure rather than from exhaustive enumeration.",
+              "reasoning": "`antichain_width` computes DAG reachability as bitsets and applies Dilworth's theorem through a maximum bipartite matching. It returns `n` minus the matching size and does not enumerate all antichains.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N5",
+              "name": "a_walk_respects_edge_weights_where_weigh",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A walk respects edge weights where weights are requested.",
+              "reasoning": "When a weight attribute is requested, random-walk transitions are sampled from cumulative edge weights, including separate parallel edges, with missing values treated as one and zero-weight edges excluded. Weighted `number_of_walks` also uses the weighted adjacency matrix.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N6",
+              "name": "a_round_trip_through_the_reader_and_writ",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 1.0,
+              "description": "A round trip through the reader and writer preserves attribute meaning.",
+              "reasoning": "The GEXF reader preserves typed declared values, defaults, dynamic intervals, node-ID conversion, edge IDs and NetworkX multigraph keys, visualization data, labels, and weights. Its declaration-first parsing also correctly reads writer output even when declarations occur after values.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 3,
+            "guard": "off"
+          },
+          "judge_output": "--- sample 1 ---\n{\"the_graph_views_hold_their_graph_weakly\":{\"score\":\"yes\",\"reasoning\":\"Degree and edge views now expose `_graph` through a weak-reference-backed property. Their pickle state omits the weak-reference object and stores the graph value for reconstruction, so the views remain picklable.\"},\"the_gexf_reader_s_graph_construction_rec\":{\"score\":\"yes\",\"reasoning\":\"The reader first parses graph metadata and all attribute declarations, then passes the resulting records to `build_graph`. Nodes and edges are decoded only after declarations are known, including declarations appearing later in the file.\"},\"a_seedable_random_walk_yields_the_nodes\":{\"score\":\"yes\",\"reasoning\":\"`random_walk` is decorated with `py_random_state`, accepts a seed, and returns a generator that yields the start node followed by every node reached at each step.\"},\"a_random_lift_realises_each_original_edg\":{\"score\":\"yes\",\"reasoning\":\"For every original edge, `random_k_lift` independently shuffles `range(k)` and adds `((u, i), (v, permutation[i]))` for every fibre index, thereby realizing the edge as a matching between its endpoint fibres.\"},\"the_phase_carrying_laplacian_and_its_spe\":{\"score\":\"yes\",\"reasoning\":\"Both `magnetic_laplacian_matrix(G, *, ...)` and `magnetic_spectrum(G, *, ...)` take the graph positionally and make all options keyword-only.\"},\"the_named_graph_and_the_surrounding_help\":{\"score\":\"yes\",\"reasoning\":\"The Shrikhande graph is constructed with the correct 16-node, degree-6 Cayley structure and named appropriately. The patch also adds explicit handling for numerous degenerate cases, including null distance measures, invalid trees, isolated planar-embedding nodes, empty matrices, and empty or singleton paths.\"},\"a_view_refers_to_its_graph_weakly_so_the\":{\"score\":\"yes\",\"reasoning\":\"Graph-bearing report views store a `weakref.ref` rather than a strong graph reference, while retaining the underlying adjacency data needed for reporting. Consequently, keeping a view alive does not by itself keep the graph alive.\"},\"pickle_support_rebuilds_the_weak_referen\":{\"score\":\"yes\",\"reasoning\":\"The custom pickle state removes `_graph_ref`, records the referenced graph separately, and restores it through the `_graph` setter, which creates a new weak reference instead of attempting to pickle the weak-reference object.\"},\"a_phase_convention_is_applied_consistent\":{\"score\":\"yes\",\"reasoning\":\"The magnetic adjacency uses the symmetric amplitude `(A + A.T) / 2` and phase `exp(2\u03c0iq(A - A.T))` on matching coordinates. Reversing an edge changes the phase to its conjugate, and the spectrum delegates to the same Laplacian parameters.\"},\"a_width_measure_derives_from_the_structu\":{\"score\":\"yes\",\"reasoning\":\"`antichain_width` computes DAG reachability with bitsets and applies Dilworth's theorem via maximum bipartite matching. It does not enumerate all antichains.\"},\"a_walk_respects_edge_weights_where_weigh\":{\"score\":\"yes\",\"reasoning\":\"When a weight attribute is requested, transition choices are sampled from cumulative edge weights, with missing weights treated as one, zero-weight edges omitted, parallel-edge weights represented separately, and negative weights rejected.\"},\"a_round_trip_through_the_reader_and_writ\":{\"score\":\"yes\",\"reasoning\":\"The revised GEXF reader applies declared types and defaults, preserves dynamic intervals, graph metadata, edge IDs/NetworkX keys, and converted node identifiers. These semantics match the declarations emitted by the writer, supporting meaningful typed round trips.\"}}\n\n--- sample 2 ---\n{\n  \"the_graph_views_hold_their_graph_weakly\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Degree and edge views now expose `_graph` through a weak-reference-backed property, while retaining the graph data mappings needed for reporting. Node and adjacency views do not introduce a strong graph reference, and explicit pickle state handling is provided.\"\n  },\n  \"the_gexf_reader_s_graph_construction_rec\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The reader first parses graph metadata, declarations, defaults, nodes, and edges into records, then passes that complete parsed record to `build_graph`. Attribute declarations are therefore known before node and edge values are decoded, regardless of XML element order.\"\n  },\n  \"a_seedable_random_walk_yields_the_nodes\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`random_walk` is decorated with `py_random_state`, accepts a seed, and returns a generator that yields the starting node followed by each node reached during the walk.\"\n  },\n  \"a_random_lift_realises_each_original_edg\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"For every original edge, `random_k_lift` independently shuffles `range(k)` and adds one lifted edge from each source-fibre index to the corresponding permuted target-fibre index. This realizes the edge as a perfect matching and handles directed and parallel edges independently.\"\n  },\n  \"the_phase_carrying_laplacian_and_its_spe\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Both `magnetic_laplacian_matrix` and `magnetic_spectrum` take `G` as their sole positional parameter, with `nodelist`, normalization, charge, and weight options placed after `*` and thus keyword-only.\"\n  },\n  \"the_named_graph_and_the_surrounding_help\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The Shrikhande graph is constructed with the correct Cayley shifts, size, degree, name, and directed-graph rejection. The surrounding changes also explicitly handle null graphs, missing nodes, single-node or empty paths, malformed embeddings, multigraph edge attributes, and other degenerate cases.\"\n  },\n  \"a_view_refers_to_its_graph_weakly_so_the\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`_graph_reference` uses `weakref.ref` for NetworkX graph objects, and the views retain only graph data structures strongly. Consequently, keeping a view alive does not keep its graph object alive, while the view remains usable from the retained mappings.\"\n  },\n  \"pickle_support_rebuilds_the_weak_referen\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Degree-view pickle state removes `_graph_ref`, serializes the dereferenced graph separately, and restores it through the `_graph` setter, which creates a new weak reference. Edge views likewise serialize `_graph` rather than the weak-reference object and restore through the property.\"\n  },\n  \"a_phase_convention_is_applied_consistent\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The construction forms the symmetric adjacency and antisymmetric orientation term on the same canonical coordinates, applies `exp(2\u03c0iq(A-A^T))`, and multiplies it consistently into the symmetric weights. Reverse entries receive conjugate phases, yielding a Hermitian matrix, while undirected edges have zero phase.\"\n  },\n  \"a_width_measure_derives_from_the_structu\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`antichain_width` computes DAG reachability as bitsets and applies Dilworth's theorem through a maximum bipartite matching. It returns `n` minus the matching size and does not enumerate all antichains.\"\n  },\n  \"a_walk_respects_edge_weights_where_weigh\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"When a weight attribute is requested, random-walk transitions are sampled from cumulative edge weights, including separate parallel edges, with missing values treated as one and zero-weight edges excluded. Weighted `number_of_walks` also uses the weighted adjacency matrix.\"\n  },\n  \"a_round_trip_through_the_reader_and_writ\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The GEXF reader preserves typed declared values, defaults, dynamic intervals, node-ID conversion, edge IDs and NetworkX multigraph keys, visualization data, labels, and weights. Its declaration-first parsing also correctly reads writer output even when declarations occur after values.\"\n  }\n}\n\n--- sample 3 ---\n{\"the_graph_views_hold_their_graph_weakly\":{\"score\":\"yes\",\"reasoning\":\"Degree and edge views now expose `_graph` through a weak-reference-backed property while retaining only the underlying graph data mappings strongly. Their custom pickle state avoids serializing the weakref object directly, so the views remain picklable.\"},\"the_gexf_reader_s_graph_construction_rec\":{\"score\":\"yes\",\"reasoning\":\"The reader first parses graph metadata, attribute declarations, defaults, nodes, and edges into records, then passes the complete parsed record to `build_graph`. Attribute declarations are therefore available before node and edge values are decoded, regardless of XML order.\"},\"a_seedable_random_walk_yields_the_nodes\":{\"score\":\"yes\",\"reasoning\":\"`random_walk` is decorated with `py_random_state`, returns a generator, yields the starting node first, and subsequently yields every node reached until no outgoing step is possible.\"},\"a_random_lift_realises_each_original_edg\":{\"score\":\"yes\",\"reasoning\":\"For every base edge, `random_k_lift` independently shuffles `range(k)` and adds `((u, i), (v, permutation[i]))` for every fibre index. Thus each ordinary base edge induces a perfect matching between its endpoint fibres, including independent handling of parallel edges.\"},\"the_phase_carrying_laplacian_and_its_spe\":{\"score\":\"yes\",\"reasoning\":\"Both `magnetic_laplacian_matrix` and `magnetic_spectrum` accept `G` positionally and place all configuration parameters after `*`, making them keyword-only.\"},\"the_named_graph_and_the_surrounding_help\":{\"score\":\"yes\",\"reasoning\":\"The patch adds a correctly named and constructed 16-node, 48-edge Shrikhande graph and also explicitly handles numerous degenerate cases, including null distance measures and matrices, invalid trees and embeddings, isolated embedding nodes, missing nodes, and empty or singleton paths.\"},\"a_view_refers_to_its_graph_weakly_so_the\":{\"score\":\"yes\",\"reasoning\":\"The `_graph_property` stores a `weakref.ref` rather than the graph itself. Since views retain the reporting dictionaries but not a strong graph reference, keeping a view alive does not prevent collection of the graph.\"},\"pickle_support_rebuilds_the_weak_referen\":{\"score\":\"yes\",\"reasoning\":\"Degree-view pickle state removes `_graph_ref`, records the referenced graph separately, and restores it through the `_graph` property setter, which creates a fresh weak reference. Edge-view state similarly uses the property rather than attempting to pickle a weakref.\"},\"a_phase_convention_is_applied_consistent\":{\"score\":\"yes\",\"reasoning\":\"The magnetic adjacency uses the symmetric magnitude `(A + A.T) / 2` and phases from the antisymmetric difference `A - A.T`. Opposite entries consequently receive conjugate phases, producing the documented Hermitian Laplacian, and the spectrum is computed directly from that same construction.\"},\"a_width_measure_derives_from_the_structu\":{\"score\":\"yes\",\"reasoning\":\"`antichain_width` computes DAG reachability as bitsets and applies Dilworth's theorem via maximum bipartite matching. It returns `n` minus the matching size and never enumerates all antichains.\"},\"a_walk_respects_edge_weights_where_weigh\":{\"score\":\"yes\",\"reasoning\":\"When a weight key is supplied, transition choices use cumulative per-edge weights, missing values default to one, zero-weight edges are excluded, negative weights raise an error, and parallel-edge weights contribute independently.\"},\"a_round_trip_through_the_reader_and_writ\":{\"score\":\"yes\",\"reasoning\":\"The revised GEXF reader preserves declared types and defaults, dynamic intervals, graph metadata, node identifiers, multigraph keys, edge weights and labels, and visualization data in forms compatible with the existing writer, maintaining attribute meaning across a write/read round trip.\"}}",
+          "usage": {
+            "input_tokens": 81861,
+            "output_tokens": 22293,
+            "total_tokens": 104154,
+            "cost_usd": 0.773304,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 81861,
+                "output_tokens": 22293,
+                "total_tokens": 104154,
+                "cost_usd": 0.773304
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.3659,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:56"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:56"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            },
+            {
+              "name": "cm_scope_paths",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 1.0,
+              "description": "CM-SCOPE-PATHS"
+            },
+            {
+              "name": "cm_no_debug_marker",
+              "value": 0.3659,
+              "raw": 0.3659259259259258,
+              "weight": 1.0,
+              "description": "CM-NO-DEBUG-MARKER"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

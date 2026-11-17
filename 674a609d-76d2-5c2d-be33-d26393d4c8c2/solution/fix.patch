@@ -1,0 +1,1613 @@
+diff --git a/celery/app/amqp.py b/celery/app/amqp.py
+index 8dcec363..6caedc5c 100644
+--- a/celery/app/amqp.py
++++ b/celery/app/amqp.py
+@@ -46,6 +46,13 @@ class Queues(dict):
+         create_missing (bool): By default any unknown queues will be
+             added automatically, but if this flag is disabled the occurrence
+             of unknown queues in `wanted` will raise :exc:`KeyError`.
++        create_missing_queue_type (str): Type of queue to create for missing queues.
++            Must be either 'classic' (default) or 'quorum'. If set to 'quorum',
++            the broker will declare new queues using the quorum type.
++        create_missing_queue_exchange_type (str): Type of exchange to use
++            when creating missing queues. If not set, the default exchange type
++            will be used. If set, the exchange type will be set to this value
++            when creating missing queues.
+         max_priority (int): Default x-max-priority for queues with none set.
+     """
+ 
+@@ -53,14 +60,19 @@ class Queues(dict):
+     #: The rest of the queues are then used for routing only.
+     _consume_from = None
+ 
+-    def __init__(self, queues=None, default_exchange=None,
+-                 create_missing=True, autoexchange=None,
+-                 max_priority=None, default_routing_key=None):
++    def __init__(
++            self, queues=None, default_exchange=None,
++            create_missing=True, create_missing_queue_type=None,
++            create_missing_queue_exchange_type=None, autoexchange=None,
++            max_priority=None, default_routing_key=None,
++    ):
+         super().__init__()
+         self.aliases = WeakValueDictionary()
+         self.default_exchange = default_exchange
+         self.default_routing_key = default_routing_key
+         self.create_missing = create_missing
++        self.create_missing_queue_type = create_missing_queue_type
++        self.create_missing_queue_exchange_type = create_missing_queue_exchange_type
+         self.autoexchange = Exchange if autoexchange is None else autoexchange
+         self.max_priority = max_priority
+         if queues is not None and not isinstance(queues, Mapping):
+@@ -181,7 +193,21 @@ class Queues(dict):
+                 self._consume_from.pop(queue, None)
+ 
+     def new_missing(self, name):
+-        return Queue(name, self.autoexchange(name), name)
++        queue_arguments = None
++        if self.create_missing_queue_type and self.create_missing_queue_type != "classic":
++            if self.create_missing_queue_type not in ("classic", "quorum"):
++                raise ValueError(
++                    f"Invalid queue type '{self.create_missing_queue_type}'. "
++                    "Valid types are 'classic' and 'quorum'."
++                )
++            queue_arguments = {"x-queue-type": self.create_missing_queue_type}
++
++        if self.create_missing_queue_exchange_type:
++            exchange = Exchange(name, self.create_missing_queue_exchange_type)
++        else:
++            exchange = self.autoexchange(name)
++
++        return Queue(name, exchange, name, queue_arguments=queue_arguments)
+ 
+     @property
+     def consume_from(self):
+@@ -238,14 +264,18 @@ class AMQP:
+     def send_task_message(self):
+         return self._create_task_sender()
+ 
+-    def Queues(self, queues, create_missing=None,
+-               autoexchange=None, max_priority=None):
++    def Queues(self, queues, create_missing=None, create_missing_queue_type=None,
++               create_missing_queue_exchange_type=None, autoexchange=None, max_priority=None):
+         # Create new :class:`Queues` instance, using queue defaults
+         # from the current configuration.
+         conf = self.app.conf
+         default_routing_key = conf.task_default_routing_key
+         if create_missing is None:
+             create_missing = conf.task_create_missing_queues
++        if create_missing_queue_type is None:
++            create_missing_queue_type = conf.task_create_missing_queue_type
++        if create_missing_queue_exchange_type is None:
++            create_missing_queue_exchange_type = conf.task_create_missing_queue_exchange_type
+         if max_priority is None:
+             max_priority = conf.task_queue_max_priority
+         if not queues and conf.task_default_queue:
+@@ -259,8 +289,14 @@ class AMQP:
+         autoexchange = (self.autoexchange if autoexchange is None
+                         else autoexchange)
+         return self.queues_cls(
+-            queues, self.default_exchange, create_missing,
+-            autoexchange, max_priority, default_routing_key,
++            queues,
++            default_exchange=self.default_exchange,
++            create_missing=create_missing,
++            create_missing_queue_type=create_missing_queue_type,
++            create_missing_queue_exchange_type=create_missing_queue_exchange_type,
++            autoexchange=autoexchange,
++            max_priority=max_priority,
++            default_routing_key=default_routing_key,
+         )
+ 
+     def Router(self, queues=None, create_missing=None):
+diff --git a/celery/app/base.py b/celery/app/base.py
+index a4d1c4cd..71ce9329 100644
+--- a/celery/app/base.py
++++ b/celery/app/base.py
+@@ -124,14 +124,27 @@ def pydantic_wrapper(
+         dump_kwargs = {}
+     dump_kwargs.setdefault('mode', 'json')
+ 
++    # If a file uses `from __future__ import annotations`, all annotations will
++    # be strings. `typing.get_type_hints()` can turn these back into real
++    # types, but can also sometimes fail due to circular imports. Try that
++    # first, and fall back to annotations from `inspect.signature()`.
+     task_signature = inspect.signature(task_fun)
+ 
++    try:
++        type_hints = typing.get_type_hints(task_fun)
++    except (NameError, AttributeError, TypeError):
++        # Fall back to raw annotations from inspect if get_type_hints fails
++        type_hints = None
++
+     @functools.wraps(task_fun)
+     def wrapper(*task_args, **task_kwargs):
+         # Validate task parameters if type hinted as BaseModel
+         bound_args = task_signature.bind(*task_args, **task_kwargs)
+         for arg_name, arg_value in bound_args.arguments.items():
+-            arg_annotation = task_signature.parameters[arg_name].annotation
++            if type_hints and arg_name in type_hints:
++                arg_annotation = type_hints[arg_name]
++            else:
++                arg_annotation = task_signature.parameters[arg_name].annotation
+ 
+             optional_arg = get_optional_arg(arg_annotation)
+             if optional_arg is not None and arg_value is not None:
+@@ -149,7 +162,11 @@ def pydantic_wrapper(
+ 
+         # Dump Pydantic model if the returned value is an instance of pydantic.BaseModel *and* its
+         # class matches the typehint
+-        return_annotation = task_signature.return_annotation
++        if type_hints and 'return' in type_hints:
++            return_annotation = type_hints['return']
++        else:
++            return_annotation = task_signature.return_annotation
++
+         optional_return_annotation = get_optional_arg(return_annotation)
+         if optional_return_annotation is not None:
+             return_annotation = optional_return_annotation
+diff --git a/celery/app/control.py b/celery/app/control.py
+index 603d930a..00db75d6 100644
+--- a/celery/app/control.py
++++ b/celery/app/control.py
+@@ -20,7 +20,7 @@ from kombu.utils.compat import register_after_fork
+ from kombu.utils.functional import lazy
+ from kombu.utils.objects import cached_property
+ 
+-from celery.exceptions import DuplicateNodenameWarning
++from celery.exceptions import DuplicateNodenameWarning, ImproperlyConfigured
+ from celery.utils.log import get_logger
+ from celery.utils.text import pluralize
+ 
+@@ -428,6 +428,12 @@ class Control:
+ 
+     def __init__(self, app=None):
+         self.app = app
++        if (app.conf.control_queue_durable and
++                app.conf.control_queue_exclusive):
++            raise ImproperlyConfigured(
++                "control_queue_durable and control_queue_exclusive cannot both be True "
++                "(exclusive queues are automatically deleted and cannot be durable).",
++            )
+         self.mailbox = self.Mailbox(
+             app.conf.control_exchange,
+             type='fanout',
+@@ -437,6 +443,8 @@ class Control:
+             queue_ttl=app.conf.control_queue_ttl,
+             reply_queue_ttl=app.conf.control_queue_ttl,
+             queue_expires=app.conf.control_queue_expires,
++            queue_exclusive=app.conf.control_queue_exclusive,
++            queue_durable=app.conf.control_queue_durable,
+             reply_queue_expires=app.conf.control_queue_expires,
+         )
+         register_after_fork(self, _after_fork_cleanup_control)
+diff --git a/celery/app/defaults.py b/celery/app/defaults.py
+index f8e2511f..77fcfd02 100644
+--- a/celery/app/defaults.py
++++ b/celery/app/defaults.py
+@@ -150,6 +150,8 @@ NAMESPACES = Namespace(
+     control=Namespace(
+         queue_ttl=Option(300.0, type='float'),
+         queue_expires=Option(10.0, type='float'),
++        queue_exclusive=Option(False, type='bool'),
++        queue_durable=Option(False, type='bool'),
+         exchange=Option('celery', type='string'),
+     ),
+     couchbase=Namespace(
+@@ -179,6 +181,8 @@ NAMESPACES = Namespace(
+         queue_expires=Option(60.0, type='float'),
+         queue_ttl=Option(5.0, type='float'),
+         queue_prefix=Option('celeryev'),
++        queue_exclusive=Option(False, type='bool'),
++        queue_durable=Option(False, type='bool'),
+         serializer=Option('json'),
+         exchange=Option('celeryev', type='string'),
+     ),
+@@ -260,6 +264,8 @@ NAMESPACES = Namespace(
+         annotations=Option(type='any'),
+         compression=Option(type='string', old={'celery_message_compression'}),
+         create_missing_queues=Option(True, type='bool'),
++        create_missing_queue_type=Option('classic', type='string'),
++        create_missing_queue_exchange_type=Option(None, type='string'),
+         inherit_parent_priority=Option(False, type='bool'),
+         default_delivery_mode=Option(2, type='string'),
+         default_queue=Option('celery'),
+@@ -336,7 +342,9 @@ NAMESPACES = Namespace(
+         pool_restarts=Option(False, type='bool'),
+         proc_alive_timeout=Option(4.0, type='float'),
+         prefetch_multiplier=Option(4, type='int'),
++        eta_task_limit=Option(None, type='int'),
+         enable_prefetch_count_reduction=Option(True, type='bool'),
++        disable_prefetch=Option(False, type='bool'),
+         redirect_stdouts=Option(
+             True, type='bool', old={'celery_redirect_stdouts'},
+         ),
+diff --git a/celery/app/task.py b/celery/app/task.py
+index 90ba8552..3ab54ad6 100644
+--- a/celery/app/task.py
++++ b/celery/app/task.py
+@@ -538,6 +538,13 @@ class Task:
+                 The headers can be used as an overlay for custom labeling
+                 using the :ref:`canvas-stamping` feature.
+ 
++            task_id (str): Optional argument to override the default task id.
++                By default, Celery generates a unique id (UUID4) for every task
++                submission. You can instead provide your own string identifier.
++                If supplied, this value will be used as the task’s id instead
++                of generating one automatically. Be careful to avoid collisions
++                when overriding task ids.
++
+         Returns:
+             celery.result.AsyncResult: Promise of future evaluation.
+ 
+@@ -790,12 +797,22 @@ class Task:
+         if throw is None:
+             throw = app.conf.task_eager_propagates
+ 
++        parent_task = _task_stack.top
++        if parent_task and parent_task.request:
++            parent_id = parent_task.request.id
++            root_id = parent_task.request.root_id or task_id
++        else:
++            parent_id = None
++            root_id = task_id
++
+         # Make sure we get the task instance, not class.
+         task = app._tasks[self.name]
+ 
+         request = {
+             'id': task_id,
+             'task': self.name,
++            'parent_id': parent_id,
++            'root_id': root_id,
+             'retries': retries,
+             'is_eager': True,
+             'logfile': logfile,
+diff --git a/celery/app/trace.py b/celery/app/trace.py
+index 2e8cf8a3..754b8899 100644
+--- a/celery/app/trace.py
++++ b/celery/app/trace.py
+@@ -190,6 +190,7 @@ class TraceInfo:
+         # the exception raised is the Retry semi-predicate,
+         # and it's exc' attribute is the original exception raised (if any).
+         type_, _, tb = sys.exc_info()
++        einfo = None
+         try:
+             reason = self.retval
+             einfo = ExceptionInfo((type_, reason, tb))
+@@ -205,39 +206,56 @@ class TraceInfo:
+                 'name': get_task_name(req, task.name),
+                 'exc': str(reason),
+             })
++            # Clear traceback frames to prevent memory retention (Issue #8882)
++            traceback_clear(einfo.exception)
+             return einfo
+         finally:
+-            del tb
++            # Clean up direct traceback reference to prevent
++            # retention of frame objects and their local variables (Issue #8882)
++            if tb is not None:
++                del tb
+ 
+     def handle_failure(self, task, req, store_errors=True, call_errbacks=True):
+         """Handle exception."""
+         orig_exc = self.retval
++        tb_ref = None
+ 
+-        exc = get_pickleable_exception(orig_exc)
+-        if exc.__traceback__ is None:
+-            # `get_pickleable_exception` may have created a new exception without
+-            # a traceback.
+-            _, _, exc.__traceback__ = sys.exc_info()
+-
+-        exc_type = get_pickleable_etype(type(orig_exc))
+-
+-        # make sure we only send pickleable exceptions back to parent.
+-        einfo = ExceptionInfo(exc_info=(exc_type, exc, exc.__traceback__))
+-
+-        task.backend.mark_as_failure(
+-            req.id, exc, einfo.traceback,
+-            request=req, store_result=store_errors,
+-            call_errbacks=call_errbacks,
+-        )
+-
+-        task.on_failure(exc, req.id, req.args, req.kwargs, einfo)
+-        signals.task_failure.send(sender=task, task_id=req.id,
+-                                  exception=exc, args=req.args,
+-                                  kwargs=req.kwargs,
+-                                  traceback=exc.__traceback__,
+-                                  einfo=einfo)
+-        self._log_error(task, req, einfo)
+-        return einfo
++        try:
++            exc = get_pickleable_exception(orig_exc)
++            if exc.__traceback__ is None:
++                # `get_pickleable_exception` may have created a new exception without
++                # a traceback.
++                _, _, tb_ref = sys.exc_info()
++                exc.__traceback__ = tb_ref
++
++            exc_type = get_pickleable_etype(type(orig_exc))
++
++            # make sure we only send pickleable exceptions back to parent.
++            einfo = ExceptionInfo(exc_info=(exc_type, exc, exc.__traceback__))
++
++            task.backend.mark_as_failure(
++                req.id, exc, einfo.traceback,
++                request=req, store_result=store_errors,
++                call_errbacks=call_errbacks,
++            )
++
++            task.on_failure(exc, req.id, req.args, req.kwargs, einfo)
++            signals.task_failure.send(sender=task, task_id=req.id,
++                                      exception=exc, args=req.args,
++                                      kwargs=req.kwargs,
++                                      traceback=exc.__traceback__,
++                                      einfo=einfo)
++            self._log_error(task, req, einfo)
++            # Clear traceback frames to prevent memory retention (Issue #8882)
++            traceback_clear(exc)
++            # Note: We return einfo, so we can't clean it up here
++            # The calling function is responsible for cleanup
++            return einfo
++        finally:
++            # Clean up any direct traceback references we may have created
++            # to prevent retention of frame objects and their local variables (Issue #8882)
++            if tb_ref is not None:
++                del tb_ref
+ 
+     def _log_error(self, task, req, einfo):
+         eobj = einfo.exception = get_pickled_exception(einfo.exception)
+@@ -270,6 +288,12 @@ class TraceInfo:
+ 
+ 
+ def traceback_clear(exc=None):
++    """Clear traceback frames to prevent memory leaks.
++
++    This function helps break reference cycles between
++    traceback objects and frame objects that can prevent garbage collection.
++    Clearing frames releases local variables that may be holding large objects.
++    """
+     # Cleared Tb, but einfo still has a reference to Traceback.
+     # exc cleans up the Traceback at the last moment that can be revealed.
+     tb = None
+@@ -283,8 +307,10 @@ def traceback_clear(exc=None):
+ 
+     while tb is not None:
+         try:
++            # tb.tb_frame.clear() clears ALL frame data including
++            # local variables, which is more efficient than accessing f_locals separately.
++            # Removed redundant tb.tb_frame.f_locals access that was creating unnecessary references.
+             tb.tb_frame.clear()
+-            tb.tb_frame.f_locals
+         except RuntimeError:
+             # Ignore the exception raised if the frame is still executing.
+             pass
+@@ -456,18 +482,22 @@ def build_tracer(name, task, loader=None, hostname=None, store_errors=True,
+                     I, R = Info(REJECTED, exc), ExceptionInfo(internal=True)
+                     state, retval = I.state, I.retval
+                     I.handle_reject(task, task_request)
++                    # Clear traceback frames to prevent memory retention (Issue #8882)
+                     traceback_clear(exc)
+                 except Ignore as exc:
+                     I, R = Info(IGNORED, exc), ExceptionInfo(internal=True)
+                     state, retval = I.state, I.retval
+                     I.handle_ignore(task, task_request)
++                    # Clear traceback frames to prevent memory retention (Issue #8882)
+                     traceback_clear(exc)
+                 except Retry as exc:
+                     I, R, state, retval = on_error(
+                         task_request, exc, RETRY, call_errbacks=False)
++                    # Clear traceback frames to prevent memory retention (Issue #8882)
+                     traceback_clear(exc)
+                 except Exception as exc:
+                     I, R, state, retval = on_error(task_request, exc)
++                    # Clear traceback frames to prevent memory retention (Issue #8882)
+                     traceback_clear(exc)
+                 except BaseException:
+                     raise
+@@ -522,6 +552,8 @@ def build_tracer(name, task, loader=None, hostname=None, store_errors=True,
+                         )
+                     except EncodeError as exc:
+                         I, R, state, retval = on_error(task_request, exc)
++                        # Clear traceback frames to prevent memory retention (Issue #8882)
++                        traceback_clear(exc)
+                     else:
+                         Rstr = saferepr(R, resultrepr_maxsize)
+                         T = monotonic() - time_start
+@@ -591,6 +623,8 @@ def trace_task(task, uuid, args, kwargs, request=None, **opts):
+ 
+ def _signal_internal_error(task, uuid, args, kwargs, request, exc):
+     """Send a special `internal_error` signal to the app for outside body errors."""
++    tb = None
++    einfo = None
+     try:
+         _, _, tb = sys.exc_info()
+         einfo = ExceptionInfo()
+@@ -607,7 +641,16 @@ def _signal_internal_error(task, uuid, args, kwargs, request, exc):
+             einfo=einfo,
+         )
+     finally:
+-        del tb
++        # Clean up local references to prevent memory leaks (Issue #8882)
++        # Both 'tb' and 'einfo' can hold references to frame objects and their local variables.
++        # Explicitly clearing these prevents reference cycles that block garbage collection.
++        if tb is not None:
++            del tb
++        if einfo is not None:
++            # Clear traceback frames to ensure consistent cleanup
++            traceback_clear(einfo.exception)
++            # Break potential reference cycles by deleting the einfo object
++            del einfo
+ 
+ 
+ def trace_task_ret(name, uuid, request, body, content_type,
+diff --git a/celery/apps/worker.py b/celery/apps/worker.py
+index 5558dab8..a5313594 100644
+--- a/celery/apps/worker.py
++++ b/celery/apps/worker.py
+@@ -334,7 +334,7 @@ def during_soft_shutdown(worker: Worker):
+ 
+     When the worker is in the soft shutdown process, it is waiting for tasks to finish. If the worker
+     receives a SIGINT (Ctrl+C) or SIGQUIT signal (or possibly SIGTERM if REMAP_SIGTERM is set to "SIGQUIT"),
+-    the handler will cancels all unacked requests to allow the worker to terminate gracefully and replace the
++    the handler will cancel the active requests, which excludes successful ones, to allow the worker to terminate gracefully and replace the
+     signal handler for SIGINT and SIGQUIT with the hard shutdown handler ``on_hard_shutdown`` to terminate
+     the worker immediately by force next time the signal is received.
+ 
+@@ -349,8 +349,9 @@ def during_soft_shutdown(worker: Worker):
+     install_worker_term_hard_handler(worker, sig='SIGINT', callback=on_hard_shutdown, verbose=False)
+     install_worker_term_hard_handler(worker, sig='SIGQUIT', callback=on_hard_shutdown)
+ 
+-    # Cancel all unacked requests and allow the worker to terminate naturally
+-    worker.consumer.cancel_all_unacked_requests()
++    # Cancel the active requests, which excludes successful ones, and allow the worker
++    # to terminate naturally
++    worker.consumer.cancel_active_requests()
+ 
+     # We get here if the worker was in the middle of the soft (cold) shutdown process,
+     # and the matching signal was received. This can typically happen when the worker is
+@@ -409,11 +410,20 @@ def on_cold_shutdown(worker: Worker):
+     # Initiate soft shutdown process (if enabled and tasks are running)
+     worker.wait_for_soft_shutdown()
+ 
+-    # Cancel all unacked requests and allow the worker to terminate naturally
+-    worker.consumer.cancel_all_unacked_requests()
++    # Stop consuming new tasks to prevents requeued messages from being immediately redelivered
++    if worker.consumer.task_consumer:
++        worker.consumer.task_consumer.cancel()
++
++    # Cancel the active requests, which excludes successful ones, and allow the worker
++    # to terminate naturally
++    worker.consumer.cancel_active_requests()
++
++    from celery.worker import state
++    state.should_terminate = True
+ 
+     # Stop the pool to allow successful tasks call on_success()
+-    worker.consumer.pool.stop()
++    if worker.consumer.pool:
++        worker.consumer.pool.stop()
+ 
+ 
+ # Allow SIGTERM to be remapped to SIGQUIT to initiate cold shutdown instead of warm shutdown using SIGTERM
+diff --git a/celery/backends/asynchronous.py b/celery/backends/asynchronous.py
+index cedae501..a5e0e5d4 100644
+--- a/celery/backends/asynchronous.py
++++ b/celery/backends/asynchronous.py
+@@ -1,4 +1,6 @@
+ """Async I/O backend support utilities."""
++
++import logging
+ import socket
+ import threading
+ import time
+@@ -13,11 +15,34 @@ from celery import states
+ from celery.exceptions import TimeoutError
+ from celery.utils.threads import THREAD_TIMEOUT_MAX
+ 
++E_CELERY_RESTART_REQUIRED = "Celery must be restarted because a shutdown signal was detected."
++
+ __all__ = (
+     'AsyncBackendMixin', 'BaseResultConsumer', 'Drainer',
+     'register_drainer',
+ )
+ 
++
++class EventletAdaptedEvent:
++    """
++    An adapted eventlet event, designed to match the API of `threading.Event` and
++    `gevent.event.Event`.
++    """
++
++    def __init__(self):
++        import eventlet
++        self.evt = eventlet.Event()
++
++    def is_set(self):
++        return self.evt.ready()
++
++    def set(self):
++        return self.evt.send()
++
++    def wait(self, timeout=None):
++        return self.evt.wait(timeout)
++
++
+ drainers = {}
+ 
+ 
+@@ -62,46 +87,57 @@ class Drainer:
+     def wait_for(self, p, wait, timeout=None):
+         wait(timeout=timeout)
+ 
++    def _event(self):
++        return threading.Event()
++
+ 
+ class greenletDrainer(Drainer):
+     spawn = None
++    _exc = None
+     _g = None
+     _drain_complete_event = None    # event, sended (and recreated) after every drain_events iteration
+ 
+-    def _create_drain_complete_event(self):
+-        """create new self._drain_complete_event object"""
+-        pass
+-
+     def _send_drain_complete_event(self):
+-        """raise self._drain_complete_event for wakeup .wait_for"""
+-        pass
++        self._drain_complete_event.set()
++        self._drain_complete_event = self._event()
+ 
+     def __init__(self, *args, **kwargs):
+         super().__init__(*args, **kwargs)
+-        self._started = threading.Event()
+-        self._stopped = threading.Event()
+-        self._shutdown = threading.Event()
+-        self._create_drain_complete_event()
++
++        self._started = self._event()
++        self._stopped = self._event()
++        self._shutdown = self._event()
++        self._drain_complete_event = self._event()
+ 
+     def run(self):
+         self._started.set()
+-        while not self._stopped.is_set():
++
++        try:
++            while not self._stopped.is_set():
++                try:
++                    self.result_consumer.drain_events(timeout=1)
++                    self._send_drain_complete_event()
++                except socket.timeout:
++                    pass
++        except Exception as e:
++            self._exc = e
++            raise
++        finally:
++            self._send_drain_complete_event()
+             try:
+-                self.result_consumer.drain_events(timeout=1)
+-                self._send_drain_complete_event()
+-                self._create_drain_complete_event()
+-            except socket.timeout:
+-                pass
+-        self._shutdown.set()
++                self._shutdown.set()
++            except RuntimeError as e:
++                logging.error(f"Failed to set shutdown event: {e}")
+ 
+     def start(self):
++        self._ensure_not_shut_down()
++
+         if not self._started.is_set():
+             self._g = self.spawn(self.run)
+             self._started.wait()
+ 
+     def stop(self):
+         self._stopped.set()
+-        self._send_drain_complete_event()
+         self._shutdown.wait(THREAD_TIMEOUT_MAX)
+ 
+     def wait_for(self, p, wait, timeout=None):
+@@ -109,6 +145,23 @@ class greenletDrainer(Drainer):
+         if not p.ready:
+             self._drain_complete_event.wait(timeout=timeout)
+ 
++            self._ensure_not_shut_down()
++
++    def _ensure_not_shut_down(self):
++        """Currently used to ensure the drainer has not run to completion.
++
++        Raises if the shutdown event has been signaled (either due to an exception
++        or stop() being called).
++
++        The _shutdown event acts as synchronization to ensure _exc is properly
++        set before it is read from, avoiding need for locks.
++        """
++        if self._shutdown.is_set():
++            if self._exc is not None:
++                raise self._exc
++            else:
++                raise Exception(E_CELERY_RESTART_REQUIRED)
++
+ 
+ @register_drainer('eventlet')
+ class eventletDrainer(greenletDrainer):
+@@ -119,12 +172,8 @@ class eventletDrainer(greenletDrainer):
+         sleep(0)
+         return g
+ 
+-    def _create_drain_complete_event(self):
+-        from eventlet.event import Event
+-        self._drain_complete_event = Event()
+-
+-    def _send_drain_complete_event(self):
+-        self._drain_complete_event.send()
++    def _event(self):
++        return EventletAdaptedEvent()
+ 
+ 
+ @register_drainer('gevent')
+@@ -136,13 +185,9 @@ class geventDrainer(greenletDrainer):
+         gevent.sleep(0)
+         return g
+ 
+-    def _create_drain_complete_event(self):
++    def _event(self):
+         from gevent.event import Event
+-        self._drain_complete_event = Event()
+-
+-    def _send_drain_complete_event(self):
+-        self._drain_complete_event.set()
+-        self._create_drain_complete_event()
++        return Event()
+ 
+ 
+ class AsyncBackendMixin:
+diff --git a/celery/backends/base.py b/celery/backends/base.py
+index dc79f4eb..b9ab6192 100644
+--- a/celery/backends/base.py
++++ b/celery/backends/base.py
+@@ -65,6 +65,33 @@ def unpickle_backend(cls, args, kwargs):
+     return cls(*args, app=current_app._get_current_object(), **kwargs)
+ 
+ 
++def _create_chord_error_with_cause(message, original_exc=None) -> ChordError:
++    """Create a ChordError preserving the original exception as __cause__.
++
++    This helper reduces code duplication across the codebase when creating
++    ChordError instances that need to preserve the original exception.
++    """
++    chord_error = ChordError(message)
++    if isinstance(original_exc, Exception):
++        chord_error.__cause__ = original_exc
++    return chord_error
++
++
++def _create_fake_task_request(task_id, errbacks=None, task_name='unknown', **extra) -> Context:
++    """Create a fake task request context for error callbacks.
++
++    This helper reduces code duplication when creating fake request contexts
++    for error callback handling.
++    """
++    return Context({
++        "id": task_id,
++        "errbacks": errbacks or [],
++        "delivery_info": dict(),
++        "task": task_name,
++        **extra
++    })
++
++
+ class _nulldict(dict):
+     def ignore(self, *a, **kw):
+         pass
+@@ -281,21 +308,25 @@ class Backend:
+ 
+     def chord_error_from_stack(self, callback, exc=None):
+         app = self.app
++
+         try:
+             backend = app._tasks[callback.task].backend
+         except KeyError:
+             backend = self
++
++        # Handle group callbacks specially to prevent hanging body tasks
++        if isinstance(callback, group):
++            return self._handle_group_chord_error(group_callback=callback, backend=backend, exc=exc)
+         # We have to make a fake request since either the callback failed or
+         # we're pretending it did since we don't have information about the
+         # chord part(s) which failed. This request is constructed as a best
+         # effort for new style errbacks and may be slightly misleading about
+         # what really went wrong, but at least we call them!
+-        fake_request = Context({
+-            "id": callback.options.get("task_id"),
+-            "errbacks": callback.options.get("link_error", []),
+-            "delivery_info": dict(),
++        fake_request = _create_fake_task_request(
++            task_id=callback.options.get("task_id"),
++            errbacks=callback.options.get("link_error", []),
+             **callback
+-        })
++        )
+         try:
+             self._call_task_errbacks(fake_request, exc, None)
+         except Exception as eb_exc:  # pylint: disable=broad-except
+@@ -303,6 +334,74 @@ class Backend:
+         else:
+             return backend.fail_from_current_stack(callback.id, exc=exc)
+ 
++    def _handle_group_chord_error(self, group_callback, backend, exc=None):
++        """Handle chord errors when the callback is a group.
++
++        When a chord header fails and the body is a group, we need to:
++        1. Revoke all pending tasks in the group body
++        2. Mark them as failed with the chord error
++        3. Call the group's error callbacks once per task in the body
++
++        This prevents the group body tasks from hanging indefinitely (#8786)
++        """
++
++        # Extract original exception from ChordError if available
++        if isinstance(exc, ChordError) and hasattr(exc, '__cause__') and exc.__cause__:
++            original_exc = exc.__cause__
++        else:
++            original_exc = exc
++
++        try:
++            # Freeze the group to get the actual GroupResult with task IDs
++            frozen_group = group_callback.freeze()
++
++            if isinstance(frozen_group, GroupResult):
++                # revoke all tasks in the group to prevent execution
++                frozen_group.revoke()
++
++                # Handle each task in the group individually
++                for result in frozen_group.results:
++                    try:
++                        # Create fake request for error callbacks
++                        fake_request = _create_fake_task_request(
++                            task_id=result.id,
++                            errbacks=group_callback.options.get("link_error", []),
++                            task_name=getattr(result, 'task', 'unknown')
++                        )
++
++                        # Call error callbacks for this task with original exception
++                        try:
++                            backend._call_task_errbacks(fake_request, original_exc, None)
++                        except Exception:  # pylint: disable=broad-except
++                            # continue on exception to be sure to iter to all the group tasks
++                            pass
++
++                        # Mark the individual task as failed with original exception
++                        backend.fail_from_current_stack(result.id, exc=original_exc)
++
++                    except Exception as task_exc:  # pylint: disable=broad-except
++                        # Log error but continue with other tasks
++                        logger.exception(
++                            'Failed to handle chord error for task %s: %r',
++                            getattr(result, 'id', 'unknown'), task_exc
++                        )
++
++                # Also mark the group itself as failed if it has an ID
++                frozen_group_id = getattr(frozen_group, 'id', None)
++                if frozen_group_id:
++                    backend.mark_as_failure(frozen_group_id, original_exc)
++
++            return None
++
++        except Exception as cleanup_exc:  # pylint: disable=broad-except
++            # Log the error and fall back to single task handling
++            logger.exception(
++                'Failed to handle group chord error, falling back to single task handling: %r',
++                cleanup_exc
++            )
++            # Fallback to original error handling
++            return backend.fail_from_current_stack(group_callback.id, exc=exc)
++
+     def fail_from_current_stack(self, task_id, exc=None):
+         type_, real_exc, tb = sys.exc_info()
+         try:
+@@ -1068,18 +1167,18 @@ class BaseKeyValueStoreBackend(Backend):
+                     )
+                 except StopIteration:
+                     reason = repr(exc)
+-
+                 logger.exception('Chord %r raised: %r', gid, reason)
+-                self.chord_error_from_stack(callback, ChordError(reason))
++                chord_error = _create_chord_error_with_cause(message=reason, original_exc=exc)
++                self.chord_error_from_stack(callback=callback, exc=chord_error)
+             else:
+                 try:
+                     callback.delay(ret)
+                 except Exception as exc:  # pylint: disable=broad-except
+                     logger.exception('Chord %r raised: %r', gid, exc)
+-                    self.chord_error_from_stack(
+-                        callback,
+-                        ChordError(f'Callback error: {exc!r}'),
++                    chord_error = _create_chord_error_with_cause(
++                        message=f'Callback error: {exc!r}', original_exc=exc
+                     )
++                    self.chord_error_from_stack(callback=callback, exc=chord_error)
+             finally:
+                 deps.delete()
+                 self.delete(key)
+diff --git a/celery/backends/redis.py b/celery/backends/redis.py
+index 3e3ef737..28e9b723 100644
+--- a/celery/backends/redis.py
++++ b/celery/backends/redis.py
+@@ -5,12 +5,15 @@ from functools import partial
+ from ssl import CERT_NONE, CERT_OPTIONAL, CERT_REQUIRED
+ from urllib.parse import unquote
+ 
++from kombu.utils import symbol_by_name
+ from kombu.utils.functional import retry_over_time
+ from kombu.utils.objects import cached_property
+ from kombu.utils.url import _parse_url, maybe_sanitize_url
++from redis import CredentialProvider
+ 
+ from celery import states
+ from celery._state import task_join_will_block
++from celery.backends.base import _create_chord_error_with_cause
+ from celery.canvas import maybe_signature
+ from celery.exceptions import BackendStoreError, ChordError, ImproperlyConfigured
+ from celery.result import GroupResult, allow_join_result
+@@ -128,9 +131,9 @@ class ResultConsumer(BaseResultConsumer):
+         except self._connection_errors:
+             try:
+                 self._ensure(self._reconnect_pubsub, ())
+-            except self._connection_errors:
++            except self._connection_errors as e:
+                 logger.critical(E_RETRY_LIMIT_EXCEEDED)
+-                raise
++                raise RuntimeError(E_RETRY_LIMIT_EXCEEDED) from e
+ 
+     def _maybe_cancel_ready_task(self, meta):
+         if meta['status'] in states.READY_STATES:
+@@ -229,6 +232,7 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+         retry_on_timeout = _get('redis_retry_on_timeout')
+         socket_keepalive = _get('redis_socket_keepalive')
+         health_check_interval = _get('redis_backend_health_check_interval')
++        credential_provider = _get('redis_backend_credential_provider')
+ 
+         self.connparams = {
+             'host': _get('redis_host') or 'localhost',
+@@ -240,6 +244,7 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+             'retry_on_timeout': retry_on_timeout or False,
+             'socket_connect_timeout':
+                 socket_connect_timeout and float(socket_connect_timeout),
++            'client_name': _get('redis_client_name'),
+         }
+ 
+         username = _get('redis_username')
+@@ -253,6 +258,23 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+             #       support for py-redis<3.4.0.
+             self.connparams['username'] = username
+ 
++        if credential_provider:
++            # if credential provider passed as string or query param
++            if isinstance(credential_provider, str):
++                credential_provider_cls = symbol_by_name(credential_provider)
++                credential_provider = credential_provider_cls()
++
++            if not isinstance(credential_provider, CredentialProvider):
++                raise ValueError(
++                    "Credential provider is not an instance of a redis.CredentialProvider or a subclass"
++                )
++
++            self.connparams['credential_provider'] = credential_provider
++
++            # drop username and password if credential provider is configured
++            self.connparams.pop("username", None)
++            self.connparams.pop("password", None)
++
+         if health_check_interval:
+             self.connparams["health_check_interval"] = health_check_interval
+ 
+@@ -349,6 +371,23 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+         db = db.strip('/') if isinstance(db, str) else db
+         connparams['db'] = int(db)
+ 
++        # credential provider as query string
++        credential_provider = query.pop("credential_provider", None)
++        if credential_provider:
++            if isinstance(credential_provider, str):
++                credential_provider_cls = symbol_by_name(credential_provider)
++                credential_provider = credential_provider_cls()
++
++            if not isinstance(credential_provider, CredentialProvider):
++                raise ValueError(
++                    "Credential provider is not an instance of a redis.CredentialProvider or a subclass"
++                )
++
++            connparams['credential_provider'] = credential_provider
++            # drop username and password if credential provider is configured
++            connparams.pop("username", None)
++            connparams.pop("password", None)
++
+         for key, value in query.items():
+             if key in redis.connection.URL_QUERY_ARGUMENT_PARSERS:
+                 query[key] = redis.connection.URL_QUERY_ARGUMENT_PARSERS[key](
+@@ -436,7 +475,10 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+         if state in EXCEPTION_STATES:
+             retval = self.exception_to_python(retval)
+         if state in PROPAGATE_STATES:
+-            raise ChordError(f'Dependency {tid} raised {retval!r}')
++            chord_error = _create_chord_error_with_cause(
++                message=f'Dependency {tid} raised {retval!r}', original_exc=retval
++            )
++            raise chord_error
+         return retval
+ 
+     def set_chord_size(self, group_id, chord_size):
+@@ -498,7 +540,7 @@ class RedisBackend(BaseKeyValueStoreBackend, AsyncBackendMixin):
+                 callback = maybe_signature(request.chord, app=app)
+                 total = int(chord_size_bytes) + totaldiff
+                 if readycount == total:
+-                    header_result = GroupResult.restore(gid)
++                    header_result = GroupResult.restore(gid, app=app)
+                     if header_result is not None:
+                         # If we manage to restore a `GroupResult`, then it must
+                         # have been complex and saved by `apply_chord()` earlier.
+diff --git a/celery/beat.py b/celery/beat.py
+index 86ad837f..93203bf0 100644
+--- a/celery/beat.py
++++ b/celery/beat.py
+@@ -12,6 +12,7 @@ import traceback
+ from calendar import timegm
+ from collections import namedtuple
+ from functools import total_ordering
++from pickle import UnpicklingError
+ from threading import Event, Thread
+ 
+ from billiard import ensure_multiprocessing
+@@ -569,11 +570,11 @@ class PersistentScheduler(Scheduler):
+         for _ in (1, 2):
+             try:
+                 self._store['entries']
+-            except (KeyError, UnicodeDecodeError, TypeError):
++            except (KeyError, UnicodeDecodeError, TypeError, UnpicklingError):
+                 # new schedule db
+                 try:
+                     self._store['entries'] = {}
+-                except (KeyError, UnicodeDecodeError, TypeError) + dbm.error as exc:
++                except (KeyError, UnicodeDecodeError, TypeError, UnpicklingError) + dbm.error as exc:
+                     self._store = self._destroy_open_corrupted_schedule(exc)
+                     continue
+             else:
+diff --git a/celery/bin/worker.py b/celery/bin/worker.py
+index 0cc3d666..f16dafba 100644
+--- a/celery/bin/worker.py
++++ b/celery/bin/worker.py
+@@ -182,6 +182,15 @@ def detach(path, argv, logfile=None, pidfile=None, uid=None,
+               help_group="Worker Options",
+               help="Set custom prefetch multiplier value "
+                    "for this worker instance.")
++@click.option('--disable-prefetch',
++              is_flag=True,
++              default=None,
++              callback=lambda ctx, _,
++              value: ctx.obj.app.conf.worker_disable_prefetch if value is None else value,
++              cls=CeleryOption,
++              help_group="Worker Options",
++              help="Disable broker prefetching. The worker will only fetch a task when a process slot is available. "
++                   "Only supported with Redis brokers.")
+ @click.option('-c',
+               '--concurrency',
+               type=int,
+@@ -314,6 +323,8 @@ def worker(ctx, hostname=None, pool_cls=None, app=None, uid=None, gid=None,
+     """
+     try:
+         app = ctx.obj.app
++        if 'disable_prefetch' in kwargs and kwargs['disable_prefetch'] is not None:
++            app.conf.worker_disable_prefetch = kwargs.pop('disable_prefetch')
+         if ctx.args:
+             try:
+                 app.config_from_cmdline(ctx.args, namespace='worker')
+diff --git a/celery/canvas.py b/celery/canvas.py
+index da395c13..396eb7d3 100644
+--- a/celery/canvas.py
++++ b/celery/canvas.py
+@@ -1741,7 +1741,7 @@ class group(Signature):
+ 
+     def _apply_tasks(self, tasks, producer=None, app=None, p=None,
+                      add_to_parent=None, chord=None,
+-                     args=None, kwargs=None, **options):
++                     args=None, kwargs=None, group_index=None, **options):
+         """Run all the tasks in the group.
+ 
+         This is used by :meth:`apply_async` to run all the tasks in the group
+@@ -2234,7 +2234,8 @@ class _chord(Signature):
+             options.pop('task_id', None)
+             body.options.update(options)
+ 
+-        bodyres = body.freeze(task_id, root_id=root_id)
++        body_task_id = task_id or uuid()
++        bodyres = body.freeze(body_task_id, group_id=group_id, root_id=root_id)
+ 
+         # Chains should not be passed to the header tasks. See #3771
+         options.pop('chain', None)
+diff --git a/celery/events/dumper.py b/celery/events/dumper.py
+index 24c7b3e9..08ee1202 100644
+--- a/celery/events/dumper.py
++++ b/celery/events/dumper.py
+@@ -4,7 +4,7 @@ This is a simple program that dumps events to the console
+ as they happen.  Think of it like a `tcpdump` for Celery events.
+ """
+ import sys
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from celery.app import app_or_default
+ from celery.utils.functional import LRUCache
+@@ -48,7 +48,7 @@ class Dumper:
+             pass
+ 
+     def on_event(self, ev):
+-        timestamp = datetime.utcfromtimestamp(ev.pop('timestamp'))
++        timestamp = datetime.fromtimestamp(ev.pop('timestamp'), timezone.utc)
+         type = ev.pop('type').lower()
+         hostname = ev.pop('hostname')
+         if type.startswith('task-'):
+diff --git a/celery/events/receiver.py b/celery/events/receiver.py
+index 14871073..bda50a10 100644
+--- a/celery/events/receiver.py
++++ b/celery/events/receiver.py
+@@ -8,6 +8,7 @@ from kombu.mixins import ConsumerMixin
+ 
+ from celery import uuid
+ from celery.app import app_or_default
++from celery.exceptions import ImproperlyConfigured
+ from celery.utils.time import adjust_timestamp
+ 
+ from .event import get_exchange
+@@ -34,7 +35,9 @@ class EventReceiver(ConsumerMixin):
+ 
+     def __init__(self, channel, handlers=None, routing_key='#',
+                  node_id=None, app=None, queue_prefix=None,
+-                 accept=None, queue_ttl=None, queue_expires=None):
++                 accept=None, queue_ttl=None, queue_expires=None,
++                 queue_exclusive=None,
++                 queue_durable=None):
+         self.app = app_or_default(app or self.app)
+         self.channel = maybe_channel(channel)
+         self.handlers = {} if handlers is None else handlers
+@@ -48,11 +51,22 @@ class EventReceiver(ConsumerMixin):
+             queue_ttl = self.app.conf.event_queue_ttl
+         if queue_expires is None:
+             queue_expires = self.app.conf.event_queue_expires
++        if queue_exclusive is None:
++            queue_exclusive = self.app.conf.event_queue_exclusive
++        if queue_durable is None:
++            queue_durable = self.app.conf.event_queue_durable
++        if queue_exclusive and queue_durable:
++            raise ImproperlyConfigured(
++                'Queue cannot be both exclusive and durable, '
++                'choose one or the other.'
++            )
+         self.queue = Queue(
+             '.'.join([self.queue_prefix, self.node_id]),
+             exchange=self.exchange,
+             routing_key=self.routing_key,
+-            auto_delete=True, durable=False,
++            auto_delete=not queue_durable,
++            durable=queue_durable,
++            exclusive=queue_exclusive,
+             message_ttl=queue_ttl,
+             expires=queue_expires,
+         )
+diff --git a/celery/fixups/django.py b/celery/fixups/django.py
+index b3549949..80a6e3e8 100644
+--- a/celery/fixups/django.py
++++ b/celery/fixups/django.py
+@@ -1,4 +1,5 @@
+ """Django-specific customization."""
++import contextlib
+ import os
+ import sys
+ import warnings
+@@ -168,7 +169,7 @@ class DjangoWorkerFixup:
+                 self._maybe_close_db_fd(c)
+ 
+         # use the _ version to avoid DB_REUSE preventing the conn.close() call
+-        self._close_database(force=True)
++        self._close_database()
+         self.close_cache()
+ 
+     def _maybe_close_db_fd(self, c: "BaseDatabaseWrapper") -> None:
+@@ -197,13 +198,14 @@ class DjangoWorkerFixup:
+             self._close_database()
+         self._db_recycles += 1
+ 
+-    def _close_database(self, force: bool = False) -> None:
++    def _close_database(self) -> None:
+         for conn in self._db.connections.all():
+             try:
+-                if force:
+-                    conn.close()
+-                else:
+-                    conn.close_if_unusable_or_obsolete()
++                conn.close()
++                pool_enabled = self._settings.DATABASES.get(conn.alias, {}).get("OPTIONS", {}).get("pool")
++                if pool_enabled and hasattr(conn, "close_pool"):
++                    with contextlib.suppress(KeyError):
++                        conn.close_pool()
+             except self.interface_errors:
+                 pass
+             except self.DatabaseError as exc:
+diff --git a/celery/result.py b/celery/result.py
+index 75512c5a..66a9e20a 100644
+--- a/celery/result.py
++++ b/celery/result.py
+@@ -137,6 +137,8 @@ class AsyncResult(ResultBase):
+         self._cache = None
+         if self.parent:
+             self.parent.forget()
++
++        self.backend.remove_pending_result(self)
+         self.backend.forget(self.id)
+ 
+     def revoke(self, connection=None, terminate=False, signal=None,
+diff --git a/celery/utils/time.py b/celery/utils/time.py
+index 2376bb3b..bd9dba1a 100644
+--- a/celery/utils/time.py
++++ b/celery/utils/time.py
+@@ -1,6 +1,7 @@
+ """Utilities related to dates, times, intervals, and timezones."""
+ from __future__ import annotations
+ 
++import logging
+ import numbers
+ import os
+ import random
+@@ -17,6 +18,7 @@ from dateutil import tz as dateutil_tz
+ from dateutil.parser import isoparse
+ from kombu.utils.functional import reprcall
+ from kombu.utils.objects import cached_property
++from tzlocal import get_localzone
+ 
+ from .functional import dictfilter
+ from .text import pluralize
+@@ -26,6 +28,7 @@ if sys.version_info >= (3, 9):
+ else:
+     from backports.zoneinfo import ZoneInfo
+ 
++logger = logging.getLogger(__name__)
+ 
+ __all__ = (
+     'LocalTimezone', 'timezone', 'maybe_timedelta',
+@@ -117,7 +120,7 @@ class LocalTimezone(tzinfo):
+ 
+ class _Zone:
+     """Timezone class that provides the timezone for the application.
+-    If `enable_utc` is disabled, LocalTimezone is provided as the timezone provider through local().
++    If `enable_utc` is disabled, local system timezone is provided as the timezone provider through local().
+     Otherwise, this class provides a UTC ZoneInfo instance as the timezone provider for the application.
+ 
+     Additionally this class provides a few utility methods for converting datetimes.
+@@ -158,9 +161,16 @@ class _Zone:
+         return zone
+ 
+     @cached_property
+-    def local(self) -> LocalTimezone:
+-        """Return LocalTimezone instance for the application."""
+-        return LocalTimezone()
++    def local(self) -> tzinfo:
++        """Return the local system timezone for the application."""
++        try:
++            timezone = get_localzone()
++        except Exception as ex:
++            timezone = None
++            logger.warning("Failed to retrieve local timezone (%s): %s", type(ex).__name__, ex)
++        if timezone is None:
++            return LocalTimezone()
++        return timezone
+ 
+     @cached_property
+     def utc(self) -> tzinfo:
+@@ -202,7 +212,7 @@ def delta_resolution(dt: datetime, delta: timedelta) -> datetime:
+ 
+ 
+ def remaining(
+-        start: datetime, ends_in: timedelta, now: Callable | None = None,
++        start: datetime, ends_in: timedelta, now: datetime | None = None,
+         relative: bool = False) -> timedelta:
+     """Calculate the real remaining time for a start date and a timedelta.
+ 
+@@ -214,7 +224,7 @@ def remaining(
+         relative (bool): If enabled the end time will be calculated
+             using :func:`delta_resolution` (i.e., rounded to the
+             resolution of `ends_in`).
+-        now (Callable): Function returning the current time and date.
++        now (~datetime.datetime): Current time and date.
+             Defaults to :func:`datetime.now(timezone.utc)`.
+ 
+     Returns:
+diff --git a/celery/worker/consumer/consumer.py b/celery/worker/consumer/consumer.py
+index 3e6a66df..95e73707 100644
+--- a/celery/worker/consumer/consumer.py
++++ b/celery/worker/consumer/consumer.py
+@@ -31,7 +31,8 @@ from celery.utils.objects import Bunch
+ from celery.utils.text import truncate
+ from celery.utils.time import humanize_seconds, rate
+ from celery.worker import loops
+-from celery.worker.state import active_requests, maybe_shutdown, requests, reserved_requests, task_reserved
++from celery.worker.state import (active_requests, maybe_shutdown, requests, reserved_requests, successful_requests,
++                                 task_reserved)
+ 
+ __all__ = ('Consumer', 'Evloop', 'dump_body')
+ 
+@@ -157,6 +158,10 @@ class Consumer:
+     #: connection attempt.
+     first_connection_attempt = True
+ 
++    #: Counter to track number of conn retry attempts
++    #: to broker. Will be reset to 0 once successful
++    broker_connection_retry_attempt = 0
++
+     class Blueprint(bootsteps.Blueprint):
+         """Consumer blueprint."""
+ 
+@@ -488,9 +493,11 @@ class Consumer:
+         def _error_handler(exc, interval, next_step=CONNECTION_RETRY_STEP):
+             if getattr(conn, 'alt', None) and interval == 0:
+                 next_step = CONNECTION_FAILOVER
++            elif interval > 0:
++                self.broker_connection_retry_attempt += 1
+             next_step = next_step.format(
+                 when=humanize_seconds(interval, 'in', ' '),
+-                retries=int(interval / 2),
++                retries=self.broker_connection_retry_attempt,
+                 max_retries=self.app.conf.broker_connection_max_retries)
+             error(CONNECTION_ERROR, conn.as_uri(), exc, next_step)
+ 
+@@ -532,6 +539,7 @@ class Consumer:
+             callback=maybe_shutdown,
+         )
+         self.first_connection_attempt = False
++        self.broker_connection_retry_attempt = 0
+         return conn
+ 
+     def _flush_events(self):
+@@ -733,9 +741,13 @@ class Consumer:
+             self=self, state=self.blueprint.human_state(),
+         )
+ 
+-    def cancel_all_unacked_requests(self):
+-        """Cancel all active requests that either do not require late acknowledgments or,
++    def cancel_active_requests(self):
++        """Cancel active requests during shutdown.
++
++        Cancels all active requests that either do not require late acknowledgments or,
+         if they do, have not been acknowledged yet.
++
++        Does not cancel successful tasks, even if they have not been acknowledged yet.
+         """
+ 
+         def should_cancel(request):
+@@ -745,6 +757,9 @@ class Consumer:
+ 
+             if not request.acknowledged:
+                 # Task is late acknowledged, but it has not been acknowledged yet, cancel it.
++                if request.id in successful_requests:
++                    # Unless it was successful, in which case we don't want to cancel it.
++                    return False
+                 return True
+ 
+             # Task is late acknowledged, but it has already been acknowledged.
+@@ -754,7 +769,10 @@ class Consumer:
+ 
+         if requests_to_cancel:
+             for request in requests_to_cancel:
+-                request.cancel(self.pool)
++                # For acks_late tasks, don't emit RETRY signal since broker will handle redelivery
++                # For non-acks_late tasks, emit RETRY signal as usual
++                emit_retry = not request.task.acks_late
++                request.cancel(self.pool, emit_retry=emit_retry)
+ 
+ 
+ class Evloop(bootsteps.StartStopStep):
+diff --git a/celery/worker/consumer/delayed_delivery.py b/celery/worker/consumer/delayed_delivery.py
+index 66a55015..46996ca2 100644
+--- a/celery/worker/consumer/delayed_delivery.py
++++ b/celery/worker/consumer/delayed_delivery.py
+@@ -5,10 +5,14 @@ of native delayed delivery functionality when using quorum queues.
+ """
+ from typing import Iterator, List, Optional, Set, Union, ValuesView
+ 
++# Backport of PEP 654 for Python versions < 3.11
++# In Python 3.11+, exceptiongroup uses the built-in ExceptionGroup
++from exceptiongroup import ExceptionGroup
+ from kombu import Connection, Queue
+ from kombu.transport.native_delayed_delivery import (bind_queue_to_native_delayed_delivery_exchange,
+                                                      declare_native_delayed_delivery_exchanges_and_queues)
+ from kombu.utils.functional import retry_over_time
++from kombu.utils.url import maybe_sanitize_url
+ 
+ from celery import Celery, bootsteps
+ from celery.utils.log import get_logger
+@@ -23,7 +27,7 @@ logger = get_logger(__name__)
+ # Default retry settings
+ RETRY_INTERVAL = 1.0  # seconds between retries
+ MAX_RETRIES = 3      # maximum number of retries
+-
++RETRIED_EXCEPTIONS = (ConnectionRefusedError, OSError)
+ 
+ # Valid queue types for delayed delivery
+ VALID_QUEUE_TYPES = {'classic', 'quorum'}
+@@ -84,7 +88,7 @@ class DelayedDelivery(bootsteps.StartStopStep):
+                 retry_over_time(
+                     self._setup_delayed_delivery,
+                     args=(c, broker_url),
+-                    catch=(ConnectionRefusedError, OSError),
++                    catch=RETRIED_EXCEPTIONS,
+                     errback=self._on_retry,
+                     interval_start=RETRY_INTERVAL,
+                     max_retries=MAX_RETRIES,
+@@ -92,7 +96,7 @@ class DelayedDelivery(bootsteps.StartStopStep):
+             except Exception as e:
+                 logger.warning(
+                     "Failed to setup delayed delivery for %r: %s",
+-                    broker_url, str(e)
++                    maybe_sanitize_url(broker_url), str(e)
+                 )
+                 setup_errors.append((broker_url, e))
+ 
+@@ -114,33 +118,33 @@ class DelayedDelivery(bootsteps.StartStopStep):
+             OSError: If there are network-related issues
+             Exception: For other unexpected errors during setup
+         """
+-        connection: Connection = c.app.connection_for_write(url=broker_url)
+-        queue_type = c.app.conf.broker_native_delayed_delivery_queue_type
+-        logger.debug(
+-            "Setting up delayed delivery for broker %r with queue type %r",
+-            broker_url, queue_type
+-        )
+-
+-        try:
+-            declare_native_delayed_delivery_exchanges_and_queues(
+-                connection,
+-                queue_type
+-            )
+-        except Exception as e:
+-            logger.warning(
+-                "Failed to declare exchanges and queues for %r: %s",
+-                broker_url, str(e)
++        with c.app.connection_for_write(url=broker_url) as connection:
++            queue_type = c.app.conf.broker_native_delayed_delivery_queue_type
++            logger.debug(
++                "Setting up delayed delivery for broker %r with queue type %r",
++                maybe_sanitize_url(broker_url), queue_type
+             )
+-            raise
+ 
+-        try:
+-            self._bind_queues(c.app, connection)
+-        except Exception as e:
+-            logger.warning(
+-                "Failed to bind queues for %r: %s",
+-                broker_url, str(e)
+-            )
+-            raise
++            try:
++                declare_native_delayed_delivery_exchanges_and_queues(
++                    connection,
++                    queue_type
++                )
++            except Exception as e:
++                logger.warning(
++                    "Failed to declare exchanges and queues for %r: %s",
++                    maybe_sanitize_url(broker_url), str(e)
++                )
++                raise
++
++            try:
++                self._bind_queues(c.app, connection)
++            except Exception as e:
++                logger.warning(
++                    "Failed to bind queues for %r: %s",
++                    maybe_sanitize_url(broker_url), str(e)
++                )
++                raise
+ 
+     def _bind_queues(self, app: Celery, connection: Connection) -> None:
+         """Bind all application queues to delayed delivery exchanges.
+@@ -157,6 +161,7 @@ class DelayedDelivery(bootsteps.StartStopStep):
+             logger.warning("No queues found to bind for delayed delivery")
+             return
+ 
++        exceptions: list[Exception] = []
+         for queue in queues:
+             try:
+                 logger.debug("Binding queue %r to delayed delivery exchange", queue.name)
+@@ -166,9 +171,29 @@ class DelayedDelivery(bootsteps.StartStopStep):
+                     "Failed to bind queue %r: %s",
+                     queue.name, str(e)
+                 )
+-                raise
+ 
+-    def _on_retry(self, exc: Exception, interval_range: Iterator[float], intervals_count: int) -> None:
++                # We must re-raise on retried exceptions to ensure they are
++                # caught with the outer retry_over_time mechanism.
++                #
++                # This could be removed if one of:
++                # * The minimum python version for Celery and Kombu is
++                #   increased to 3.11. Kombu updated to use the `except*`
++                #   clause to catch specific exceptions from an ExceptionGroup.
++                # * Kombu's retry_over_time utility is updated to use the
++                #   catch utility from agronholm's exceptiongroup backport.
++                if isinstance(e, RETRIED_EXCEPTIONS):
++                    raise
++
++                exceptions.append(e)
++
++        if exceptions:
++            raise ExceptionGroup(
++                ("One or more failures occurred while binding queues to "
++                 "delayed delivery exchanges"),
++                exceptions,
++            )
++
++    def _on_retry(self, exc: Exception, interval_range: Iterator[float], intervals_count: int) -> float:
+         """Callback for retry attempts.
+ 
+         Args:
+@@ -176,10 +201,12 @@ class DelayedDelivery(bootsteps.StartStopStep):
+             interval_range: An iterator which returns the time in seconds to sleep next
+             intervals_count: Number of retry attempts so far
+         """
++        interval = next(interval_range)
+         logger.warning(
+-            "Retrying delayed delivery setup (attempt %d/%d) after error: %s",
+-            intervals_count + 1, MAX_RETRIES, str(exc)
++            "Retrying delayed delivery setup (attempt %d/%d) after error: %s. Sleeping %.2f seconds.",
++            intervals_count + 1, MAX_RETRIES, str(exc), interval
+         )
++        return interval
+ 
+     def _validate_configuration(self, app: Celery) -> None:
+         """Validate all required configuration settings.
+diff --git a/celery/worker/consumer/tasks.py b/celery/worker/consumer/tasks.py
+index 67cbfc12..b017cf52 100644
+--- a/celery/worker/consumer/tasks.py
++++ b/celery/worker/consumer/tasks.py
+@@ -46,7 +46,36 @@ class Tasks(bootsteps.StartStopStep):
+                 prefetch_count=prefetch_count,
+                 apply_global=qos_global,
+             )
+-        c.qos = QoS(set_prefetch_count, c.initial_prefetch_count)
++        eta_task_limit = c.app.conf.worker_eta_task_limit
++        c.qos = QoS(
++            set_prefetch_count, c.initial_prefetch_count, max_prefetch=eta_task_limit
++        )
++
++        if c.app.conf.worker_disable_prefetch:
++            # Only apply disable-prefetch for Redis brokers
++            is_redis_broker = c.connection.transport.driver_type == 'redis'
++            if not is_redis_broker:
++                logger.warning(
++                    f"worker_disable_prefetch is only supported for Redis brokers. "
++                    f"Current broker transport: {c.connection.transport.driver_type}. "
++                    f"Ignoring disable_prefetch setting."
++                )
++                return
++
++            from types import MethodType
++
++            from celery.worker import state
++            channel_qos = c.task_consumer.channel.qos
++            original_can_consume = channel_qos.can_consume
++
++            def can_consume(self):
++                # Prefer autoscaler's max_concurrency if set; otherwise fall back to pool size
++                limit = getattr(c.controller, "max_concurrency", None) or c.pool.num_processes
++                if len(state.reserved_requests) >= limit:
++                    return False
++                return original_can_consume()
++
++            channel_qos.can_consume = MethodType(can_consume, channel_qos)
+ 
+     def stop(self, c):
+         """Stop task consumer."""
+@@ -79,7 +108,9 @@ class Tasks(bootsteps.StartStopStep):
+         qos_global = not c.connection.qos_semantics_matches_spec
+ 
+         if c.app.conf.worker_detect_quorum_queues:
+-            using_quorum_queues, qname = detect_quorum_queues(c.app, c.connection.transport.driver_type)
++            using_quorum_queues, _ = detect_quorum_queues(
++                c.app, c.connection.transport.driver_type
++            )
+ 
+             if using_quorum_queues:
+                 qos_global = False
+diff --git a/celery/worker/request.py b/celery/worker/request.py
+index df99b549..2b975266 100644
+--- a/celery/worker/request.py
++++ b/celery/worker/request.py
+@@ -422,29 +422,34 @@ class Request:
+             if obj is not None:
+                 obj.terminate(signal)
+ 
+-    def cancel(self, pool, signal=None):
++    def cancel(self, pool, signal=None, emit_retry=True):
+         signal = _signals.signum(signal or TERM_SIGNAME)
+         if self.time_start:
+             pool.terminate_job(self.worker_pid, signal)
+-            self._announce_cancelled()
++            self._announce_cancelled(emit_retry=emit_retry)
+ 
+         if self._apply_result is not None:
+             obj = self._apply_result()  # is a weakref
+             if obj is not None:
+                 obj.terminate(signal)
+ 
+-    def _announce_cancelled(self):
++    def _announce_cancelled(self, emit_retry=True):
+         task_ready(self)
+         self.send_event('task-cancelled')
+-        reason = 'cancelled by Celery'
+-        exc = Retry(message=reason)
+-        self.task.backend.mark_as_retry(self.id,
+-                                        exc,
+-                                        request=self._context)
+ 
+-        self.task.on_retry(exc, self.id, self.args, self.kwargs, None)
++        if emit_retry:
++            reason = 'cancelled by Celery'
++            exc = Retry(message=reason)
++            self.task.backend.mark_as_retry(self.id,
++                                            exc,
++                                            request=self._context)
++
++            self.task.on_retry(exc, self.id, self.args, self.kwargs, None)
++
+         self._already_cancelled = True
+-        send_retry(self.task, request=self._context, einfo=None)
++
++        if emit_retry:
++            send_retry(self.task, request=self._context, einfo=None)
+ 
+     def _announce_revoked(self, reason, terminated, signum, expired):
+         task_ready(self)
+@@ -525,14 +530,16 @@ class Request:
+                  timeout, self.name, self.id)
+         else:
+             task_ready(self)
+-            error('Hard time limit (%ss) exceeded for %s[%s]',
+-                  timeout, self.name, self.id)
+-            exc = TimeLimitExceeded(timeout)
+-
+-            self.task.backend.mark_as_failure(
+-                self.id, exc, request=self._context,
+-                store_result=self.store_errors,
+-            )
++            # This is a special case where the task timeout handling is done during
++            # the cold shutdown process.
++            if not state.should_terminate:
++                error('Hard time limit (%ss) exceeded for %s[%s]', timeout, self.name, self.id)
++                exc = TimeLimitExceeded(timeout)
++
++                self.task.backend.mark_as_failure(
++                    self.id, exc, request=self._context,
++                    store_result=self.store_errors,
++                )
+ 
+             if self.task.acks_late and self.task.acks_on_failure_or_timeout:
+                 self.acknowledge()
+@@ -617,6 +624,12 @@ class Request:
+                 # need to be removed from prefetched local queue
+                 self.reject(requeue=False)
+ 
++        # This is a special case where the task failure handling is done during
++        # the cold shutdown process.
++        if state.should_terminate:
++            return_ok = True
++            send_failed_event = False
++
+         # This is a special case where the process would not have had time
+         # to write the result.
+         if not requeue and (is_worker_lost or not return_ok):

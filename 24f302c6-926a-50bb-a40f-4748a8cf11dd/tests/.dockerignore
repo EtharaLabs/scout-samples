@@ -1,0 +1,13 @@
+# Deny the build context by default, then admit what the stage copies.
+# `COPY . /tests` is context-wide, so every scorer input must be admitted here or the
+# verifier image ships without the scorer and cannot grade at all.
+*
+!baseline_manifest.json
+!cheat-checks.json
+!group_map.json
+!judge.toml
+!requirements.lock.txt
+!reward.toml
+!sets.json
+!test.sh
+!test_output.py

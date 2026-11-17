@@ -1,0 +1,2238 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/bipartite/__init__.py /app/networkx/algorithms/bipartite/__init__.py
+--- /opt/pristine/networkx/algorithms/bipartite/__init__.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/bipartite/__init__.py	2026-11-17 08:34:12.000000000 +0000
+@@ -76,6 +76,7 @@
+ from networkx.algorithms.bipartite.basic import *
+ from networkx.algorithms.bipartite.centrality import *
+ from networkx.algorithms.bipartite.cluster import *
++from networkx.algorithms.bipartite.community import *
+ from networkx.algorithms.bipartite.covering import *
+ from networkx.algorithms.bipartite.edgelist import *
+ from networkx.algorithms.bipartite.matching import *
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/bipartite/cluster.py /app/networkx/algorithms/bipartite/cluster.py
+--- /opt/pristine/networkx/algorithms/bipartite/cluster.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/bipartite/cluster.py	2026-11-17 08:34:35.000000000 +0000
+@@ -1,6 +1,7 @@
+ """Functions for computing clustering of pairs"""
+ 
+ import itertools
++from collections import Counter
+ 
+ import networkx as nx
+ 
+@@ -9,6 +10,7 @@
+     "average_clustering",
+     "latapy_clustering",
+     "robins_alexander_clustering",
++    "butterflies",
+ ]
+ 
+ 
+@@ -287,3 +289,89 @@
+     # Divide by two because we count each three path twice
+     # one for each possible starting point
+     return paths / 2
++
++
++@nx._dispatchable
++def butterflies(G, nodes=None):
++    r"""Compute the number of butterflies containing each node.
++
++    A butterfly is a complete bipartite subgraph $K_{2,2}$, that is, two nodes
++    of one node set that are both adjacent to the same two nodes of the other
++    node set. In a bipartite graph the butterflies are exactly the cycles of
++    length four. They are the smallest cohesive structures of bipartite graphs
++    and play the role triangles play in other graphs [1]_.
++
++    The number of butterflies containing node $v$ is
++
++    .. math::
++
++       b_v = \sum_{u \in N(N(v)) \setminus \{v\}} \binom{|N(u) \cap N(v)|}{2}
++
++    where $N(v)$ are the neighbors of $v$ and $N(N(v))$ are the second order
++    neighbors of $v$.
++
++    Parameters
++    ----------
++    G : graph
++        A bipartite graph
++
++    nodes : list or iterable (optional)
++        Compute the number of butterflies for these nodes. The default
++        is all nodes in G.
++
++    Returns
++    -------
++    butterflies : dictionary
++        A dictionary keyed by node with the number of butterflies containing
++        that node as value.
++
++    Raises
++    ------
++    NetworkXError
++        If `G` is not bipartite.
++
++    Examples
++    --------
++    >>> from networkx.algorithms import bipartite
++    >>> G = nx.complete_bipartite_graph(2, 3)
++    >>> bipartite.butterflies(G)
++    {0: 3, 1: 3, 2: 2, 3: 2, 4: 2}
++
++    Each butterfly contains two nodes of each node set, so the total number
++    of butterflies is half the sum of the counts over one node set:
++
++    >>> top_nodes = [0, 1]
++    >>> sum(bipartite.butterflies(G, top_nodes).values()) // 2
++    3
++
++    Notes
++    -----
++    Edge directions and parallel edges are ignored.
++
++    See Also
++    --------
++    robins_alexander_clustering
++    latapy_clustering
++    networkx.algorithms.cluster.square_clustering
++
++    References
++    ----------
++    .. [1] S.-V. Sanei-Mehri, A. E. Sariyuce, and S. Tirthapura,
++       "Butterfly Counting in Bipartite Networks", Proceedings of the 24th ACM
++       SIGKDD International Conference on Knowledge Discovery & Data Mining,
++       2150--2159 (2018). https://doi.org/10.1145/3219819.3220097
++    """
++    if not nx.algorithms.bipartite.is_bipartite(G):
++        raise nx.NetworkXError("Graph is not bipartite")
++
++    if nodes is None:
++        nodes = G
++    if G.is_directed():
++        G = G.to_undirected(as_view=True)
++    G_adj = G._adj
++    counts = {}
++    for v in nodes:
++        # number of common neighbors of v with each of its second order neighbors
++        common = Counter(w for u in G_adj[v] for w in G_adj[u] if w != v)
++        counts[v] = sum(c * (c - 1) // 2 for c in common.values())
++    return counts
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/bipartite/community.py /app/networkx/algorithms/bipartite/community.py
+--- /opt/pristine/networkx/algorithms/bipartite/community.py	1970-01-01 00:00:00.000000000 +0000
++++ /app/networkx/algorithms/bipartite/community.py	2026-11-17 08:34:03.000000000 +0000
+@@ -0,0 +1,216 @@
++"""Functions for measuring the quality of a partition of a bipartite graph
++into communities."""
++
++import networkx as nx
++from networkx.utils import not_implemented_for
++
++__all__ = ["modularity"]
++
++
++@not_implemented_for("directed")
++@nx._dispatchable(edge_attrs="weight", name="bipartite_modularity")
++def modularity(G, communities, top_nodes, weight="weight", resolution=1):
++    r"""Returns Barber's bipartite modularity of a partition of a bipartite graph.
++
++    The modularity of :func:`networkx.algorithms.community.quality.modularity`
++    compares the edges inside communities with a null model in which any two
++    nodes may be joined. In a bipartite graph, edges only join the two node
++    sets, so Barber [1]_ uses a null model that preserves the degrees and the
++    bipartite structure. Calling the two node sets "red" and "blue" nodes,
++    the bipartite modularity of a partition is
++
++    .. math::
++        Q = \frac{1}{m} \sum_{i \in R} \sum_{j \in B}
++            \left( A_{ij} - \gamma \frac{k_i d_j}{m} \right) \delta(c_i, c_j)
++
++    where $R$ and $B$ are the red and blue node sets, $m$ is the number of
++    edges (or the sum of all edge weights), $A$ is the adjacency matrix, $k_i$
++    and $d_j$ are the (weighted) degrees of the red node $i$ and the blue node
++    $j$, $\gamma$ is the resolution parameter and $\delta(c_i, c_j)$ is 1 if
++    $i$ and $j$ are in the same community and 0 otherwise. Summing over the
++    communities $c$ gives
++
++    .. math::
++        Q = \sum_{c} \left( \frac{e_c}{m} - \gamma \frac{R_c B_c}{m^2} \right)
++
++    where $e_c$ is the weight of the edges inside community $c$ and $R_c$
++    and $B_c$ are the sums of the degrees of its red and blue nodes.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        An undirected bipartite graph.
++
++    communities : list or iterable of sets of nodes
++        These node sets must represent a partition of G's nodes.
++
++    top_nodes : container of nodes
++        The nodes of one of the two node sets of the bipartite graph (the
++        "red" nodes). All other nodes of `G` form the other node set. The
++        node sets cannot be deduced from `communities` and must be given
++        explicitly. See :mod:`bipartite documentation <networkx.algorithms.bipartite>`
++        for further details on how bipartite graphs are handled in NetworkX.
++
++    weight : string or None, optional (default="weight")
++        The edge attribute that holds the numerical value used
++        as a weight. If None or an edge does not have that attribute,
++        then that edge has weight 1.
++
++    resolution : float (default=1)
++        If resolution is less than 1, modularity favors larger communities.
++        Greater than 1 favors smaller communities.
++
++    Returns
++    -------
++    Q : float
++        The bipartite modularity of the partition.
++
++    Raises
++    ------
++    NetworkXError
++        If `communities` is not a partition of the nodes of `G`, or if an
++        edge of `G` does not join a node of `top_nodes` to a node outside
++        of `top_nodes`.
++
++    NetworkXNotImplemented
++        If `G` is directed.
++
++    Examples
++    --------
++    >>> from networkx.algorithms import bipartite
++    >>> G = nx.Graph([(0, "a"), (0, "b"), (1, "a"), (1, "b"), (1, "c")])
++    >>> G.add_edges_from([(2, "c"), (2, "d"), (3, "c"), (3, "d")])
++    >>> top_nodes = [0, 1, 2, 3]
++    >>> bipartite.modularity(G, [{0, 1, "a", "b"}, {2, 3, "c", "d"}], top_nodes)
++    0.3950617283950617
++
++    A single community containing all nodes has modularity $1 - \gamma$:
++
++    >>> bipartite.modularity(G, [set(G)], top_nodes)
++    0.0
++
++    See Also
++    --------
++    networkx.algorithms.community.quality.modularity
++
++    References
++    ----------
++    .. [1] M. J. Barber, "Modularity and community detection in bipartite
++       networks", Phys. Rev. E 76, 066102 (2007).
++       https://doi.org/10.1103/PhysRevE.76.066102
++    """
++    from networkx.algorithms.community.community_utils import is_partition
++    from networkx.algorithms.community.quality import NotAPartition
++
++    if not isinstance(communities, list):
++        communities = list(communities)
++    if not is_partition(G, communities):
++        raise NotAPartition(G, communities)
++
++    red = {u for u in G.nbunch_iter(top_nodes)}
++    community_of = {u: i for i, comm in enumerate(communities) for u in comm}
++    internal = [0] * len(communities)
++    m = 0
++    for u, v, wt in G.edges(data=weight, default=1):
++        if (u in red) == (v in red):
++            raise nx.NetworkXError(
++                f"Edge ({u!r}, {v!r}) joins two nodes of the same node set: "
++                "G is not bipartite with node sets top_nodes and the other nodes"
++            )
++        m += wt
++        if community_of[u] == community_of[v]:
++            internal[community_of[u]] += wt
++
++    red_degree = [0] * len(communities)
++    blue_degree = [0] * len(communities)
++    for u, deg in G.degree(weight=weight):
++        if u in red:
++            red_degree[community_of[u]] += deg
++        else:
++            blue_degree[community_of[u]] += deg
++
++    return sum(
++        e_c / m - resolution * R_c * B_c / m**2
++        for e_c, R_c, B_c in zip(internal, red_degree, blue_degree)
++    )
++
++
++def _red_blue_degrees(G, nodes, weight, red_degree_attr, blue_degree_attr):
++    """Returns the total red degree and blue degree of `nodes`.
++
++    The degrees are read from the `red_degree_attr` and `blue_degree_attr`
++    node attributes (a missing one counts as 0). For a node with neither
++    attribute, its weighted degree is red degree if its ``"bipartite"`` node
++    attribute is 0 and blue degree if it is 1. Without that attribute either,
++    the node sets are found with :func:`~networkx.algorithms.bipartite.basic.color`.
++    """
++    red = blue = 0
++    coloring = None
++    for u in nodes:
++        data = G.nodes[u]
++        if red_degree_attr in data or blue_degree_attr in data:
++            red += data.get(red_degree_attr, 0)
++            blue += data.get(blue_degree_attr, 0)
++            continue
++        side = data.get("bipartite")
++        if side not in (0, 1):
++            if coloring is None:
++                coloring = nx.bipartite.color(G)
++            side = coloring[u]
++        if side == 0:
++            red += G.degree(u, weight=weight)
++        else:
++            blue += G.degree(u, weight=weight)
++    return red, blue
++
++
++def _bipartite_modularity_merge_delta(
++    G,
++    community_a,
++    community_b,
++    resolution,
++    weight="weight",
++    *,
++    red_degree_attr="red_degree",
++    blue_degree_attr="blue_degree",
++    m,
++):
++    r"""Returns the change in bipartite modularity from merging two communities.
++
++    Merging two disjoint communities $a$ and $b$ changes the bipartite
++    modularity of :func:`modularity` by
++
++    .. math::
++        \Delta Q = \frac{e_{ab}}{m} - \gamma \frac{R_a B_b + R_b B_a}{m^2}
++
++    where $e_{ab}$ is the weight of the edges between $a$ and $b$, $R_c$ and
++    $B_c$ are the total red and blue degrees of community $c$, $m$ is the
++    total edge weight of the graph and $\gamma$ is the resolution.
++
++    The red and blue degrees of each node are read from the node attributes
++    `red_degree_attr` and `blue_degree_attr`. This allows nodes that are
++    themselves aggregated communities to have both a red and a blue degree.
++    For a node without these attributes, its degree is a red degree if its
++    ``"bipartite"`` attribute is 0, and a blue degree if it is 1 (or the node
++    sets are deduced from a two-coloring of `G` if that attribute is missing).
++    Since the bipartite modularity is symmetric in the red and blue node sets,
++    which of the two sets is called red does not matter.
++
++    `m` is the total edge weight of the original graph. It is required since
++    it cannot be computed from `G` when `G` is an aggregated graph.
++    """
++    if not isinstance(community_b, set | frozenset):
++        community_b = set(community_b)
++    multigraph = G.is_multigraph()
++    e_ab = 0
++    for u in community_a:
++        for v, data in G._adj[u].items():
++            if v in community_b:
++                if multigraph:
++                    e_ab += sum(d.get(weight, 1) for d in data.values())
++                else:
++                    e_ab += data.get(weight, 1)
++    attrs = (weight, red_degree_attr, blue_degree_attr)
++    R_a, B_a = _red_blue_degrees(G, community_a, *attrs)
++    R_b, B_b = _red_blue_degrees(G, community_b, *attrs)
++    return e_ab / m - resolution * (R_a * B_b + R_b * B_a) / m**2
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/bipartite/matrix.py /app/networkx/algorithms/bipartite/matrix.py
+--- /opt/pristine/networkx/algorithms/bipartite/matrix.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/bipartite/matrix.py	2026-11-17 08:43:10.000000000 +0000
+@@ -12,6 +12,10 @@
+ __all__ = ["biadjacency_matrix", "from_biadjacency_matrix"]
+ 
+ 
++class _InvalidNodeOrder(nx.NetworkXError, ValueError):
++    """Raised when a node ordering does not match the shape of a matrix."""
++
++
+ @nx._dispatchable(edge_attrs="weight")
+ def biadjacency_matrix(
+     G, row_order, column_order=None, dtype=None, weight="weight", format="csr"
+@@ -35,7 +39,8 @@
+ 
+     column_order : list, optional
+        The columns of the matrix are ordered according to the list of nodes.
+-       If column_order is None, then the ordering of columns is arbitrary.
++       If column_order is None, then the columns are the nodes of `G` that
++       are not in `row_order`, in the order of ``G.nodes``.
+ 
+     dtype : NumPy data-type, optional
+         A valid NumPy dtype used to initialize the array. If None, then the
+@@ -48,13 +53,38 @@
+     format : str in {'dense', 'bsr', 'csr', 'csc', 'coo', 'lil', 'dia', 'dok'}
+         The type of the matrix to be returned (default 'csr'). For
+         some algorithms different implementations of sparse matrices
+-        can perform better.  See [2]_ for details.
++        can perform better.  See [2]_ for details. With 'dense', a
++        NumPy array is returned.
+ 
+     Returns
+     -------
+     M : SciPy sparse array
+         Biadjacency matrix representation of the bipartite graph G.
+ 
++    Raises
++    ------
++    NetworkXError
++        If `row_order` is empty, if `row_order` or `column_order` contain
++        duplicates or nodes that are not in `G`, or if `format` is not valid.
++
++    Examples
++    --------
++    >>> from networkx.algorithms import bipartite
++    >>> G = nx.Graph([("a", 1), ("a", 2), ("b", 2)])
++    >>> M = bipartite.biadjacency_matrix(G, ["a", "b"], [1, 2])
++    >>> M.toarray()
++    array([[1, 1],
++           [0, 1]])
++
++    The graph can be recovered, with the same node labels, using
++    :func:`from_biadjacency_matrix`:
++
++    >>> H = bipartite.from_biadjacency_matrix(
++    ...     M, row_order=["a", "b"], column_order=[1, 2]
++    ... )
++    >>> sorted(H.edges, key=str)
++    [('a', 1), ('a', 2), ('b', 2)]
++
+     Notes
+     -----
+     No attempt is made to check that the input graph is bipartite.
+@@ -65,6 +95,9 @@
+     where the rows of one of them are the columns of the other, and then add
+     one to the transpose of the other.
+ 
++    For multigraphs the matrix values are the sums of the weights of the
++    parallel edges.
++
+     See Also
+     --------
+     adjacency_matrix
+@@ -78,32 +111,32 @@
+     """
+     import scipy as sp
+ 
++    row_order = list(row_order)
+     nlen = len(row_order)
+     if nlen == 0:
+         raise nx.NetworkXError("row_order is empty list")
+-    if len(row_order) != len(set(row_order)):
+-        msg = "Ambiguous ordering: `row_order` contained duplicates."
+-        raise nx.NetworkXError(msg)
++    row_index = _node_index(G, row_order, "row_order")
+     if column_order is None:
+-        column_order = list(set(G) - set(row_order))
++        column_order = [n for n in G if n not in row_index]
++    else:
++        column_order = list(column_order)
+     mlen = len(column_order)
+-    if len(column_order) != len(set(column_order)):
+-        msg = "Ambiguous ordering: `column_order` contained duplicates."
+-        raise nx.NetworkXError(msg)
++    col_index = _node_index(G, column_order, "column_order")
+ 
+-    row_index = dict(zip(row_order, itertools.count()))
+-    col_index = dict(zip(column_order, itertools.count()))
+-
+-    if G.number_of_edges() == 0:
+-        row, col, data = [], [], []
+-    else:
+-        row, col, data = zip(
+-            *(
+-                (row_index[u], col_index[v], d.get(weight, 1))
+-                for u, v, d in G.edges(row_order, data=True)
+-                if u in row_index and v in col_index
+-            )
+-        )
++    multigraph = G.is_multigraph()
++    row, col, data = [], [], []
++    for u in row_order:
++        i = row_index[u]
++        for v, edgedata in G._adj[u].items():
++            j = col_index.get(v)
++            if j is None:
++                continue
++            row.append(i)
++            col.append(j)
++            if multigraph:
++                data.append(sum(d.get(weight, 1) for d in edgedata.values()))
++            else:
++                data.append(edgedata.get(weight, 1))
+     A = sp.sparse.coo_array((data, (row, col)), shape=(nlen, mlen), dtype=dtype)
+     try:
+         return A.asformat(format)
+@@ -111,15 +144,33 @@
+         raise nx.NetworkXError(f"Unknown sparse array format: {format}") from err
+ 
+ 
++def _node_index(G, nodes, name):
++    """Returns a dict mapping each node of the list `nodes` to its position.
++
++    Raises NetworkXError if `nodes` contains duplicates or nodes not in `G`.
++    """
++    index = dict(zip(nodes, itertools.count()))
++    if len(index) != len(nodes):
++        msg = f"Ambiguous ordering: `{name}` contained duplicates."
++        raise nx.NetworkXError(msg)
++    for n in nodes:
++        if n not in G:
++            raise nx.NetworkXError(f"Node {n} in {name} is not in G")
++    return index
++
++
+ @nx._dispatchable(graphs=None, returns_graph=True)
+-def from_biadjacency_matrix(A, create_using=None, edge_attribute="weight"):
++def from_biadjacency_matrix(
++    A, create_using=None, edge_attribute="weight", row_order=None, column_order=None
++):
+     r"""Creates a new bipartite graph from a biadjacency matrix given as a
+     SciPy sparse array.
+ 
+     Parameters
+     ----------
+     A: scipy sparse array
+-      A biadjacency matrix representation of a graph
++      A biadjacency matrix representation of a graph. Dense arrays (for
++      example NumPy arrays) are also accepted.
+ 
+     create_using: NetworkX graph
+        Use specified graph for result.  The default is Graph()
+@@ -128,6 +179,48 @@
+        Name of edge attribute to store matrix numeric value. The data will
+        have the same type as the matrix entry (int, float, (real,imag)).
+ 
++    row_order : list, optional (default: ``range(n)``)
++        The nodes represented by the rows of the `n` x `m` matrix `A`, in
++        order. They are added to the graph with the ``bipartite`` node
++        attribute set to 0. Must have one node per row of `A`.
++
++    column_order : list, optional (default: ``range(n, n + m)``)
++        The nodes represented by the columns of `A`, in order. They are
++        added to the graph with the ``bipartite`` node attribute set to 1.
++        Must have one node per column of `A`.
++
++    Returns
++    -------
++    G : NetworkX graph
++        A bipartite graph with an edge from the node of row `i` to the node
++        of column `j` for each nonzero entry ``A[i, j]``.
++
++    Raises
++    ------
++    NetworkXError
++        If `row_order` or `column_order` does not contain one node per row
++        or column of `A`, contains duplicates, or if the two share nodes.
++        This error is also a :exc:`ValueError`.
++
++    Examples
++    --------
++    >>> import scipy as sp
++    >>> from networkx.algorithms import bipartite
++    >>> A = sp.sparse.csr_array([[1, 0, 2], [0, 3, 0]])
++    >>> G = bipartite.from_biadjacency_matrix(A)
++    >>> sorted(G.edges(data="weight"))
++    [(0, 2, 1), (0, 4, 2), (1, 3, 3)]
++
++    The rows and columns can be mapped to other nodes:
++
++    >>> G = bipartite.from_biadjacency_matrix(
++    ...     A, row_order=["u", "v"], column_order=["x", "y", "z"]
++    ... )
++    >>> sorted(G.edges(data="weight"))
++    [('u', 'x', 1), ('u', 'z', 2), ('v', 'y', 3)]
++    >>> G.nodes["u"]["bipartite"], G.nodes["x"]["bipartite"]
++    (0, 1)
++
+     Notes
+     -----
+     The nodes are labeled with the attribute `bipartite` set to an integer
+@@ -148,14 +241,39 @@
+     ----------
+     [1] https://en.wikipedia.org/wiki/Adjacency_matrix#Adjacency_matrix_of_a_bipartite_graph
+     """
+-    G = nx.empty_graph(0, create_using)
++    import scipy as sp
++
++    if not sp.sparse.issparse(A):
++        A = sp.sparse.coo_array(A)
+     n, m = A.shape
++    row_order = range(n) if row_order is None else list(row_order)
++    column_order = range(n, n + m) if column_order is None else list(column_order)
++    if len(row_order) != n:
++        msg = f"row_order has {len(row_order)} nodes but A has {n} rows"
++        raise _InvalidNodeOrder(msg)
++    if len(column_order) != m:
++        msg = f"column_order has {len(column_order)} nodes but A has {m} columns"
++        raise _InvalidNodeOrder(msg)
++    row_nodes = set(row_order)
++    column_nodes = set(column_order)
++    if len(row_nodes) != n:
++        raise _InvalidNodeOrder("Ambiguous ordering: `row_order` contained duplicates.")
++    if len(column_nodes) != m:
++        msg = "Ambiguous ordering: `column_order` contained duplicates."
++        raise _InvalidNodeOrder(msg)
++    if not row_nodes.isdisjoint(column_nodes):
++        msg = "row_order and column_order must not have nodes in common"
++        raise _InvalidNodeOrder(msg)
++
++    G = nx.empty_graph(0, create_using)
+     # Make sure we get even the isolated nodes of the graph.
+-    G.add_nodes_from(range(n), bipartite=0)
+-    G.add_nodes_from(range(n, n + m), bipartite=1)
++    G.add_nodes_from(row_order, bipartite=0)
++    G.add_nodes_from(column_order, bipartite=1)
+     # Create an iterable over (u, v, w) triples and for each triple, add an
+     # edge from u to v with weight w.
+-    triples = ((u, n + v, d) for (u, v, d) in _generate_weighted_edges(A))
++    triples = (
++        (row_order[u], column_order[v], d) for (u, v, d) in _generate_weighted_edges(A)
++    )
+     # If the entries in the adjacency matrix are integers and the graph is a
+     # multigraph, then create parallel edges, each with weight 1, for each
+     # entry in the adjacency matrix. Otherwise, create one edge for each
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/__init__.py /app/networkx/algorithms/community/__init__.py
+--- /opt/pristine/networkx/algorithms/community/__init__.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/community/__init__.py	2026-11-17 08:32:41.000000000 +0000
+@@ -17,7 +17,7 @@
+ from networkx.algorithms.community.centrality import *
+ from networkx.algorithms.community.divisive import *
+ from networkx.algorithms.community.kclique import *
+-from networkx.algorithms.community.kernighan_lin import *
++from networkx.algorithms.community.bipartitions import *
+ from networkx.algorithms.community.label_propagation import *
+ from networkx.algorithms.community.lukes import *
+ from networkx.algorithms.community.modularity_max import *
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/bipartitions.py /app/networkx/algorithms/community/bipartitions.py
+--- /opt/pristine/networkx/algorithms/community/bipartitions.py	1970-01-01 00:00:00.000000000 +0000
++++ /app/networkx/algorithms/community/bipartitions.py	2026-11-17 08:41:56.000000000 +0000
+@@ -0,0 +1,389 @@
++"""Functions for splitting a network into two communities (finding a bipartition)."""
++
++from itertools import count
++
++import networkx as nx
++from networkx.algorithms.community.community_utils import is_partition
++from networkx.utils import BinaryHeap, not_implemented_for, py_random_state
++
++__all__ = [
++    "kernighan_lin_bisection",
++    "spectral_modularity_bipartition",
++    "greedy_node_swap_bipartition",
++]
++
++
++class _InvalidSplit(nx.NetworkXError, ValueError):
++    """Raised when an initial split is not a partition of the nodes into two sets."""
++
++
++def _kernighan_lin_sweep(edges, side):
++    """
++    This is a modified form of Kernighan-Lin, which moves single nodes at a
++    time, alternating between sides to keep the bisection balanced.  We keep
++    two min-heaps of swap costs to make optimal-next-move selection fast.
++    """
++    costs0, costs1 = costs = BinaryHeap(), BinaryHeap()
++    for u, side_u, edges_u in zip(count(), side, edges):
++        cost_u = sum(w if side[v] else -w for v, w in edges_u)
++        costs[side_u].insert(u, cost_u if side_u else -cost_u)
++
++    def _update_costs(costs_x, x):
++        for y, w in edges[x]:
++            costs_y = costs[side[y]]
++            cost_y = costs_y.get(y)
++            if cost_y is not None:
++                cost_y += 2 * (-w if costs_x is costs_y else w)
++                costs_y.insert(y, cost_y, True)
++
++    i = 0
++    totcost = 0
++    while costs0 and costs1:
++        u, cost_u = costs0.pop()
++        _update_costs(costs0, u)
++        v, cost_v = costs1.pop()
++        _update_costs(costs1, v)
++        totcost += cost_u + cost_v
++        i += 1
++        yield totcost, i, (u, v)
++
++
++@not_implemented_for("directed")
++@py_random_state(4)
++@nx._dispatchable(edge_attrs="weight")
++def kernighan_lin_bisection(G, partition=None, max_iter=10, weight="weight", seed=None):
++    """Partition a graph into two blocks using the Kernighan–Lin
++    algorithm.
++
++    This algorithm partitions a network into two sets by iteratively
++    swapping pairs of nodes to reduce the edge cut between the two sets.  The
++    pairs are chosen according to a modified form of Kernighan-Lin [1]_, which
++    moves node individually, alternating between sides to keep the bisection
++    balanced.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        Graph must be undirected.
++
++    partition : tuple
++        Pair of iterables containing an initial partition. If not
++        specified, a random balanced partition is used.
++
++    max_iter : int
++        Maximum number of times to attempt swaps to find an
++        improvement before giving up.
++
++    weight : key
++        Edge data key to use as weight. If None, the weights are all
++        set to one.
++
++    seed : integer, random_state, or None (default)
++        Indicator of random number generation state.
++        See :ref:`Randomness<randomness>`.
++        Only used if partition is None
++
++    Returns
++    -------
++    partition : tuple
++        A pair of sets of nodes representing the bipartition.
++
++    Raises
++    ------
++    NetworkXError
++        If partition is not a valid partition of the nodes of the graph.
++
++    See Also
++    --------
++    spectral_modularity_bipartition
++    greedy_node_swap_bipartition
++
++    References
++    ----------
++    .. [1] Kernighan, B. W.; Lin, Shen (1970).
++       "An efficient heuristic procedure for partitioning graphs."
++       *Bell Systems Technical Journal* 49: 291--307.
++       Oxford University Press 2011.
++
++    """
++    n = len(G)
++    labels = list(G)
++    seed.shuffle(labels)
++    index = {v: i for i, v in enumerate(labels)}
++
++    if partition is None:
++        side = [0] * (n // 2) + [1] * ((n + 1) // 2)
++    else:
++        try:
++            A, B = partition
++        except (TypeError, ValueError) as err:
++            raise nx.NetworkXError("partition must be two sets") from err
++        if not is_partition(G, (A, B)):
++            raise nx.NetworkXError("partition invalid")
++        side = [0] * n
++        for a in A:
++            side[index[a]] = 1
++
++    if G.is_multigraph():
++        edges = [
++            [
++                (index[u], sum(e.get(weight, 1) for e in d.values()))
++                for u, d in G[v].items()
++            ]
++            for v in labels
++        ]
++    else:
++        edges = [
++            [(index[u], e.get(weight, 1)) for u, e in G[v].items()] for v in labels
++        ]
++
++    for i in range(max_iter):
++        costs = list(_kernighan_lin_sweep(edges, side))
++        min_cost, min_i, _ = min(costs)
++        if min_cost >= 0:
++            break
++
++        for _, _, (u, v) in costs[:min_i]:
++            side[u] = 1
++            side[v] = 0
++
++    A = {u for u, s in zip(labels, side) if s == 0}
++    B = {u for u, s in zip(labels, side) if s == 1}
++    return A, B
++
++
++@not_implemented_for("directed")
++@nx._dispatchable
++def spectral_modularity_bipartition(G):
++    r"""Returns a bipartition of the nodes based on the spectrum of the
++    modularity matrix of `G`.
++
++    This method [1]_ computes the leading eigenvector of the modularity matrix,
++    i.e. the eigenvector associated with its largest eigenvalue. The
++    modularity matrix $B$ is defined by
++
++    .. math::
++        B_{ij} = A_{ij} - \frac{k_i k_j}{2m},
++
++    where $A$ is the adjacency matrix, $k_i$ is the degree of node $i$ and
++    $m$ is the number of edges in the graph (see
++    :func:`~networkx.linalg.modularitymatrix.modularity_matrix`).
++    Nodes whose components in the eigenvector are negative are placed in one
++    block, the other nodes are placed in the other block.
++
++    Edge weights are ignored. The result is deterministic: the sign of the
++    eigenvector, which is arbitrary, is chosen such that the first block
++    contains the first node of `G` whose component is nonzero. Components
++    that vanish up to round-off errors are treated as zero.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        An undirected graph.
++
++    Returns
++    -------
++    C : tuple of sets
++        Pair of communities as two sets of nodes of `G`, partitioned according
++        to the signs of the leading eigenvector of the modularity matrix.
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is directed.
++
++    Examples
++    --------
++    >>> G = nx.karate_club_graph()
++    >>> MrHi, Officer = nx.community.spectral_modularity_bipartition(G)
++    >>> sorted(MrHi)
++    [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17, 19, 21]
++    >>> sorted(Officer)
++    [8, 9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
++
++    Notes
++    -----
++    If `G` has no edges the modularity matrix is not defined, and all the nodes
++    are put in the second block.
++
++    See Also
++    --------
++    greedy_node_swap_bipartition
++    kernighan_lin_bisection
++    :func:`~networkx.linalg.modularitymatrix.modularity_matrix`
++
++    References
++    ----------
++    .. [1] M. E. J. Newman, "Modularity and community structure in networks",
++       PNAS, 103 (23), p. 8577-8582, 2006.
++       https://doi.org/10.1073/pnas.0601602103
++    .. [2] M. E. J. Newman, *Networks: An Introduction*, pages 373--378,
++       Oxford University Press, 2010.
++    """
++    import numpy as np
++
++    if G.number_of_edges() == 0:
++        return set(), set(G)
++    A = nx.to_numpy_array(G, weight=None)
++    k = A.sum(axis=1)
++    B = A - np.outer(k, k) / k.sum()
++    _, eigenvectors = np.linalg.eigh(B)  # eigenvalues in ascending order
++    leading = eigenvectors[:, -1]
++    nonzero = np.flatnonzero(np.abs(leading) > 1e-12)
++    if leading[nonzero[0]] > 0:
++        leading = -leading
++    negative = {u for u, x in zip(G, leading) if x < -1e-12}
++    return negative, set(G) - negative
++
++
++@not_implemented_for("directed")
++@nx._dispatchable(preserve_edge_attrs={"G": {"weight": 1}})
++def greedy_node_swap_bipartition(G, *, init_split=None, max_iter=10):
++    """Split the nodes of `G` into two communities by greedy modularity maximization.
++
++    Starting from an initial split, the algorithm [1]_ repeatedly moves the
++    single node whose move to the other community increases the
++    :func:`~networkx.algorithms.community.quality.modularity` the most (or
++    decreases it the least). Each node is moved at most once during an
++    iteration, and the best split seen during the iteration is kept. The next
++    iteration starts from that split. The algorithm stops when an iteration
++    does not improve the modularity or after `max_iter` iterations.
++
++    Modularity is computed with the ``"weight"`` edge attribute (an edge
++    without it has weight 1) and a resolution of 1, as with the default
++    arguments of :func:`~networkx.algorithms.community.quality.modularity`.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        An undirected graph.
++
++    init_split : pair of sets of nodes, optional (default=None)
++        A pair of sets of nodes of `G` that form a partition of its nodes,
++        used as initial split. If None, the first half of the nodes of `G`
++        (in the order of ``G.nodes``) forms the first set and the other nodes
++        form the second set.
++
++    max_iter : int, optional (default=10)
++        Maximum number of iterations, each attempting to improve the split
++        by moving every node once.
++
++    Returns
++    -------
++    split : tuple of sets
++        A pair of sets of nodes of `G` forming a partition of its nodes. The
++        modularity of `split` is at least that of `init_split`.
++
++    Raises
++    ------
++    NetworkXError
++        If `init_split` is not a partition of the nodes of `G` into two sets.
++        The raised error is also a :exc:`ValueError`.
++
++    NetworkXNotImplemented
++        If `G` is directed.
++
++    Examples
++    --------
++    >>> G = nx.barbell_graph(3, 0)
++    >>> nx.community.greedy_node_swap_bipartition(G, init_split=({0, 1, 3}, {2, 4, 5}))
++    ({0, 1, 2}, {3, 4, 5})
++
++    Notes
++    -----
++    Each iteration takes $O(n^2 + m)$ time for a graph with $n$ nodes and $m$
++    edges. If `G` has no edges, modularity is not defined and the initial
++    split is returned.
++
++    See Also
++    --------
++    spectral_modularity_bipartition
++    kernighan_lin_bisection
++
++    References
++    ----------
++    .. [1] M. E. J. Newman, *Networks: An Introduction*, pages 373--375,
++       Oxford University Press, 2010.
++    """
++    nodes = list(G)
++    if init_split is None:
++        half = len(nodes) // 2
++        side = dict.fromkeys(nodes[:half], 0) | dict.fromkeys(nodes[half:], 1)
++    else:
++        try:
++            first, second = init_split
++            first, second = set(first), set(second)
++        except (TypeError, ValueError) as err:
++            raise _InvalidSplit("init_split must be a pair of sets of nodes") from err
++        if not is_partition(G, [first, second]):
++            raise _InvalidSplit("init_split must be a partition of the nodes of G")
++        side = dict.fromkeys(first, 0) | dict.fromkeys(second, 1)
++
++    # weights of the edges between distinct nodes, parallel edges summed
++    multigraph = G.is_multigraph()
++    nbrs = {}
++    for u, nbrdict in G.adjacency():
++        nbrs[u] = {
++            v: (
++                sum(d.get("weight", 1) for d in data.values())
++                if multigraph
++                else data.get("weight", 1)
++            )
++            for v, data in nbrdict.items()
++            if v != u
++        }
++    degree = dict(G.degree(weight="weight"))
++    two_m = sum(degree.values())
++    if two_m == 0:
++        return {u for u in nodes if side[u] == 0}, {u for u in nodes if side[u] == 1}
++
++    # weights from each node to each side, and total degree of each side
++    w_to = {u: [0, 0] for u in nodes}
++    for u in nodes:
++        for v, w in nbrs[u].items():
++            w_to[u][side[v]] += w
++    side_degree = [0, 0]
++    for u in nodes:
++        side_degree[side[u]] += degree[u]
++
++    def move(u):
++        s = side[u]
++        t = 1 - s
++        side[u] = t
++        side_degree[s] -= degree[u]
++        side_degree[t] += degree[u]
++        for v, w in nbrs[u].items():
++            w_to[v][s] -= w
++            w_to[v][t] += w
++
++    for _ in range(max_iter):
++        # Modularity changes are tracked in units of 1 / m:
++        # moving u from side s to side t changes m * Q by
++        #   w(u, t) - w(u, s) - k_u (K_t - K_s + k_u) / 2m
++        unmoved = dict.fromkeys(nodes)
++        moves = []
++        gain = best_gain = 0
++        best_num_moves = 0
++        while unmoved:
++            best_node = None
++            for u in unmoved:
++                s = side[u]
++                t = 1 - s
++                du = w_to[u][t] - w_to[u][s]
++                du -= degree[u] * (side_degree[t] - side_degree[s] + degree[u]) / two_m
++                if best_node is None or du > best_du:
++                    best_node, best_du = u, du
++            move(best_node)
++            del unmoved[best_node]
++            moves.append(best_node)
++            gain += best_du
++            if gain > best_gain:
++                best_gain = gain
++                best_num_moves = len(moves)
++        # undo the moves made after the best split of this iteration
++        for u in reversed(moves[best_num_moves:]):
++            move(u)
++        if best_num_moves == 0:
++            break
++
++    return {u for u in nodes if side[u] == 0}, {u for u in nodes if side[u] == 1}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/kernighan_lin.py /app/networkx/algorithms/community/kernighan_lin.py
+--- /opt/pristine/networkx/algorithms/community/kernighan_lin.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/community/kernighan_lin.py	1970-01-01 00:00:00.000000000 +0000
+@@ -1,139 +0,0 @@
+-"""Functions for computing the Kernighan–Lin bipartition algorithm."""
+-
+-from itertools import count
+-
+-import networkx as nx
+-from networkx.algorithms.community.community_utils import is_partition
+-from networkx.utils import BinaryHeap, not_implemented_for, py_random_state
+-
+-__all__ = ["kernighan_lin_bisection"]
+-
+-
+-def _kernighan_lin_sweep(edges, side):
+-    """
+-    This is a modified form of Kernighan-Lin, which moves single nodes at a
+-    time, alternating between sides to keep the bisection balanced.  We keep
+-    two min-heaps of swap costs to make optimal-next-move selection fast.
+-    """
+-    costs0, costs1 = costs = BinaryHeap(), BinaryHeap()
+-    for u, side_u, edges_u in zip(count(), side, edges):
+-        cost_u = sum(w if side[v] else -w for v, w in edges_u)
+-        costs[side_u].insert(u, cost_u if side_u else -cost_u)
+-
+-    def _update_costs(costs_x, x):
+-        for y, w in edges[x]:
+-            costs_y = costs[side[y]]
+-            cost_y = costs_y.get(y)
+-            if cost_y is not None:
+-                cost_y += 2 * (-w if costs_x is costs_y else w)
+-                costs_y.insert(y, cost_y, True)
+-
+-    i = 0
+-    totcost = 0
+-    while costs0 and costs1:
+-        u, cost_u = costs0.pop()
+-        _update_costs(costs0, u)
+-        v, cost_v = costs1.pop()
+-        _update_costs(costs1, v)
+-        totcost += cost_u + cost_v
+-        i += 1
+-        yield totcost, i, (u, v)
+-
+-
+-@not_implemented_for("directed")
+-@py_random_state(4)
+-@nx._dispatchable(edge_attrs="weight")
+-def kernighan_lin_bisection(G, partition=None, max_iter=10, weight="weight", seed=None):
+-    """Partition a graph into two blocks using the Kernighan–Lin
+-    algorithm.
+-
+-    This algorithm partitions a network into two sets by iteratively
+-    swapping pairs of nodes to reduce the edge cut between the two sets.  The
+-    pairs are chosen according to a modified form of Kernighan-Lin [1]_, which
+-    moves node individually, alternating between sides to keep the bisection
+-    balanced.
+-
+-    Parameters
+-    ----------
+-    G : NetworkX graph
+-        Graph must be undirected.
+-
+-    partition : tuple
+-        Pair of iterables containing an initial partition. If not
+-        specified, a random balanced partition is used.
+-
+-    max_iter : int
+-        Maximum number of times to attempt swaps to find an
+-        improvement before giving up.
+-
+-    weight : key
+-        Edge data key to use as weight. If None, the weights are all
+-        set to one.
+-
+-    seed : integer, random_state, or None (default)
+-        Indicator of random number generation state.
+-        See :ref:`Randomness<randomness>`.
+-        Only used if partition is None
+-
+-    Returns
+-    -------
+-    partition : tuple
+-        A pair of sets of nodes representing the bipartition.
+-
+-    Raises
+-    ------
+-    NetworkXError
+-        If partition is not a valid partition of the nodes of the graph.
+-
+-    References
+-    ----------
+-    .. [1] Kernighan, B. W.; Lin, Shen (1970).
+-       "An efficient heuristic procedure for partitioning graphs."
+-       *Bell Systems Technical Journal* 49: 291--307.
+-       Oxford University Press 2011.
+-
+-    """
+-    n = len(G)
+-    labels = list(G)
+-    seed.shuffle(labels)
+-    index = {v: i for i, v in enumerate(labels)}
+-
+-    if partition is None:
+-        side = [0] * (n // 2) + [1] * ((n + 1) // 2)
+-    else:
+-        try:
+-            A, B = partition
+-        except (TypeError, ValueError) as err:
+-            raise nx.NetworkXError("partition must be two sets") from err
+-        if not is_partition(G, (A, B)):
+-            raise nx.NetworkXError("partition invalid")
+-        side = [0] * n
+-        for a in A:
+-            side[index[a]] = 1
+-
+-    if G.is_multigraph():
+-        edges = [
+-            [
+-                (index[u], sum(e.get(weight, 1) for e in d.values()))
+-                for u, d in G[v].items()
+-            ]
+-            for v in labels
+-        ]
+-    else:
+-        edges = [
+-            [(index[u], e.get(weight, 1)) for u, e in G[v].items()] for v in labels
+-        ]
+-
+-    for i in range(max_iter):
+-        costs = list(_kernighan_lin_sweep(edges, side))
+-        min_cost, min_i, _ = min(costs)
+-        if min_cost >= 0:
+-            break
+-
+-        for _, _, (u, v) in costs[:min_i]:
+-            side[u] = 1
+-            side[v] = 0
+-
+-    A = {u for u, s in zip(labels, side) if s == 0}
+-    B = {u for u, s in zip(labels, side) if s == 1}
+-    return A, B
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/leiden.py /app/networkx/algorithms/community/leiden.py
+--- /opt/pristine/networkx/algorithms/community/leiden.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/community/leiden.py	2026-11-17 08:44:50.000000000 +0000
+@@ -1,67 +1,109 @@
+ """Functions for detecting communities based on Leiden Community Detection
+ algorithm.
+-
+-These functions do not have NetworkX implementations.
+-They may only be run with an installable :doc:`backend </backends>`
+-that supports them.
+ """
+ 
+-import itertools
+-from collections import deque
++import math
++from collections import defaultdict, deque
+ 
+ import networkx as nx
++from networkx.algorithms.community.louvain import (
++    _gen_graph,
++    _neighbor_weights,
++    _prepare_graph,
++)
+ from networkx.utils import not_implemented_for, py_random_state
+ 
+ __all__ = ["leiden_communities", "leiden_partitions"]
+ 
++_METRICS = ("cpm", "modularity")
++
+ 
+ @not_implemented_for("directed")
+ @py_random_state("seed")
+-@nx._dispatchable(edge_attrs="weight", implemented_by_nx=False)
+-def leiden_communities(G, weight="weight", resolution=1, max_level=None, seed=None):
+-    r"""Find a best partition of `G` using Leiden Community Detection (backend required)
+-
+-    Leiden Community Detection is an algorithm to extract the community structure
+-    of a network based on modularity optimization. It is an improvement upon the
+-    Louvain Community Detection algorithm. See :any:`louvain_communities`.
+-
+-    Unlike the Louvain algorithm, it guarantees that communities are well connected in addition
+-    to being faster and uncovering better partitions. [1]_
+-
+-    The algorithm works in 3 phases. On the first phase, it adds the nodes to a queue randomly
+-    and assigns every node to be in its own community. For each node it tries to find the
+-    maximum positive modularity gain by moving each node to all of its neighbor communities.
+-    If a node is moved from its community, it adds to the rear of the queue all neighbors of
+-    the node that do not belong to the node’s new community and that are not in the queue.
++@nx._dispatchable(edge_attrs="weight")
++def leiden_communities(
++    G,
++    *,
++    weight="weight",
++    resolution=1.0,
++    max_level=None,
++    seed=None,
++    metric="cpm",
++    theta=0.01,
++):
++    r"""Find a best partition of `G` using Leiden Community Detection.
++
++    Leiden Community Detection [1]_ is an algorithm to extract the community
++    structure of a network by optimizing a quality function, either the
++    Constant Potts Model (see :any:`constant_potts_model`) or modularity
++    (see :any:`modularity`). It is an improvement upon the Louvain Community
++    Detection algorithm (see :any:`louvain_communities`): unlike the Louvain
++    algorithm, it guarantees that communities are well connected, in addition
++    to being faster and uncovering better partitions.
++
++    The algorithm works in 3 phases. On the first phase, it adds the nodes to a
++    queue in random order. For each node it tries to find the maximum positive
++    gain in the quality function by moving the node to one of its neighbor
++    communities or to a new, empty community. If a node is moved from its
++    community, it adds to the rear of the queue all neighbors of the node that
++    do not belong to the node's new community and that are not in the queue.
+ 
+     The first phase continues until the queue is empty.
+ 
+-    The second phase consists in refining the partition $P$ obtained from the first phase. It starts
+-    with a singleton partition $P_{refined}$. Then it merges nodes locally in $P_{refined}$ within
+-    each community of the partition $P$. Nodes are merged with a community in $P_{refined}$ only if
+-    both are sufficiently well connected to their community in $P$. This means that after the
+-    refinement phase is concluded, communities in $P$ sometimes will have been split into multiple
+-    communities.
+-
+-    The third phase consists of aggregating the network by building a new network whose nodes are
+-    now the communities found in the second phase. However, the non-refined partition is used to create
+-    an initial partition for the aggregate network.
+-
+-    Once this phase is complete it is possible to reapply the first and second phases creating bigger
+-    communities with increased modularity.
+-
+-    The above three phases are executed until no modularity gain is achieved or `max_level` number
+-    of iterations have been performed.
++    The second phase consists in refining the partition $P$ obtained from the
++    first phase. It starts with a singleton partition $P_{refined}$. Then it
++    merges nodes locally in $P_{refined}$ within each community of the
++    partition $P$. Nodes are merged with a community in $P_{refined}$ only if
++    both are sufficiently well connected to their community in $P$. Among the
++    communities a node may join without decreasing the quality, one is chosen
++    at random with probability proportional to $\exp(\Delta H / \theta)$,
++    where $\Delta H$ is the change in quality (measured in units of edge
++    weight) and $\theta$ is the randomness parameter. This means that after the
++    refinement phase is concluded, communities in $P$ sometimes will have been
++    split into multiple communities.
++
++    The third phase consists of aggregating the network by building a new
++    network whose nodes are now the communities found in the second phase.
++    However, the non-refined partition is used to create an initial partition
++    for the aggregate network.
++
++    Once this phase is complete it is possible to reapply the first and second
++    phases creating bigger communities with increased quality.
++
++    The above three phases are executed until the quality function stops
++    improving or `max_level` levels have been computed. Communities that are
++    disconnected after the first phase are split into their connected
++    components, which does not decrease the quality for a nonnegative
++    resolution, so that all communities of the returned partition are
++    connected.
++
++    The quality function is selected with the `metric` parameter:
++
++    ``"cpm"``
++        The Constant Potts Model. With a resolution $\gamma$ it rewards
++        communities whose internal edge density exceeds $\gamma$, so
++        useful values of `resolution` for unweighted graphs are between 0
++        and 1. A node $v$ joining community $C$ changes the quality by
++        $E(v, C) - \gamma n_v n_C$, where $E(v, C)$ is the weight of the
++        edges between $v$ and $C$ and $n$ counts nodes.
++    ``"modularity"``
++        The modularity of the partition, in which case `resolution` plays
++        the same role as in :any:`louvain_communities`.
++
++    Be careful with self-loops in the input graph. These are treated as
++    previously reduced communities -- as if the process had been started
++    in the middle of the algorithm.
+ 
+     Parameters
+     ----------
+     G : NetworkX graph
++        An undirected graph.
+     weight : string or None, optional (default="weight")
+         The name of an edge attribute that holds the numerical value
+         used as a weight. If None then each edge has weight 1.
+-    resolution : float, optional (default=1)
+-        If resolution is less than 1, the algorithm favors larger communities.
+-        Greater than 1 favors smaller communities.
++    resolution : float, optional (default=1.0)
++        The resolution parameter $\gamma$ of the quality function. Larger
++        values favor smaller communities.
+     max_level : int or None, optional (default=None)
+         The maximum number of levels (steps of the algorithm) to compute.
+         Must be a positive integer or None. If None, then there is no max
+@@ -69,24 +111,51 @@
+     seed : integer, random_state, or None (default)
+         Indicator of random number generation state.
+         See :ref:`Randomness<randomness>`.
++    metric : {"cpm", "modularity"}, optional (default="cpm")
++        The quality function to optimize: the Constant Potts Model or
++        modularity.
++    theta : float, optional (default=0.01)
++        The randomness of the refinement phase. Must be nonnegative. Smaller
++        values make the refinement more greedy; with ``theta=0`` the
++        community with the largest gain is always chosen.
+ 
+     Returns
+     -------
+     list
+-        A list of disjoint sets (partition of `G`). Each set represents one community.
+-        All communities together contain all the nodes in `G`.
++        A list of disjoint sets (partition of `G`). Each set represents one
++        community. All communities together contain all the nodes in `G`.
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is directed.
++    ValueError
++        If `max_level` is not a positive integer or None, if `metric` is not
++        a supported quality function or if `theta` is negative.
+ 
+     Examples
+     --------
+-    >>> import networkx as nx
+-    >>> G = nx.petersen_graph()
+-    >>> nx.community.leiden_communities(G, backend="example_backend")  # doctest: +SKIP
+-    [{2, 3, 5, 7, 8}, {0, 1, 4, 6, 9}]
++    >>> G = nx.barbell_graph(5, 0)
++    >>> nx.community.leiden_communities(G, metric="modularity", seed=42)
++    [{0, 1, 2, 3, 4}, {5, 6, 7, 8, 9}]
++
++    With the Constant Potts Model, the resolution acts as a density threshold:
++    the larger it is, the denser and smaller the communities found.
++
++    >>> G = nx.karate_club_graph()
++    >>> [
++    ...     len(nx.community.leiden_communities(G, weight=None, resolution=r, seed=42))
++    ...     for r in (0.05, 0.1, 0.5)
++    ... ]
++    [2, 5, 20]
++
++    For an unweighted graph and the default resolution of 1, no group of nodes
++    is denser than the threshold, so every node is its own community.
+ 
+     Notes
+     -----
+-    The order in which the nodes are considered can affect the final output. In the algorithm
+-    the ordering happens using a random shuffle.
++    The order in which the nodes are considered can affect the final output.
++    In the algorithm the ordering happens using a random shuffle.
+ 
+     References
+     ----------
+@@ -97,30 +166,46 @@
+     --------
+     leiden_partitions
+     :any:`louvain_communities`
++    :any:`constant_potts_model`
++    :any:`modularity`
+     """
+-    partitions = leiden_partitions(G, weight, resolution, seed)
+-    if max_level is not None:
+-        if max_level <= 0:
+-            raise ValueError("max_level argument must be a positive integer or None")
+-        partitions = itertools.islice(partitions, max_level)
++    partitions = leiden_partitions(
++        G,
++        weight=weight,
++        resolution=resolution,
++        max_level=max_level,
++        seed=seed,
++        metric=metric,
++        theta=theta,
++    )
+     final_partition = deque(partitions, maxlen=1)
+     return final_partition.pop()
+ 
+ 
+ @not_implemented_for("directed")
+ @py_random_state("seed")
+-@nx._dispatchable(edge_attrs="weight", implemented_by_nx=False)
+-def leiden_partitions(G, weight="weight", resolution=1, seed=None):
+-    """Yield partitions for each level of Leiden Community Detection (backend required)
++@nx._dispatchable(edge_attrs="weight")
++def leiden_partitions(
++    G,
++    *,
++    weight="weight",
++    resolution=1.0,
++    max_level=None,
++    seed=None,
++    metric="cpm",
++    theta=0.01,
++):
++    """Yield partitions for each level of Leiden Community Detection
+ 
+     Leiden Community Detection is an algorithm to extract the community
+-    structure of a network based on modularity optimization.
++    structure of a network by optimizing a quality function, either the
++    Constant Potts Model or modularity.
+ 
+     The partitions across levels (steps of the algorithm) form a dendrogram
+     of communities. A dendrogram is a diagram representing a tree and each
+     level represents a partition of the G graph. The top level contains the
+     smallest communities and as you traverse to the bottom of the tree the
+-    communities get bigger and the overall modularity increases making
++    communities get bigger and the overall quality increases making
+     the partition better.
+ 
+     Each level is generated by executing the three phases of the Leiden Community
+@@ -129,22 +214,48 @@
+     Parameters
+     ----------
+     G : NetworkX graph
++        An undirected graph.
+     weight : string or None, optional (default="weight")
+         The name of an edge attribute that holds the numerical value
+         used as a weight. If None then each edge has weight 1.
+-    resolution : float, optional (default=1)
+-        If resolution is less than 1, the algorithm favors larger communities.
+-        Greater than 1 favors smaller communities.
++    resolution : float, optional (default=1.0)
++        The resolution parameter of the quality function. Larger values
++        favor smaller communities.
++    max_level : int or None, optional (default=None)
++        The maximum number of levels (partitions) to compute.
++        Must be a positive integer or None. If None, then there is no max
++        level and the algorithm will run until converged.
+     seed : integer, random_state, or None (default)
+         Indicator of random number generation state.
+         See :ref:`Randomness<randomness>`.
++    metric : {"cpm", "modularity"}, optional (default="cpm")
++        The quality function to optimize: the Constant Potts Model or
++        modularity.
++    theta : float, optional (default=0.01)
++        The randomness of the refinement phase. Must be nonnegative.
+ 
+     Yields
+     ------
+     list
+         A list of disjoint sets (partition of `G`). Each set represents one community.
+         All communities together contain all the nodes in `G`. The yielded partitions
+-        increase modularity with each iteration.
++        strictly increase the quality function with each iteration.
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is directed.
++    ValueError
++        If `max_level` is not a positive integer or None, if `metric` is not
++        a supported quality function or if `theta` is negative.
++
++    Examples
++    --------
++    >>> G = nx.path_graph(8)
++    >>> for partition in nx.community.leiden_partitions(G, metric="modularity", seed=1):
++    ...     print(partition)
++    [{0, 1}, {2, 3}, {4, 5}, {6, 7}]
++    [{0, 1, 2, 3}, {4, 5, 6, 7}]
+ 
+     References
+     ----------
+@@ -156,7 +267,292 @@
+     leiden_communities
+     :any:`louvain_partitions`
+     """
+-    raise NotImplementedError(
+-        "'leiden_partitions' is not implemented by networkx. "
+-        "Please try a different backend."
+-    )
++    # Validate the arguments now rather than when the first partition is requested.
++    if max_level is not None and max_level <= 0:
++        raise ValueError("max_level argument must be a positive integer or None")
++    if not isinstance(metric, str) or metric.lower() not in _METRICS:
++        raise ValueError(f"metric must be one of {_METRICS}, not {metric!r}")
++    if theta < 0:
++        raise ValueError(f"theta must be nonnegative, not {theta}")
++    return _leiden_levels(G, weight, resolution, max_level, seed, metric.lower(), theta)
++
++
++def _leiden_levels(G, weight, resolution, max_level, seed, metric, theta):
++    """Generator yielding the partitions of `G` found at each Leiden level.
++
++    Within this generator, quality differences are measured in units of edge
++    weight: moving node `v` into community `C` changes the quality by
++    ``E(v, C) - gamma * size(v) * size(C)``. For the Constant Potts Model the
++    size of a node is its node weight (number of original nodes) and
++    ``gamma = resolution``. For modularity the size of a node is its weighted
++    degree and ``gamma = resolution / (2 * m)``, which gives the change in
++    modularity multiplied by `m`.
++    """
++    partition = [{u} for u in G]
++    graph = _prepare_graph(G, weight)
++    m = graph.size(weight="weight")
++    if graph.number_of_edges() == 0 or (metric == "modularity" and m == 0):
++        yield partition
++        return
++    gamma = resolution if metric == "cpm" else resolution / (2 * m)
++    node_index = {u: i for i, u in enumerate(G)}
++
++    # The communities of the current (aggregated) graph, as lists of its nodes.
++    communities = [[u] for u in graph]
++    level = 0
++    while True:
++        nbrs = {
++            u: {v: d["weight"] for v, d in nbrdict.items() if v != u}
++            for u, nbrdict in graph.adjacency()
++        }
++        if metric == "cpm":
++            sizes = dict(graph.nodes(data="node_weight", default=1))
++        else:
++            sizes = dict(graph.degree(weight="weight"))
++
++        communities, moved = _move_nodes_fast(nbrs, sizes, communities, gamma, seed)
++        if level > 0 and not moved:
++            # The quality did not improve: the last yielded partition is final.
++            return
++        communities = _split_disconnected(nbrs, sizes, communities, gamma)
++        level += 1
++        yield _flatten(graph, communities, node_index)
++
++        if level == max_level or len(communities) == len(graph):
++            # Either the level cap is reached, or every community is a single
++            # node of the aggregated graph and nothing is left to aggregate.
++            return
++        refined = _refine_partition(nbrs, sizes, communities, gamma, theta, seed)
++        node_weight = "node_weight" if metric == "cpm" else None
++        graph = _gen_graph(graph, refined, node_weight=node_weight)
++        # The initial partition of the aggregated graph is the non-refined one.
++        block = {u: i for i, part in enumerate(refined) for u in part}
++        communities = [
++            list(dict.fromkeys(block[u] for u in comm)) for comm in communities
++        ]
++
++
++def _flatten(graph, communities, node_index):
++    """Returns the partition of the original nodes represented by `communities`.
++
++    The communities are sorted by their first node in the original node order.
++    """
++    partition = []
++    for comm in communities:
++        nodes = set()
++        for u in comm:
++            nodes.update(graph.nodes[u].get("nodes", {u}))
++        partition.append(nodes)
++    partition.sort(key=lambda nodes: min(node_index[u] for u in nodes))
++    return partition
++
++
++def _move_nodes_fast(nbrs, sizes, communities, gamma, seed):
++    """First phase of the Leiden algorithm: queue based local moving of nodes.
++
++    Each node in the queue moves to the neighboring (or empty) community that
++    increases the quality the most, if any. When a node moves, its neighbors
++    outside of its new community are queued again.
++
++    Returns the new communities (as lists of nodes, ordered by first node in
++    the iteration order of `nbrs`) and whether any node moved.
++    """
++    node2com = {}
++    com_size = {}
++    com_count = {}
++    for label, comm in enumerate(communities):
++        for u in comm:
++            node2com[u] = label
++        com_size[label] = sum(sizes[u] for u in comm)
++        com_count[label] = len(comm)
++    next_label = len(communities)
++    # magnitudes used to tell real quality gains from floating point noise
++    total_size = sum(abs(s) for s in sizes.values())
++    strength = {u: sum(abs(w) for w in nbrdict.values()) for u, nbrdict in nbrs.items()}
++
++    queue = list(nbrs)
++    seed.shuffle(queue)
++    queue = deque(queue)
++    in_queue = set(queue)
++    moved = False
++    # Every accepted move strictly increases the quality, so the loop ends.
++    # As a safeguard against pathological floating point behavior, the number
++    # of node visits is bounded as well.
++    max_visits = 100 * len(nbrs) + 10_000
++    visits = 0
++    while queue and visits < max_visits:
++        visits += 1
++        u = queue.popleft()
++        in_queue.discard(u)
++        cur = node2com[u]
++        size = sizes[u]
++        weights2com = _neighbor_weights(nbrs[u], node2com)
++        com_size[cur] -= size
++        com_count[cur] -= 1
++        # quality contribution of u to its current community (without u)
++        stay = weights2com.get(cur, 0.0) - gamma * size * com_size[cur]
++        best_com = cur
++        best_gain = 0.0
++        for com, wt in weights2com.items():
++            if com != cur:
++                gain = wt - gamma * size * com_size[com] - stay
++                if gain > best_gain:
++                    best_gain = gain
++                    best_com = com
++        if com_count[cur] > 0 and -stay > best_gain:
++            # isolating u in a new community is the best option
++            best_gain = -stay
++            best_com = None
++        # Only accept moves whose gain exceeds the floating point noise so that
++        # round-off cannot make nodes move back and forth forever.
++        scale = strength[u] + abs(gamma * size) * total_size
++        if best_com != cur and best_gain <= 1e-12 * scale:
++            best_com = cur
++        if best_com is None:
++            best_com = next_label
++            next_label += 1
++            com_size[best_com] = 0
++            com_count[best_com] = 0
++        com_size[best_com] += size
++        com_count[best_com] += 1
++        if best_com != cur:
++            node2com[u] = best_com
++            moved = True
++            for v in nbrs[u]:
++                if node2com[v] != best_com and v not in in_queue:
++                    queue.append(v)
++                    in_queue.add(v)
++
++    new_communities = defaultdict(list)
++    for u in nbrs:
++        new_communities[node2com[u]].append(u)
++    return list(new_communities.values()), moved
++
++
++def _split_disconnected(nbrs, sizes, communities, gamma):
++    """Split communities that are not connected into their connected components.
++
++    No edge joins two components, so splitting a community into components
++    with sizes ``s_1, ..., s_k`` changes the quality by
++    ``gamma * sum(s_i * s_j for i < j)``. This is nonnegative for nonnegative
++    resolutions and sizes, and then the split guarantees that all communities
++    are connected. Communities are only split if this does not decrease the
++    quality.
++    """
++    result = []
++    for comm in communities:
++        if len(comm) == 1:
++            result.append(comm)
++            continue
++        members = set(comm)
++        component_of = {}
++        components = []
++        for start in comm:
++            if start in component_of:
++                continue
++            idx = len(components)
++            component_of[start] = idx
++            stack = [start]
++            while stack:
++                u = stack.pop()
++                for v in nbrs[u]:
++                    if v in members and v not in component_of:
++                        component_of[v] = idx
++                        stack.append(v)
++            components.append([])
++        if len(components) == 1:
++            result.append(comm)
++            continue
++        for u in comm:
++            components[component_of[u]].append(u)
++        component_sizes = [sum(sizes[u] for u in c) for c in components]
++        total = sum(component_sizes)
++        pair_sum = (total * total - sum(s * s for s in component_sizes)) / 2
++        if gamma * pair_sum >= 0:
++            result.extend(components)
++        else:
++            result.append(comm)
++    return result
++
++
++def _refine_partition(nbrs, sizes, communities, gamma, theta, seed):
++    """Second phase of the Leiden algorithm: refine each community.
++
++    Within every community, starting from singletons, each well connected
++    node that is still alone may merge with a well connected sub-community.
++    The sub-community is chosen at random among those that do not decrease
++    the quality, with probability proportional to ``exp(gain / theta)``.
++    Returns the refined partition as a list of lists of nodes.
++    """
++    refined = []
++    for comm in communities:
++        if len(comm) == 1:
++            refined.append(list(comm))
++            continue
++        members = set(comm)
++        comm_size = sum(sizes[u] for u in comm)
++        # weight of the edges between each node and the rest of the community
++        ext = {u: sum(w for v, w in nbrs[u].items() if v in members) for u in comm}
++        label = {u: u for u in comm}
++        sub_size = {u: sizes[u] for u in comm}
++        sub_ext = dict(ext)
++        sub_count = dict.fromkeys(comm, 1)
++
++        order = list(comm)
++        seed.shuffle(order)
++        for u in order:
++            cur = label[u]
++            size = sizes[u]
++            if sub_count[cur] != 1:
++                continue  # u is no longer alone in its sub-community
++            if ext[u] < gamma * size * (comm_size - size):
++                continue  # u is not well connected to its community
++            weights2sub = defaultdict(float)
++            for v, w in nbrs[u].items():
++                if v in members:
++                    weights2sub[label[v]] += w
++            candidates = [cur]
++            gains = [0.0]
++            for sub, wt in weights2sub.items():
++                if sub == cur:
++                    continue
++                s = sub_size[sub]
++                if sub_ext[sub] < gamma * s * (comm_size - s):
++                    continue  # sub-community not well connected to its community
++                gain = wt - gamma * size * s
++                if gain >= 0:
++                    candidates.append(sub)
++                    gains.append(gain)
++            if len(candidates) == 1:
++                continue
++            chosen = _random_candidate(candidates, gains, theta, seed)
++            if chosen != cur:
++                label[u] = chosen
++                sub_count[cur] -= 1
++                sub_count[chosen] += 1
++                sub_size[chosen] += size
++                sub_ext[chosen] += ext[u] - 2 * weights2sub[chosen]
++
++        subs = defaultdict(list)
++        for u in comm:
++            subs[label[u]].append(u)
++        refined.extend(subs.values())
++    return refined
++
++
++def _random_candidate(candidates, gains, theta, seed):
++    """Choose a candidate with probability proportional to ``exp(gain / theta)``.
++
++    With ``theta == 0`` a candidate with the largest gain is chosen uniformly.
++    """
++    max_gain = max(gains)
++    if theta == 0:
++        best = [c for c, g in zip(candidates, gains) if g == max_gain]
++        return best[0] if len(best) == 1 else seed.choice(best)
++    weights = [math.exp((g - max_gain) / theta) for g in gains]
++    r = seed.random() * sum(weights)
++    for candidate, w in zip(candidates, weights):
++        r -= w
++        if r < 0:
++            return candidate
++    return candidates[-1]
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/louvain.py /app/networkx/algorithms/community/louvain.py
+--- /opt/pristine/networkx/algorithms/community/louvain.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/community/louvain.py	2026-11-17 08:45:09.000000000 +0000
+@@ -197,17 +197,15 @@
+         return
+     mod = modularity(G, partition, resolution=resolution, weight=weight)
+     is_directed = G.is_directed()
+-    if G.is_multigraph():
+-        graph = _convert_multigraph(G, weight, is_directed)
+-    else:
+-        graph = G.__class__()
+-        graph.add_nodes_from(G)
+-        graph.add_weighted_edges_from(G.edges(data=weight, default=1))
++    graph = _prepare_graph(G, weight)
+ 
+     m = graph.size(weight="weight")
+     partition, inner_partition, improvement = _one_level(
+         graph, m, partition, resolution, is_directed, seed
+     )
++    # The first level is always reported. Each later level is only computed
++    # when the previous one merged communities, so that the aggregated graph
++    # strictly shrinks from one level to the next and the loop terminates.
+     improvement = True
+     while improvement:
+         # gh-5901 protect the sets in the yielded list from further manipulation here
+@@ -243,6 +241,16 @@
+         Indicator of random number generation state.
+         See :ref:`Randomness<randomness>`.
+ 
++    Returns
++    -------
++    partition : list of sets of nodes
++        The updated partition of the nodes of the original graph.
++    inner_partition : list of sets of nodes
++        The partition of the nodes of `G` found at this level.
++    improvement : bool
++        True if nodes were moved, that is if `inner_partition` has fewer
++        communities than `G` has nodes. The graph aggregated from
++        `inner_partition` is then strictly smaller than `G`.
+     """
+     node2com = {u: i for i, u in enumerate(G.nodes())}
+     inner_partition = [{u} for u in G.nodes()]
+@@ -268,7 +276,12 @@
+     rand_nodes = list(G.nodes)
+     seed.shuffle(rand_nodes)
+     nb_moves = 1
+-    improvement = False
++    # In exact arithmetic every move strictly increases modularity, so the
++    # assignment of nodes to communities can never repeat between passes.
++    # Floating point round-off can however make a zero gain look positive
++    # and let nodes cycle forever. Remembering the (hashed) assignments seen
++    # at the end of each pass guards against that without changing results.
++    seen_assignments = set()
+     while nb_moves > 0:
+         nb_moves = 0
+         for u in rand_nodes:
+@@ -324,11 +337,19 @@
+                 inner_partition[node2com[u]].remove(u)
+                 partition[best_com].update(com)
+                 inner_partition[best_com].add(u)
+-                improvement = True
+                 nb_moves += 1
+                 node2com[u] = best_com
++        if nb_moves:
++            assignment = hash(tuple(node2com[u] for u in rand_nodes))
++            if assignment in seen_assignments:
++                break
++            seen_assignments.add(assignment)
+     partition = list(filter(len, partition))
+     inner_partition = list(filter(len, inner_partition))
++    # Nodes only ever move into non-empty communities, so a community emptied
++    # by a move stays empty. Thus some nodes moved if and only if there are now
++    # fewer communities than nodes, which is what makes the next level useful.
++    improvement = len(inner_partition) < len(G)
+     return partition, inner_partition, improvement
+ 
+ 
+@@ -349,8 +370,24 @@
+     return weights
+ 
+ 
+-def _gen_graph(G, partition):
+-    """Generate a new graph based on the partitions of a given graph"""
++def _gen_graph(G, partition, node_weight=None):
++    """Generate a new graph based on the partitions of a given graph.
++
++    Each block ``partition[i]`` becomes node ``i`` of the new graph. Its
++    ``"nodes"`` attribute holds the nodes of the original graph it represents.
++    The weight of the edge between two new nodes is the sum of the weights of
++    the edges between their blocks. Edges inside a block become a self-loop.
++
++    Parameters
++    ----------
++    G : NetworkX Graph/DiGraph
++        A graph whose edges hold their weight in the ``"weight"`` attribute.
++    partition : list of iterables of nodes
++        A partition of the nodes of `G`.
++    node_weight : string or None, optional (default=None)
++        If not None, the name of a node attribute to aggregate: each new node
++        gets the sum of the values of its block (missing values count as 1).
++    """
+     H = G.__class__()
+     node2com = {}
+     for i, part in enumerate(partition):
+@@ -359,6 +396,10 @@
+             node2com[node] = i
+             nodes.update(G.nodes[node].get("nodes", {node}))
+         H.add_node(i, nodes=nodes)
++        if node_weight is not None:
++            H.nodes[i][node_weight] = sum(
++                G.nodes[node].get(node_weight, 1) for node in part
++            )
+ 
+     for node1, node2, wt in G.edges(data=True):
+         wt = wt["weight"]
+@@ -369,6 +410,21 @@
+     return H
+ 
+ 
++def _prepare_graph(G, weight):
++    """Returns a copy of `G` without parallel edges and without attributes,
++    except the ``"weight"`` edge attribute holding the edge weights.
++
++    The weights are taken from the `weight` edge attribute of `G` (1 if None
++    or missing). The weights of parallel edges of a multigraph are summed.
++    """
++    if G.is_multigraph():
++        return _convert_multigraph(G, weight, G.is_directed())
++    graph = G.__class__()
++    graph.add_nodes_from(G)
++    graph.add_weighted_edges_from(G.edges(data=weight, default=1))
++    return graph
++
++
+ def _convert_multigraph(G, weight, is_directed):
+     """Convert a Multigraph to normal Graph"""
+     if is_directed:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/community/quality.py /app/networkx/algorithms/community/quality.py
+--- /opt/pristine/networkx/algorithms/community/quality.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/community/quality.py	2026-11-17 08:41:37.000000000 +0000
+@@ -3,14 +3,21 @@
+ 
+ """
+ 
++from collections import Counter
+ from itertools import combinations
+ 
+ import networkx as nx
+ from networkx import NetworkXError
+ from networkx.algorithms.community.community_utils import is_partition
++from networkx.utils import not_implemented_for
+ from networkx.utils.decorators import argmap
+ 
+-__all__ = ["modularity", "partition_quality"]
++__all__ = [
++    "modularity",
++    "partition_quality",
++    "constant_potts_model",
++    "overlapping_modularity",
++]
+ 
+ 
+ class NotAPartition(NetworkXError):
+@@ -21,6 +28,14 @@
+         super().__init__(msg)
+ 
+ 
++class NotACover(NetworkXError):
++    """Raised if a given collection is not a cover of the nodes of a graph."""
++
++    def __init__(self, G, collection):
++        msg = f"{collection} is not a valid cover of the nodes of the graph {G}"
++        super().__init__(msg)
++
++
+ def _require_partition(G, partition):
+     """Decorator to check that a valid partition is input to a function
+ 
+@@ -254,6 +269,283 @@
+ 
+     return sum(map(community_contribution, communities))
+ 
++
++@nx._dispatchable(edge_attrs="weight", node_attrs="node_weight")
++def constant_potts_model(
++    G, communities, weight="weight", node_weight="node_weight", resolution=1
++):
++    r"""Returns the constant Potts model (CPM) quality of the partition of `G`.
++
++    The constant Potts model [1]_ compares the weight of the edges inside each
++    community with the number of edges the community could hold, scaled by the
++    resolution parameter. For an undirected graph it is defined as
++
++    .. math::
++        Q = \sum_{c} \left( e_c - \gamma \binom{n_c}{2} \right)
++
++    where the sum iterates over all communities $c$, $e_c$ is the sum of the
++    weights of the edges with both endpoints in community $c$, $n_c$ is the
++    sum of the node weights of the nodes in community $c$ (the number of nodes
++    if no node weights are given) and $\gamma$ is the resolution parameter.
++    For directed graphs the number of node pairs $\binom{n_c}{2}$ is replaced
++    by the number of ordered node pairs $n_c (n_c - 1)$.
++
++    The resolution parameter acts as a density threshold: communities are
++    favoured when their internal edge density exceeds $\gamma$, and
++    groups of nodes connected with density below $\gamma$ are better
++    split apart [2]_. Unlike :func:`modularity`, this quality function does
++    not suffer from the resolution limit, and the singleton partition of a
++    graph without self-loops has quality 0.
++
++    Parameters
++    ----------
++    G : NetworkX Graph
++
++    communities : list or iterable of set of nodes
++        These node sets must represent a partition of G's nodes.
++
++    weight : string or None, optional (default="weight")
++        The edge attribute that holds the numerical value used
++        as a weight. If None or an edge does not have that attribute,
++        then that edge has weight 1.
++
++    node_weight : string or None, optional (default="node_weight")
++        The node attribute that holds the numerical value used as the
++        weight (size) of a node. If None or a node does not have that
++        attribute, then that node has weight 1.
++
++    resolution : float (default=1)
++        The density threshold $\gamma$. Larger values favor smaller,
++        denser communities.
++
++    Returns
++    -------
++    Q : float
++        The constant Potts model quality of the partition.
++
++    Raises
++    ------
++    NotAPartition
++        If `communities` is not a partition of the nodes of `G`.
++
++    Examples
++    --------
++    >>> G = nx.barbell_graph(3, 0)
++    >>> nx.community.constant_potts_model(G, [{0, 1, 2}, {3, 4, 5}])
++    0.0
++    >>> nx.community.constant_potts_model(G, [{0, 1, 2}, {3, 4, 5}], resolution=0.5)
++    3.0
++    >>> nx.community.constant_potts_model(G, [set(G)], resolution=0.5)
++    -0.5
++
++    See Also
++    --------
++    modularity
++    :any:`leiden_communities`
++
++    References
++    ----------
++    .. [1] V. A. Traag, P. Van Dooren, and Y. Nesterov,
++       "Narrow scope for resolution-limit-free community detection",
++       Phys. Rev. E 84, 016114 (2011). https://doi.org/10.1103/PhysRevE.84.016114
++    .. [2] V. A. Traag, L. Waltman, and N. J. van Eck, "From Louvain to Leiden:
++       guaranteeing well-connected communities", Sci Rep 9, 5233 (2019).
++       https://doi.org/10.1038/s41598-019-41695-z
++    """
++    if not isinstance(communities, list):
++        communities = list(communities)
++    if not is_partition(G, communities):
++        raise NotAPartition(G, communities)
++
++    # number of (ordered, for directed graphs) node pairs in a community of size n
++    pair_factor = 1 if G.is_directed() else 0.5
++    node_weights = G.nodes(data=node_weight, default=1)
++
++    def community_contribution(community):
++        comm = set(community)
++        e_c = sum(
++            wt for u, v, wt in G.edges(comm, data=weight, default=1) if v in comm
++        )
++        n_c = sum(node_weights[u] for u in comm)
++        return e_c - resolution * pair_factor * n_c * (n_c - 1)
++
++    return sum(map(community_contribution, communities))
++
++
++def _weight_between(G, nodes, targets, weight, adj):
++    """Returns the total weight of the edges in `adj` from `nodes` to `targets`."""
++    multigraph = G.is_multigraph()
++    total = 0
++    for u in nodes:
++        for v, data in adj[u].items():
++            if v in targets:
++                if multigraph:
++                    total += sum(d.get(weight, 1) for d in data.values())
++                else:
++                    total += data.get(weight, 1)
++    return total
++
++
++def _cpm_delta_terms(G, nodes_to_add, community, node_weight):
++    """Helper for the CPM quality deltas.
++
++    Returns the nodes that are actually added (those not yet in `community`),
++    the community as a set, and the total node weights of both.
++    """
++    if not isinstance(community, set | frozenset):
++        community = set(community)
++    new_nodes = {u for u in nodes_to_add if u not in community}
++    node_weights = G.nodes(data=node_weight, default=1)
++    n_size = sum(node_weights[u] for u in new_nodes)
++    comm_size = sum(node_weights[u] for u in community)
++    return new_nodes, community, n_size, comm_size
++
++
++def _quality_delta_cpm_undirected(
++    G, nodes_to_add, community, resolution, weight="weight", node_weight="node_weight"
++):
++    r"""Returns the change in CPM quality from adding nodes to a community.
++
++    The nodes in `nodes_to_add` are assumed to form a community of their own
++    before being merged into `community`. For an undirected graph the change
++    in :func:`constant_potts_model` quality is
++
++    .. math::
++        \Delta Q = E_D - \gamma \, n_{size} \, c_{size}
++
++    where $E_D$ is the total weight of the edges between the added nodes and
++    `community`, $n_{size}$ and $c_{size}$ are the total node weights of the
++    added nodes and of `community`, and $\gamma$ is the resolution.
++    Nodes of `nodes_to_add` that already belong to `community` are ignored.
++    """
++    new_nodes, community, n_size, comm_size = _cpm_delta_terms(
++        G, nodes_to_add, community, node_weight
++    )
++    E_D = _weight_between(G, new_nodes, community, weight, G._adj)
++    return E_D - resolution * n_size * comm_size
++
++
++def _quality_delta_cpm_directed(
++    G, nodes_to_add, community, resolution, weight="weight", node_weight="node_weight"
++):
++    r"""Returns the change in CPM quality from adding nodes to a community.
++
++    This is the directed counterpart of :func:`_quality_delta_cpm_undirected`.
++    Edges in both directions between the added nodes and `community` join
++    the community and the number of ordered node pairs grows by
++    $2 n_{size} c_{size}$, so that
++
++    .. math::
++        \Delta Q = E_D^{out} + E_D^{in} - 2 \gamma \, n_{size} \, c_{size}.
++
++    An undirected graph is treated as the directed graph with both
++    orientations of each of its edges.
++    """
++    new_nodes, community, n_size, comm_size = _cpm_delta_terms(
++        G, nodes_to_add, community, node_weight
++    )
++    succ, pred = (G._succ, G._pred) if G.is_directed() else (G._adj, G._adj)
++    E_D_out = _weight_between(G, new_nodes, community, weight, succ)
++    E_D_in = _weight_between(G, new_nodes, community, weight, pred)
++    return E_D_out + E_D_in - resolution * 2 * n_size * comm_size
++
++
++@not_implemented_for("directed")
++@nx._dispatchable(edge_attrs="weight")
++def overlapping_modularity(G, communities, *, weight="weight", resolution=1):
++    r"""Returns the extended modularity of a cover of `G` by overlapping communities.
++
++    In a cover, a node may belong to several communities. Shen et al. [1]_
++    extend modularity to covers by discounting the contribution of each node
++    by the number of communities it belongs to:
++
++    .. math::
++        EQ = \frac{1}{2m} \sum_{c} \sum_{i, j \in c} \frac{1}{O_i O_j}
++             \left( A_{ij} - \gamma \frac{k_i k_j}{2m} \right)
++
++    where $m$ is the number of edges (or sum of all edge weights), $A$ is the
++    adjacency matrix of `G`, $k_i$ is the (weighted) degree of $i$, $O_i$ is
++    the number of communities containing node $i$ and $\gamma$ is the
++    resolution parameter.
++
++    When every node belongs to exactly one community, the cover is a
++    partition and $EQ$ equals :func:`modularity`.
++
++    Parameters
++    ----------
++    G : NetworkX Graph
++        An undirected graph.
++
++    communities : list or iterable of sets of nodes
++        These node sets must cover G's nodes: every node of `G` must belong
++        to at least one set and the sets may only contain nodes of `G`.
++        Unlike for :func:`modularity`, the sets may overlap.
++
++    weight : string or None, optional (default="weight")
++        The edge attribute that holds the numerical value used
++        as a weight. If None or an edge does not have that attribute,
++        then that edge has weight 1.
++
++    resolution : float (default=1)
++        If resolution is less than 1, modularity favors larger communities.
++        Greater than 1 favors smaller communities.
++
++    Returns
++    -------
++    EQ : float
++        The extended modularity of the cover.
++
++    Raises
++    ------
++    NetworkXError
++        If `communities` is not a cover of the nodes of `G`.
++
++    NetworkXNotImplemented
++        If `G` is directed.
++
++    Examples
++    --------
++    >>> G = nx.barbell_graph(3, 0)
++    >>> nx.community.overlapping_modularity(G, [{0, 1, 2}, {3, 4, 5}])
++    0.35714285714285715
++    >>> cover = [{0, 1, 2, 3}, {2, 3, 4, 5}]
++    >>> round(nx.community.overlapping_modularity(G, cover), 6)
++    0.142857
++
++    See Also
++    --------
++    modularity
++
++    References
++    ----------
++    .. [1] H. Shen, X. Cheng, K. Cai, and M.-B. Hu,
++       "Detect overlapping and hierarchical community structure in networks",
++       Physica A 388 (8), 1706-1712 (2009).
++       https://doi.org/10.1016/j.physa.2008.12.021
++    """
++    if not isinstance(communities, list):
++        communities = list(communities)
++    communities = [set(c) for c in communities]
++    membership = Counter(u for c in communities for u in c)
++    if len(membership) != len(G) or any(u not in G for u in membership):
++        raise NotACover(G, communities)
++
++    degree = dict(G.degree(weight=weight))
++    deg_sum = sum(degree.values())
++    m = deg_sum / 2
++    norm = 1 / deg_sum**2
++
++    def community_contribution(comm):
++        L_c = sum(
++            wt / (membership[u] * membership[v])
++            for u, v, wt in G.edges(comm, data=weight, default=1)
++            if v in comm
++        )
++        K_c = sum(degree[u] / membership[u] for u in comm)
++        return L_c / m - resolution * K_c * K_c * norm
++
++    return sum(map(community_contribution, communities))
++
+ 
+ @require_partition
+ @nx._dispatchable
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/conftest.py /app/networkx/conftest.py
+--- /opt/pristine/networkx/conftest.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/conftest.py	2026-11-17 08:33:08.000000000 +0000
+@@ -187,6 +187,7 @@
+ needs_numpy = [
+     "algorithms/approximation/traveling_salesman.py",
+     "algorithms/centrality/current_flow_closeness.py",
++    "algorithms/community/bipartitions.py",
+     "algorithms/centrality/laplacian.py",
+     "algorithms/node_classification.py",
+     "algorithms/non_randomness.py",

@@ -1,0 +1,3347 @@
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/dag.py b/networkx/algorithms/dag.py
+--- a/networkx/algorithms/dag.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/dag.py	2026-11-01 13:03:35
+@@ -7,12 +7,11 @@
+ 
+ import heapq
+ from collections import deque
+-from functools import partial
+-from itertools import chain, combinations, product, starmap
++from itertools import combinations, product
+ from math import gcd
+ 
+ import networkx as nx
+-from networkx.utils import arbitrary_element, not_implemented_for, pairwise
++from networkx.utils import not_implemented_for, pairwise
+ 
+ __all__ = [
+     "descendants",
+@@ -30,11 +29,10 @@
+     "dag_longest_path",
+     "dag_longest_path_length",
+     "dag_to_branching",
++    "antichain_width",
+ ]
+ 
+-chaini = chain.from_iterable
+ 
+-
+ @nx._dispatchable
+ def descendants(G, source):
+     """Returns all nodes reachable from `source` in `G`.
+@@ -111,7 +109,20 @@
+ 
+ @nx._dispatchable
+ def has_cycle(G):
+-    """Decides whether the directed graph has a cycle."""
++    """Decides whether the directed graph has a cycle.
++
++    Examples
++    --------
++    >>> G = nx.DiGraph([(0, 1), (0, 2), (1, 2)])
++    >>> nx.dag.has_cycle(G)
++    False
++    >>> G.add_edge(2, 0)
++    >>> nx.dag.has_cycle(G)
++    True
++
++    See Also
++    --------
++    is_directed_acyclic_graph"""
+     try:
+         # Feed the entire iterator into a zero-length deque.
+         deque(topological_sort(G), maxlen=0)
+@@ -162,7 +173,60 @@
+     return G.is_directed() and not has_cycle(G)
+ 
+ 
++@not_implemented_for("undirected")
+ @nx._dispatchable
++def antichain_width(G):
++    """Returns the width of the partial order defined by the DAG `G`.
++
++    The width is the largest number of nodes in `G` such that no node in the
++    set can reach another node in the set.
++
++    By Dilworth's theorem [1]_ the width is also equal to the minimum number of
++    chains needed to cover all nodes. This function reduces the problem to a
++    maximum bipartite matching on the transitive closure of `G`.
++
++    Parameters
++    ----------
++    G : NetworkX DiGraph
++        A directed acyclic graph representing a partial order.
++
++    Returns
++    -------
++    int
++        The width of the poset (size of a maximum antichain).
++
++    Raises
++    ------
++    NetworkXUnfeasible
++        If `G` is not acyclic.
++    NetworkXNotImplemented
++        If `G` is not directed
++
++    Examples
++    --------
++    >>> G = nx.DiGraph([(1, 2), (1, 3), (2, 4), (3, 4)])
++    >>> nx.dag.antichain_width(G)
++    2
++
++    References
++    ----------
++    .. [1] https://en.wikipedia.org/wiki/Antichain
++    """
++    nodes = list(G)
++    transitive_closure = nx.transitive_closure_dag(G)
++
++    B = nx.Graph()
++    left = [("L", v) for v in nodes]
++    right = [("R", v) for v in nodes]
++    B.add_nodes_from(left + right)
++
++    B.add_edges_from((("L", u), ("R", v)) for u, v in transitive_closure.edges())
++
++    matching = nx.bipartite.maximum_matching(B, top_nodes=left)
++    return len(nodes) - len(matching) // 2
++
++
++@nx._dispatchable
+ def topological_generations(G):
+     """Stratifies a DAG into generations.
+ 
+@@ -203,6 +267,11 @@
+ 
+     Notes
+     -----
++    This function returns a generator. Therefore, exceptions such as
++    NetworkXUnfeasible for cyclic graphs may not be raised immediately
++    when the function is called, but rather during iteration over the
++    returned generator.
++
+     The generation in which a node resides can also be determined by taking the
+     max-path-distance from the node to the farthest leaf node. That value can
+     be obtained with this function using `enumerate(topological_generations(G))`.
+@@ -293,6 +362,11 @@
+ 
+     Notes
+     -----
++    This function returns a generator. Therefore, exceptions such as
++    NetworkXUnfeasible for cyclic graphs may not be raised immediately
++    when the function is called, but rather during iteration over the
++    returned generator.
++
+     This algorithm is based on a description and proof in
+     "Introduction to Algorithms: A Creative Approach" [1]_ .
+ 
+@@ -325,14 +399,13 @@
+     topological sort and to determine a single, unique ordering.  This can be useful in comparing
+     sort results.
+ 
+-    The lexicographical order can be customized by providing a function to the `key=` parameter.
+-    The definition of the key function is the same as used in python's built-in `sort()`.
++    The lexicographical order can be customized by providing a function to the `key` parameter.
++    The definition of the key function is the same as used in Python's built-in `sorted`.
+     The function takes a single argument and returns a key to use for sorting purposes.
+ 
+     Lexicographical sorting can fail if the node names are un-sortable. See the example below.
+     The solution is to provide a function to the `key=` argument that returns sortable keys.
+ 
+-
+     Parameters
+     ----------
+     G : NetworkX digraph
+@@ -345,7 +418,7 @@
+     Yields
+     ------
+     nodes
+-        Yields the nodes of G in lexicographical topological sort order.
++        Yields the nodes of `G` in lexicographical topological sort order.
+ 
+     Raises
+     ------
+@@ -380,8 +453,7 @@
+     >>> list(nx.lexicographical_topological_sort(DG))
+     Traceback (most recent call last):
+     ...
+-    TypeError: '<' not supported between instances of 'str' and 'int'
+-    ...
++    TypeError: Consider using `key=` parameter to resolve ambiguities in the sort order.
+ 
+     Incomparable nodes can be resolved using a `key` function. This example function
+     allows comparison of integers and strings by returning a tuple where the first
+@@ -430,6 +502,7 @@
+ 
+         if node not in G:
+             raise RuntimeError("Graph changed during iteration")
++        # G.edges() is used here instead of neighbors to handle MultiDiGraphs
+         for _, child in G.edges(node):
+             try:
+                 indegree_map[child] -= 1
+@@ -440,8 +513,8 @@
+                     heapq.heappush(zero_indegree, create_tuple(child))
+                 except TypeError as err:
+                     raise TypeError(
+-                        f"{err}\nConsider using `key=` parameter to resolve ambiguities in the sort order."
+-                    )
++                        "Consider using `key=` parameter to resolve ambiguities in the sort order."
++                    ) from err
+                 del indegree_map[child]
+ 
+         yield node
+@@ -571,9 +644,10 @@
+             break
+ 
+ 
++@not_implemented_for("undirected")
+ @nx._dispatchable
+ def is_aperiodic(G):
+-    """Returns True if `G` is aperiodic.
++    """Determine whether a directed graph is aperiodic.
+ 
+     A strongly connected directed graph is aperiodic if there is no integer ``k > 1``
+     that divides the length of every cycle in the graph.
+@@ -588,22 +662,22 @@
+ 
+     Parameters
+     ----------
+-    G : NetworkX DiGraph
+-        A directed graph
++    G : NetworkX graph
++        A directed graph.
+ 
+     Returns
+     -------
+     bool
+-        True if the graph is aperiodic False otherwise
++        Whether the graph is aperiodic.
+ 
+     Raises
+     ------
++    NetworkXNotImplemented
++        If `G` is not directed.
+     NetworkXError
+-        If `G` is not directed
+-    NetworkXError
+-        If `G` is not strongly connected
++        If `G` is not strongly connected.
+     NetworkXPointlessConcept
+-        If `G` has no nodes
++        If `G` has no nodes.
+ 
+     Examples
+     --------
+@@ -689,29 +763,26 @@
+        in Shier, D. R.; Wallenius, K. T., Applied Mathematical Modeling:
+        A Multidisciplinary Approach, CRC Press.
+     """
+-    if not G.is_directed():
+-        raise nx.NetworkXError("is_aperiodic not defined for undirected graphs")
+     if len(G) == 0:
+         raise nx.NetworkXPointlessConcept("Graph has no nodes.")
+     if not nx.is_strongly_connected(G):
+         raise nx.NetworkXError("Graph is not strongly connected.")
+-    s = arbitrary_element(G)
++
++    s = nx.utils.arbitrary_element(G)
+     levels = {s: 0}
+-    this_level = [s]
+     g = 0
+-    lev = 1
+-    while this_level:
+-        next_level = []
+-        for u in this_level:
+-            for v in G[u]:
+-                if v in levels:  # Non-Tree Edge
+-                    g = gcd(g, levels[u] - levels[v] + 1)
+-                else:  # Tree Edge
+-                    next_level.append(v)
+-                    levels[v] = lev
+-        this_level = next_level
+-        lev += 1
+-    return g == 1
++    # There are 3 relevant possible edge types in `dfs_labeled_edges`:
++    # "forward", "reverse", and "nontree".
++    for u, v, d in nx.dfs_labeled_edges(G, s):
++        if d == "forward":
++            # "forward" edges indicate a new node.
++            levels[v] = levels[u] + 1
++        elif d == "nontree" and (g := gcd(g, levels[u] - levels[v] + 1)) == 1:
++            # "nontree" edges indicate a previously explored node.
++            # Check whether this affects the common factor of cycle lengths.
++            return True
++        # "reverse" edges indicate backtracking in DFS and can be ignored.
++    return False
+ 
+ 
+ @nx._dispatchable(preserve_all_attrs=True, returns_graph=True)
+@@ -1170,9 +1241,9 @@
+     """
+     roots = (v for v, d in G.in_degree() if d == 0)
+     leaves = (v for v, d in G.out_degree() if d == 0)
+-    all_paths = partial(nx.all_simple_paths, G)
+-    # TODO In Python 3, this would be better as `yield from ...`.
+-    return chaini(starmap(all_paths, product(roots, leaves)))
++
++    for root, leaf in product(roots, leaves):
++        yield from nx.all_simple_paths(G, root, leaf)
+ 
+ 
+ @not_implemented_for("multigraph")
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/distance_measures.py b/networkx/algorithms/distance_measures.py
+--- a/networkx/algorithms/distance_measures.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/distance_measures.py	2026-10-31 20:43:49
+@@ -12,6 +12,7 @@
+     "radius",
+     "periphery",
+     "center",
++    "centroid",
+     "barycenter",
+     "resistance_distance",
+     "kemeny_constant",
+@@ -286,6 +287,11 @@
+     ecc : dictionary
+        A dictionary of eccentricity values keyed by node.
+ 
++    Raises
++    ------
++    NetworkXPointlessConcept
++        If G is a null graph.
++
+     Examples
+     --------
+     >>> G = nx.Graph([(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)])
+@@ -304,6 +310,12 @@
+     #        nodes=[v]
+     #    else:                      # assume v is a container of nodes
+     #        nodes=v
++
++    if len(G) == 0:
++        raise nx.NetworkXPointlessConcept(
++            "Cannot compute eccentricity of a null graph."
++        )
++
+     order = G.order()
+     e = {}
+     for n in G.nbunch_iter(v):
+@@ -379,6 +391,13 @@
+     d : integer
+        Diameter of graph
+ 
++    Raises
++    ------
++    NetworkXError
++        If G has multiple components.
++    NetworkXPointlessConcept
++        If G is a null graph.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -538,7 +557,7 @@
+ 
+     See Also
+     --------
+-    barycenter
++    centroid
+     center
+     """
+     if usebounds is True and e is None and not G.is_directed():
+@@ -595,6 +614,13 @@
+     r : integer
+        Radius of graph
+ 
++    Raises
++    ------
++    NetworkXError
++        If G has multiple components.
++    NetworkXPointlessConcept
++        If G is a null graph.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -677,7 +703,7 @@
+     See Also
+     --------
+     :func:`~networkx.algorithms.tree.distance_measures.center` : tree center
+-    barycenter
++    centroid
+     periphery
+     :func:`~networkx.algorithms.tree.distance_measures.centroid` : tree centroid
+     """
+@@ -693,10 +719,10 @@
+ 
+ 
+ @nx._dispatchable(edge_attrs="weight", mutates_input={"attr": 2})
+-def barycenter(G, weight=None, attr=None, sp=None):
+-    r"""Calculate barycenter of a connected graph, optionally with edge weights.
++def centroid(G, weight=None, attr=None, sp=None):
++    r"""Calculate centroid of a connected graph, optionally with edge weights.
+ 
+-    The :dfn:`barycenter` a
++    The :dfn:`centroid` of a
+     :func:`connected <networkx.algorithms.components.is_connected>` graph
+     :math:`G` is the subgraph induced by the set of its nodes :math:`v`
+     minimizing the objective function
+@@ -707,8 +733,13 @@
+ 
+     where :math:`d_G` is the (possibly weighted) :func:`path length
+     <networkx.algorithms.shortest_paths.generic.shortest_path_length>`.
+-    The barycenter is also called the :dfn:`median`. See [West01]_, p. 78.
++    This quantity is also known as the :dfn:`barycenter` or :dfn:`median`.
++    See [West01]_, p. 78.
+ 
++    .. versionchanged:: 3.7
++       ``centroid()`` is created by a renaming of ``barycenter()``.
++       The old name still works to call this function.
++
+     Parameters
+     ----------
+     G : :class:`networkx.Graph`
+@@ -725,13 +756,13 @@
+     Returns
+     -------
+     list
+-        Nodes of `G` that induce the barycenter of `G`.
++        Nodes of `G` that induce the centroid of `G`.
+ 
+     Raises
+     ------
+     NetworkXNoPath
+         If `G` is disconnected. `G` may appear disconnected to
+-        :func:`barycenter` if `sp` is given but is missing shortest path
++        :func:`centroid` if `sp` is given but is missing shortest path
+         lengths for any pairs.
+     ValueError
+         If `sp` and `weight` are both given.
+@@ -739,7 +770,7 @@
+     Examples
+     --------
+     >>> G = nx.Graph([(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)])
+-    >>> nx.barycenter(G)
++    >>> nx.centroid(G)
+     [1, 3, 4]
+ 
+     See Also
+@@ -758,7 +789,7 @@
+         sp = sp.items()
+         if weight is not None:
+             raise ValueError("Cannot use both sp, weight arguments together")
+-    smallest, barycenter_vertices, n = float("inf"), [], len(G)
++    smallest, centroid_vertices, n = float("inf"), [], len(G)
+     for v, dists in sp:
+         if len(dists) < n:
+             raise nx.NetworkXNoPath(
+@@ -770,12 +801,15 @@
+             G.nodes[v][attr] = barycentricity
+         if barycentricity < smallest:
+             smallest = barycentricity
+-            barycenter_vertices = [v]
++            centroid_vertices = [v]
+         elif barycentricity == smallest:
+-            barycenter_vertices.append(v)
++            centroid_vertices.append(v)
+     if attr is not None:
+         nx._clear_cache(G)
+-    return barycenter_vertices
++    return centroid_vertices
++
++
++barycenter = centroid
+ 
+ 
+ @not_implemented_for("directed")
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/mis.py b/networkx/algorithms/mis.py
+--- a/networkx/algorithms/mis.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/mis.py	2026-10-31 20:43:49
+@@ -35,8 +35,8 @@
+ 
+     Returns
+     -------
+-    indep_nodes : list
+-       List of nodes that are part of a maximal independent set.
++    indep_nodes : set
++       Set of nodes that are part of a maximal independent set.
+ 
+     Raises
+     ------
+@@ -49,16 +49,53 @@
+ 
+     Examples
+     --------
+-    >>> G = nx.path_graph(5)
+-    >>> nx.maximal_independent_set(G)  # doctest: +SKIP
+-    [4, 0, 2]
+-    >>> nx.maximal_independent_set(G, [1])  # doctest: +SKIP
++    >>> G = nx.path_graph(4)
++    >>> sorted(nx.maximal_independent_set(G, seed=1))
+     [1, 3]
+ 
++    Note that a graph may have many maximal independent sets; for example, the
++    path graph with 4 nodes has 3 maximal independent sets: ``{0, 2}``,
++    ``{0, 3}`` and ``{1, 3}``.
++
++    >>> sorted(nx.maximal_independent_set(G, seed=2))
++    [0, 2]
++
++    This function returns a single maximal independent set. Enumerating *all*
++    of the maximal independent sets in a graph can be achieved by enumerating the
++    cliques in the complement graph:
++
++    >>> sorted(
++    ...     sorted(c)
++    ...     for c in nx.enumerate_all_cliques(nx.complement(G))
++    ...     if len(c) > 1  # Ignore cliques comprising a single node
++    ... )
++    [[0, 2], [0, 3], [1, 3]]
++
++    Note however that enumerating all cliques is exponential in the number of
++    nodes in the worst case (e.g. the complete graph).
++
++    The `nodes` keyword argument can be used to produce a maximal independent
++    set that contains the given node(s):
++
++    >>> sorted(nx.maximal_independent_set(G, nodes={1}))
++    [1, 3]
++
++    An exception is raised if `nodes` are not independent
++
++    >>> nx.maximal_independent_set(G, nodes={1, 2})
++    Traceback (most recent call last):
++       ...
++    networkx.exception.NetworkXUnfeasible: {1, 2} is not an independent set of G
++
+     Notes
+     -----
+     This algorithm does not solve the maximum independent set problem.
+ 
++    See Also
++    --------
++    :func:`~networkx.algorithms.approximation.clique.maximum_independent_set` :
++        Algorithm for approximating the maximum independent set, i.e. a
++        maximal independent set of maximum cardinality.
+     """
+     if not nodes:
+         nodes = {seed.choice(list(G))}
+@@ -69,10 +106,10 @@
+     neighbors = set.union(*[set(G.adj[v]) for v in nodes])
+     if set.intersection(neighbors, nodes):
+         raise nx.NetworkXUnfeasible(f"{nodes} is not an independent set of G")
+-    indep_nodes = list(nodes)
++    indep_nodes = set(nodes)
+     available_nodes = set(G.nodes()).difference(neighbors.union(nodes))
+     while available_nodes:
+         node = seed.choice(list(available_nodes))
+-        indep_nodes.append(node)
++        indep_nodes.add(node)
+         available_nodes.difference_update(list(G.adj[node]) + [node])
+     return indep_nodes
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/planarity.py b/networkx/algorithms/planarity.py
+--- a/networkx/algorithms/planarity.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/planarity.py	2026-10-31 20:43:49
+@@ -1380,6 +1380,31 @@
+ 
+         return face_nodes
+ 
++    def faces(self):
++        """Generate facial boundary walks from this planar embedding.
++
++        Yields
++        ------
++        face : list
++            A facial boundary walk as a node sequence in cyclic order.
++            Walks are not guaranteed to be simple cycles: vertices can repeat,
++            for example around bridges or articulation points.
++
++        Notes
++        -----
++        This method traverses each directed half-edge exactly once.
++        For disconnected embeddings, a unique global outer face is not
++        distinguished by the combinatorial embedding.
++        When the embedding is obtained from :func:`check_planarity`,
++        self-loops are not represented and parallel edges are merged
++        before the embedding is constructed.
++        """
++        visited_half_edges = set()
++        for v in self:
++            for w in self.neighbors_cw_order(v):
++                if (v, w) not in visited_half_edges:
++                    yield self.traverse_face(v, w, mark_half_edges=visited_half_edges)
++
+     def is_directed(self):
+         """A valid PlanarEmbedding is undirected.
+ 
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/richclub.py b/networkx/algorithms/richclub.py
+--- a/networkx/algorithms/richclub.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/richclub.py	2026-10-31 20:43:49
+@@ -3,7 +3,7 @@
+ from itertools import accumulate
+ 
+ import networkx as nx
+-from networkx.utils import not_implemented_for
++from networkx.utils import not_implemented_for, py_random_state
+ 
+ __all__ = ["rich_club_coefficient"]
+ 
+@@ -11,7 +11,8 @@
+ @not_implemented_for("directed")
+ @not_implemented_for("multigraph")
+ @nx._dispatchable
+-def rich_club_coefficient(G, normalized=True, Q=100, seed=None):
++@py_random_state(3)
++def rich_club_coefficient(G, normalized=True, Q=100, seed=None, *, n_samples=1):
+     r"""Returns the rich-club coefficient of the graph `G`.
+ 
+     For each degree *k*, the *rich-club coefficient* is the ratio of the
+@@ -38,6 +39,12 @@
+     seed : integer, random_state, or None (default)
+         Indicator of random number generation state.
+         See :ref:`Randomness<randomness>`.
++    n_samples : integer (optional, default=1)
++        Number of random graphs to generate for normalization. Only relevant
++        when normalized is True, else has no effect. Increasing `n_samples`
++        reduces the likelihood of a ZeroDivisionError for sparse
++        graphs with few high-degree nodes where the averaged rich-club
++        coefficients equal 0.
+ 
+     Returns
+     -------
+@@ -47,8 +54,9 @@
+     Raises
+     ------
+     NetworkXError
+-        If `G` has fewer than four nodes and ``normalized=True``.
+-        A randomly sampled graph for normalization cannot be generated in this case.
++        - If `G` has fewer than four nodes and ``normalized=True``.
++          A randomly sampled graph for normalization cannot be generated in this case.
++        - If normalization coefficient is zero (try increasing n_samples).
+ 
+     Examples
+     --------
+@@ -88,15 +96,33 @@
+         raise Exception(
+             "rich_club_coefficient is not implemented for graphs with self loops."
+         )
++    if normalized and n_samples < 1:
++        raise ValueError("n_samples must be >= 1 if 'normalized' = True")
++
+     rc = _compute_rc(G)
+     if normalized:
+         # make R a copy of G, randomize with Q*|E| double edge swaps
+         # and use rich_club coefficient of R to normalize
+-        R = G.copy()
+-        E = R.number_of_edges()
+-        nx.double_edge_swap(R, Q * E, max_tries=Q * E * 10, seed=seed)
+-        rcran = _compute_rc(R)
+-        rc = {k: v / rcran[k] for k, v in rc.items()}
++        averages = {k: 0 for k in rc}
++        E = G.number_of_edges()
++
++        for _ in range(n_samples):
++            R = G.copy()
++            nx.double_edge_swap(R, Q * E, max_tries=Q * E * 10, seed=seed)
++            rcran = _compute_rc(R)
++            for deg, coef in rcran.items():
++                averages[deg] += coef / n_samples
++
++        for deg, coef in averages.items():
++            if coef == 0:
++                # Zero average means normalization is undefined at this threshold
++                raise nx.NetworkXError(
++                    f"Rich-club coefficient normalization failed at degree {deg}. "
++                    f"The average rich-club coefficient of {n_samples} random "
++                    f"graphs is zero. Try increasing n_samples."
++                )
++
++        rc = {deg: coef / averages[deg] for deg, coef in rc.items()}
+     return rc
+ 
+ 
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/tree/distance_measures.py b/networkx/algorithms/tree/distance_measures.py
+--- a/networkx/algorithms/tree/distance_measures.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/tree/distance_measures.py	2026-11-01 10:52:53
+@@ -133,7 +133,7 @@
+ 
+ 
+ @nx.utils.not_implemented_for("directed")
+-@nx._dispatchable
++@nx._dispatchable(name="tree_centroid")
+ def centroid(G):
+     """Return the centroid of an unweighted tree.
+ 
+@@ -194,7 +194,7 @@
+ 
+     See Also
+     --------
+-    :func:`~networkx.algorithms.distance_measures.barycenter`
++    :func:`~networkx.algorithms.distance_measures.centroid`
+     :func:`~networkx.algorithms.distance_measures.center`
+     center : tree center
+     """
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/algorithms/walks.py b/networkx/algorithms/walks.py
+--- a/networkx/algorithms/walks.py	2026-10-31 20:43:49
++++ b/networkx/algorithms/walks.py	2026-11-01 13:03:35
+@@ -1,8 +1,9 @@
+ """Function for computing walks in a graph."""
+ 
+ import networkx as nx
++from networkx.utils import not_implemented_for, py_random_state
+ 
+-__all__ = ["number_of_walks"]
++__all__ = ["number_of_walks", "random_walk"]
+ 
+ 
+ @nx._dispatchable
+@@ -75,3 +76,155 @@
+         for u_idx, u in enumerate(G)
+     }
+     return result
++
++
++@not_implemented_for("multigraph")
++@nx._dispatchable(edge_attrs="weight")
++@py_random_state("seed")
++def random_walk(G, *, start, weight=None, seed=None):
++    """Yields nodes visited by a random walk starting at `start`.
++
++    The generator yields nodes in walk order, including `start` as the first
++    yielded node, and terminates when there is no valid outgoing transition.
++
++    If `weight` is None, transitions are uniform over neighbors. If `weight` is
++    a string, transitions are proportional to that edge attribute, defaulting to
++    1 if missing.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        The input graph.
++    start : node
++        Starting node for the random walk.
++    weight : string or None, optional (default=None)
++        Edge attribute name to interpret as the transition weight. If None, each edge has
++        weight 1.
++    seed : integer, random_state, or None (default=None)
++        Indicator of random number generation state.
++        See :ref:`Randomness<randomness>`.
++
++    Yields
++    ------
++    node
++        The next node in the random walk
++
++    Raises
++    ------
++    nx.NodeNotFound
++        If `start` is not in `G`
++    ValueError
++        If `weight` is not None and a negative weight is encountered.
++
++    Examples
++    --------
++    The `random_walk` generator is designed to be very flexible, thus there is
++    no default condition for terminating a walk.
++
++    .. warning::
++       Calling ``list(nx.random_walk(G, start=n))`` will result in an infinite
++       loop if `G` is undirected (or strongly connected if directed).
++
++    >>> G = nx.cycle_graph(10)
++
++    To generate a walk with a given length:
++
++    >>> walk_length = 4
++    >>> rw = nx.random_walk(G, start=0, seed=99)
++    >>> [next(rw) for _ in range(walk_length)]
++    [0, 9, 0, 1]
++
++    or with `itertools.islice`:
++
++    >>> import itertools
++
++    >>> rw = nx.random_walk(G, start=0, seed=99)
++    >>> list(itertools.islice(rw, walk_length))
++    [0, 9, 0, 1]
++
++    One may want to terminate a walk when a specific node (or set of nodes) is
++    reached; for example, transitioning from one "barbell" to the other:
++
++    >>> G = nx.barbell_graph(5, 0)
++    >>> terminal_nodes = set(range(5, 10))
++    >>> rwg = nx.random_walk(G, start=0, seed=999999)
++    >>> list(itertools.takewhile(lambda n: n not in terminal_nodes, rwg))
++    [0, 2, 1, 2, 4]
++
++    Or perform a walk with a termination probability for each step:
++
++    >>> import random
++    >>> random.seed(5040)
++    >>> termination_probability = 0.25
++
++    >>> G = nx.complete_graph(10)
++    >>> list(
++    ...     itertools.takewhile(
++    ...         lambda _: random.random() > termination_probability,
++    ...         nx.random_walk(G, start=0, seed=999),
++    ...     )
++    ... )
++    [0, 2, 9, 7]
++
++    `random_walk` can be combined with distance constraints to sample local
++    regions in a graph:
++
++    >>> G = nx.balanced_tree(2, 3)
++    >>> distance = nx.single_source_shortest_path_length(G, source=0)
++    >>> distance_limit = 3
++
++    >>> list(
++    ...     itertools.takewhile(
++    ...         lambda n: distance[n] < distance_limit,
++    ...         nx.random_walk(G, start=0, seed=99),
++    ...     )
++    ... )
++    [0, 2, 5, 2, 6, 2, 0, 1, 0, 1, 3]
++
++    The `weight` keyword can be used to indicate an edge attribute to use for
++    weighted sampling:
++
++    >>> G = nx.path_graph(3)
++    >>> nx.set_edge_attributes(G, {(0, 1): 2, (1, 2): 10}, name="weight")
++    >>> rw = nx.random_walk(G, start=1, weight="weight", seed=2048)
++    >>> list(itertools.islice(rw, 10))
++    [1, 2, 1, 2, 1, 2, 1, 2, 1, 0]
++
++    When performing a weighted walk, edges with 0 weight are ignored:
++
++    >>> G = nx.star_graph(5)
++    >>> nx.set_edge_attributes(G, {(0, n): 0 for n in range(2, len(G))}, name="weight")
++    >>> rw = nx.random_walk(G, start=0, weight="weight")
++    >>> list(itertools.islice(rw, 4))
++    [0, 1, 0, 1]
++
++    For directed graphs, if a node with 0 outdegree is reached, the walk will
++    terminate:
++
++    >>> G = nx.path_graph(5, create_using=nx.DiGraph)
++    >>> list(nx.random_walk(G, start=3))
++    [3, 4]
++
++    Self-loop edges are included in the neighbor sampling:
++
++    >>> G = nx.Graph([(0, 0)])
++    >>> list(itertools.islice(nx.random_walk(G, start=0), 5))
++    [0, 0, 0, 0, 0]
++    """
++    if start not in G:
++        raise nx.NodeNotFound(start)
++
++    node = start
++    yield node
++    while nbrs := G.adj[node]:
++        if weight is None:
++            node = seed.choice(list(nbrs))
++        else:
++            wts = [nbr.get(weight, 1) for nbr in nbrs.values()]
++            if any(w < 0 for w in wts):
++                raise ValueError("random_walk doesn't support negative weights")
++            if sum(wts) == 0:
++                return
++            node = seed.choices(list(nbrs), weights=wts, k=1)[0]
++
++        yield node
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/digraph.py b/networkx/classes/digraph.py
+--- a/networkx/classes/digraph.py	2026-10-31 20:43:49
++++ b/networkx/classes/digraph.py	2026-10-31 20:43:49
+@@ -14,7 +14,6 @@
+     OutDegreeView,
+     OutEdgeView,
+ )
+-from networkx.exception import NetworkXError
+ 
+ __all__ = ["DiGraph"]
+ 
+@@ -338,7 +337,7 @@
+     # in order to provide a backend that allows class instantiation, this method
+     # can be overridden to return your own backend graph class.
+     @nx._dispatchable(name="digraph__new__", graphs=None, returns_graph=True)
+-    def __new__(cls, incoming_graph_data=None, **attr):
++    def __new__(cls, *args, **kwargs):
+         return object.__new__(cls)
+ 
+     def __init__(self, incoming_graph_data=None, **attr):
+@@ -610,7 +609,7 @@
+             nbrs = self._succ[n]
+             del self._node[n]
+         except KeyError as err:  # NetworkXError if n not in self
+-            raise NetworkXError(f"The node {n} is not in the digraph.") from err
++            raise nx.NetworkXError(f"The node {n} is not in the digraph.") from err
+         for u in nbrs:
+             del self._pred[u][n]  # remove all edges n-u in digraph
+         del self._succ[n]  # remove node from succ
+@@ -808,7 +807,7 @@
+                 u, v = e
+                 dd = {}
+             else:
+-                raise NetworkXError(f"Edge tuple {e} must be a 2-tuple or 3-tuple.")
++                raise nx.NetworkXError(f"Edge tuple {e} must be a 2-tuple or 3-tuple.")
+             if u not in self._succ:
+                 if u is None:
+                     raise ValueError("None cannot be a node")
+@@ -859,7 +858,7 @@
+             del self._succ[u][v]
+             del self._pred[v][u]
+         except KeyError as err:
+-            raise NetworkXError(f"The edge {u}-{v} not in graph.") from err
++            raise nx.NetworkXError(f"The edge {u}-{v} not in graph.") from err
+         nx._clear_cache(self)
+ 
+     def remove_edges_from(self, ebunch):
+@@ -936,7 +935,7 @@
+         try:
+             return iter(self._succ[n])
+         except KeyError as err:
+-            raise NetworkXError(f"The node {n} is not in the digraph.") from err
++            raise nx.NetworkXError(f"The node {n} is not in the digraph.") from err
+ 
+     # digraph definitions
+     neighbors = successors
+@@ -964,7 +963,7 @@
+         try:
+             return iter(self._pred[n])
+         except KeyError as err:
+-            raise NetworkXError(f"The node {n} is not in the digraph.") from err
++            raise nx.NetworkXError(f"The node {n} is not in the digraph.") from err
+ 
+     @cached_property
+     def edges(self):
+@@ -1114,8 +1113,8 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.degree(0)  # node 0 with degree 1
+         1
+-        >>> list(G.degree([0, 1, 2]))
+-        [(0, 1), (1, 2), (2, 2)]
++        >>> dict(G.degree([0, 1, 2]))
++        {0: 1, 1: 2, 2: 2}
+ 
+         """
+         return DiDegreeView(self)
+@@ -1161,8 +1160,8 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.in_degree(0)  # node 0 with degree 0
+         0
+-        >>> list(G.in_degree([0, 1, 2]))
+-        [(0, 0), (1, 1), (2, 1)]
++        >>> dict(G.in_degree([0, 1, 2]))
++        {0: 0, 1: 1, 2: 1}
+ 
+         """
+         return InDegreeView(self)
+@@ -1208,8 +1207,8 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.out_degree(0)  # node 0 with degree 1
+         1
+-        >>> list(G.out_degree([0, 1, 2]))
+-        [(0, 1), (1, 1), (2, 1)]
++        >>> dict(G.out_degree([0, 1, 2]))
++        {0: 1, 1: 1, 2: 1}
+ 
+         """
+         return OutDegreeView(self)
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/function.py b/networkx/classes/function.py
+--- a/networkx/classes/function.py	2026-10-31 20:43:49
++++ b/networkx/classes/function.py	2026-10-31 20:43:49
+@@ -156,8 +156,32 @@
+     -----
+     Note: the bins are width one, hence len(list) can be large
+     (Order(number_of_edges))
++
++    Examples
++    --------
++    >>> G = nx.star_graph(5)
++
++    `degree_histogram` returns the "dense" frequency distribution, including
++    0's for all degree values that do not occur in the graph:
++
++    >>> nx.degree_histogram(G)
++    [0, 5, 0, 0, 0, 1]
++
++    The degree values can be made explicit with `enumerate`:
++
++    >>> # A mapping of {degree: number of nodes in `G` of that degree}
++    >>> dict(enumerate(nx.degree_histogram(G)))
++    {0: 0, 1: 5, 2: 0, 3: 0, 4: 0, 5: 1}
++
++    For a "sparse" representation of the degree frequency distribution that
++    directly maps degree value: number of occurrences (omitting the 0's), use
++    `collections.Counter` instead:
++
++    >>> from collections import Counter
++    >>> Counter(d for _, d in G.degree)
++    Counter({1: 5, 5: 1})
+     """
+-    counts = Counter(d for n, d in G.degree())
++    counts = Counter(d for _, d in G.degree)
+     return [counts.get(i, 0) for i in range(max(counts) + 1 if counts else 0)]
+ 
+ 
+@@ -448,6 +472,32 @@
+     [0, 1, 3, 4]
+     >>> list(H.edges)
+     [(0, 1), (3, 4)]
++
++    For multi graphs, `edges` must include the edge keys:
++
++    >>> G = nx.MultiGraph(G)
++    >>> H = nx.edge_subgraph(G, [(0, 1, 0), (3, 4, 0)])
++    >>> list(H.edges)
++    [(0, 1, 0), (3, 4, 0)]
++
++    Edge attributes can be used to filter multiedges:
++
++    >>> G.add_edge(0, 1, color="blue")
++    1
++    >>> G.add_edge(0, 1, color="green", weight=10)
++    2
++    >>> H = nx.edge_subgraph(
++    ...     G,
++    ...     (
++    ...         (u, v, k)
++    ...         for u, v, k, clr in G.edges(keys=True, data="color")
++    ...         if clr == "green"
++    ...     ),
++    ... )
++    >>> H.edges(keys=True, data=True)
++    MultiEdgeDataView([(0, 1, 2, {'color': 'green', 'weight': 10})])
++
++
+     """
+     nxf = nx.filters
+     edges = set(edges)
+@@ -730,6 +780,8 @@
+     >>> nx.get_node_attributes(G, "color")
+     {}
+     """
++    if not attr_names:
++        return
+ 
+     if nbunch is None:
+         nbunch = G.nodes()
+@@ -741,6 +793,7 @@
+                     del d[attr]
+                 except KeyError:
+                     pass
++    nx._clear_cache(G)
+ 
+ 
+ @nx._dispatchable(preserve_edge_attrs=True, mutates_input=True)
+@@ -946,6 +999,9 @@
+     >>> nx.get_edge_attributes(G, "weight")
+     {}
+     """
++    if not attr_names:
++        return
++
+     if ebunch is None:
+         ebunch = G.edges(keys=True) if G.is_multigraph() else G.edges()
+ 
+@@ -959,6 +1015,7 @@
+                     del d[attr]
+                 except KeyError:
+                     pass
++    nx._clear_cache(G)
+ 
+ 
+ def all_neighbors(graph, node):
+@@ -1477,6 +1534,7 @@
+     Bipartite                      : True
+     Average degree (min, max)      : 1.60 (1, 2)
+     Number of connected components : 1
++    Density                        : 0.4
+ 
+     >>> def augment_description(G):
+     ...     return {"Average Shortest Path Length": nx.average_shortest_path_length(G)}
+@@ -1489,6 +1547,7 @@
+     Bipartite                      : True
+     Average degree (min, max)      : 1.60 (1, 2)
+     Number of connected components : 1
++    Density                        : 0.4
+     Average Shortest Path Length   : 2.0
+ 
+     >>> G.name = "Path Graph of 5 nodes"
+@@ -1502,6 +1561,7 @@
+     Bipartite                      : True
+     Average degree (min, max)      : 1.60 (1, 2)
+     Number of connected components : 1
++    Density                        : 0.4
+ 
+     """
+     info_dict = _create_describe_info_dict(G)
+@@ -1546,4 +1606,6 @@
+         )
+     else:
+         info["Number of connected components"] = nx.number_connected_components(G)
++    # Add density after number of components
++    info["Density"] = nx.density(G)
+     return info
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/graph.py b/networkx/classes/graph.py
+--- a/networkx/classes/graph.py	2026-10-31 20:43:49
++++ b/networkx/classes/graph.py	2026-10-31 20:43:49
+@@ -14,8 +14,7 @@
+ import networkx as nx
+ from networkx import convert
+ from networkx.classes.coreviews import AdjacencyView
+-from networkx.classes.reportviews import DegreeView, EdgeView, NodeView
+-from networkx.exception import NetworkXError
++from networkx.classes.reportviews import DegreeView, EdgeView, NodeView, _nbunch_iter
+ 
+ __all__ = ["Graph"]
+ 
+@@ -343,7 +342,7 @@
+     # in order to provide a backend that allows class instantiation, this method
+     # can be overridden to return your own backend graph class.
+     @nx._dispatchable(name="graph__new__", graphs=None, returns_graph=True)
+-    def __new__(cls, incoming_graph_data=None, **attr):
++    def __new__(cls, *args, **kwargs):
+         return object.__new__(cls)
+ 
+     def __init__(self, incoming_graph_data=None, **attr):
+@@ -694,7 +693,7 @@
+             nbrs = list(adj[n])  # list handles self-loops (allows mutation)
+             del self._node[n]
+         except KeyError as err:  # NetworkXError if n not in self
+-            raise NetworkXError(f"The node {n} is not in the graph.") from err
++            raise nx.NetworkXError(f"The node {n} is not in the graph.") from err
+         for u in nbrs:
+             del adj[u][n]  # remove all edges n-u in graph
+         del adj[n]  # now remove node
+@@ -1046,7 +1045,7 @@
+                 u, v = e
+                 dd = {}  # doesn't need edge_attr_dict_factory
+             else:
+-                raise NetworkXError(f"Edge tuple {e} must be a 2-tuple or 3-tuple.")
++                raise nx.NetworkXError(f"Edge tuple {e} must be a 2-tuple or 3-tuple.")
+             if u not in self._node:
+                 if u is None:
+                     raise ValueError("None cannot be a node")
+@@ -1146,7 +1145,7 @@
+             if u != v:  # self-loop needs only one entry removed
+                 del self._adj[v][u]
+         except KeyError as err:
+-            raise NetworkXError(f"The edge {u}-{v} is not in the graph") from err
++            raise nx.NetworkXError(f"The edge {u}-{v} is not in the graph") from err
+         nx._clear_cache(self)
+ 
+     def remove_edges_from(self, ebunch):
+@@ -1298,7 +1297,7 @@
+         elif nodes is not None:
+             self.add_nodes_from(nodes)
+         else:
+-            raise NetworkXError("update needs nodes or edges input")
++            raise nx.NetworkXError("update needs nodes or edges input")
+ 
+     def has_edge(self, u, v):
+         """Returns True if the edge (u, v) is in the graph.
+@@ -1382,7 +1381,7 @@
+         try:
+             return iter(self._adj[n])
+         except KeyError as err:
+-            raise NetworkXError(f"The node {n} is not in the graph.") from err
++            raise nx.NetworkXError(f"The node {n} is not in the graph.") from err
+ 
+     @cached_property
+     def edges(self):
+@@ -1540,8 +1539,8 @@
+         >>> G = nx.path_graph(4)  # or DiGraph, MultiGraph, MultiDiGraph, etc
+         >>> G.degree[0]  # node 0 has degree 1
+         1
+-        >>> list(G.degree([0, 1, 2]))
+-        [(0, 1), (1, 2), (2, 2)]
++        >>> dict(G.degree([0, 1, 2]))
++        {0: 1, 1: 2, 2: 2}
+         """
+         return DegreeView(self)
+ 
+@@ -1594,7 +1593,7 @@
+ 
+         The copy method by default returns an independent shallow copy
+         of the graph and attributes. That is, if an attribute is a
+-        container, that container is shared by the original an the copy.
++        container, that container is shared by the original and the copy.
+         Use Python's `copy.deepcopy` for new containers.
+ 
+         If `as_view` is True then a view is returned instead of a copy.
+@@ -2050,33 +2049,4 @@
+         or None, a :exc:`NetworkXError` is raised.  Also, if any object in
+         nbunch is not hashable, a :exc:`NetworkXError` is raised.
+         """
+-        if nbunch is None:  # include all nodes via iterator
+-            bunch = iter(self._adj)
+-        elif nbunch in self:  # if nbunch is a single node
+-            bunch = iter([nbunch])
+-        else:  # if nbunch is a sequence of nodes
+-
+-            def bunch_iter(nlist, adj):
+-                try:
+-                    for n in nlist:
+-                        if n in adj:
+-                            yield n
+-                except TypeError as err:
+-                    exc, message = err, err.args[0]
+-                    # capture error for non-sequence/iterator nbunch.
+-                    if "iter" in message:
+-                        exc = NetworkXError(
+-                            "nbunch is not a node or a sequence of nodes."
+-                        )
+-                    # capture single nodes that are not in the graph.
+-                    if "object is not iterable" in message:
+-                        exc = NetworkXError(f"Node {nbunch} is not in the graph.")
+-                    # capture error for unhashable node.
+-                    if "hashable" in message:
+-                        exc = NetworkXError(
+-                            f"Node {n} in sequence nbunch is not a valid node."
+-                        )
+-                    raise exc
+-
+-            bunch = bunch_iter(nbunch, self._adj)
+-        return bunch
++        return _nbunch_iter(self._adj, nbunch)
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/graphviews.py b/networkx/classes/graphviews.py
+--- a/networkx/classes/graphviews.py	2026-10-31 20:43:49
++++ b/networkx/classes/graphviews.py	2026-10-31 20:43:49
+@@ -33,7 +33,6 @@
+     UnionMultiAdjacency,
+ )
+ from networkx.classes.filters import no_filter
+-from networkx.exception import NetworkXError
+ from networkx.utils import not_implemented_for
+ 
+ __all__ = ["generic_graph_view", "subgraph_view", "reverse_view"]
+@@ -106,7 +105,7 @@
+     else:
+         newG = nx.empty_graph(0, create_using)
+     if G.is_multigraph() != newG.is_multigraph():
+-        raise NetworkXError("Multigraph for G must agree with create_using")
++        raise nx.NetworkXError("Multigraph for G must agree with create_using")
+     newG = nx.freeze(newG)
+ 
+     # create view by assigning attributes from G
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/multidigraph.py b/networkx/classes/multidigraph.py
+--- a/networkx/classes/multidigraph.py	2026-10-31 20:43:49
++++ b/networkx/classes/multidigraph.py	2026-10-31 20:43:49
+@@ -15,7 +15,6 @@
+     OutMultiDegreeView,
+     OutMultiEdgeView,
+ )
+-from networkx.exception import NetworkXError
+ 
+ __all__ = ["MultiDiGraph"]
+ 
+@@ -306,7 +305,7 @@
+     # in order to provide a backend that allows class instantiation, this method
+     # can be overridden to return your own backend graph class.
+     @nx._dispatchable(name="multidigraph__new__", graphs=None, returns_graph=True)
+-    def __new__(cls, incoming_graph_data=None, multigraph_input=None, **attr):
++    def __new__(cls, *args, **kwargs):
+         return object.__new__(cls)
+ 
+     def __init__(self, incoming_graph_data=None, multigraph_input=None, **attr):
+@@ -582,7 +581,7 @@
+         try:
+             d = self._adj[u][v]
+         except KeyError as err:
+-            raise NetworkXError(f"The edge {u}-{v} is not in the graph.") from err
++            raise nx.NetworkXError(f"The edge {u}-{v} is not in the graph.") from err
+         # remove the edge with specified data
+         if key is None:
+             d.popitem()
+@@ -591,7 +590,7 @@
+                 del d[key]
+             except KeyError as err:
+                 msg = f"The edge {u}-{v} with key {key} is not in the graph."
+-                raise NetworkXError(msg) from err
++                raise nx.NetworkXError(msg) from err
+         if len(d) == 0:
+             # remove the key entries if last edge
+             del self._succ[u][v]
+@@ -758,12 +757,12 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.degree(0)  # node 0 with degree 1
+         1
+-        >>> list(G.degree([0, 1, 2]))
+-        [(0, 1), (1, 2), (2, 2)]
++        >>> dict(G.degree([0, 1, 2]))
++        {0: 1, 1: 2, 2: 2}
+         >>> G.add_edge(0, 1)  # parallel edge
+         1
+-        >>> list(G.degree([0, 1, 2]))  # parallel edges are counted
+-        [(0, 2), (1, 3), (2, 2)]
++        >>> dict(G.degree([0, 1, 2]))  # parallel edges are counted
++        {0: 2, 1: 3, 2: 2}
+ 
+         """
+         return DiMultiDegreeView(self)
+@@ -809,12 +808,12 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.in_degree(0)  # node 0 with degree 0
+         0
+-        >>> list(G.in_degree([0, 1, 2]))
+-        [(0, 0), (1, 1), (2, 1)]
++        >>> dict(G.in_degree([0, 1, 2]))
++        {0: 0, 1: 1, 2: 1}
+         >>> G.add_edge(0, 1)  # parallel edge
+         1
+-        >>> list(G.in_degree([0, 1, 2]))  # parallel edges counted
+-        [(0, 0), (1, 2), (2, 1)]
++        >>> dict(G.in_degree([0, 1, 2]))  # parallel edges counted
++        {0: 0, 1: 2, 2: 1}
+ 
+         """
+         return InMultiDegreeView(self)
+@@ -859,12 +858,12 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.out_degree(0)  # node 0 with degree 1
+         1
+-        >>> list(G.out_degree([0, 1, 2]))
+-        [(0, 1), (1, 1), (2, 1)]
++        >>> dict(G.out_degree([0, 1, 2]))
++        {0: 1, 1: 1, 2: 1}
+         >>> G.add_edge(0, 1)  # parallel edge
+         1
+-        >>> list(G.out_degree([0, 1, 2]))  # counts parallel edges
+-        [(0, 2), (1, 1), (2, 1)]
++        >>> dict(G.out_degree([0, 1, 2]))  # counts parallel edges
++        {0: 2, 1: 1, 2: 1}
+ 
+         """
+         return OutMultiDegreeView(self)
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/multigraph.py b/networkx/classes/multigraph.py
+--- a/networkx/classes/multigraph.py	2026-10-31 20:43:49
++++ b/networkx/classes/multigraph.py	2026-10-31 20:43:49
+@@ -314,7 +314,7 @@
+     # in order to provide a backend that allows class instantiation, this method
+     # can be overridden to return your own backend graph class.
+     @nx._dispatchable(name="multigraph__new__", graphs=None, returns_graph=True)
+-    def __new__(cls, incoming_graph_data=None, multigraph_input=None, **attr):
++    def __new__(cls, *args, **kwargs):
+         return object.__new__(cls)
+ 
+     def __init__(self, incoming_graph_data=None, multigraph_input=None, **attr):
+@@ -1017,8 +1017,8 @@
+         >>> nx.add_path(G, [0, 1, 2, 3])
+         >>> G.degree(0)  # node 0 with degree 1
+         1
+-        >>> list(G.degree([0, 1]))
+-        [(0, 1), (1, 2)]
++        >>> dict(G.degree([0, 1]))
++        {0: 1, 1: 2}
+ 
+         """
+         return MultiDegreeView(self)
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/classes/reportviews.py b/networkx/classes/reportviews.py
+--- a/networkx/classes/reportviews.py	2026-10-31 20:43:49
++++ b/networkx/classes/reportviews.py	2026-10-31 20:43:49
+@@ -1,88 +1,197 @@
+ """
+ View Classes provide node, edge and degree "views" of a graph.
+ 
+-Views for nodes, edges and degree are provided for all base graph classes.
+-A view means a read-only object that is quick to create, automatically
+-updated when the graph changes, and provides basic access like `n in V`,
+-`for n in V`, `V[n]` and sometimes set operations.
++As with dicts, the graph should not be updated while
++iterating through the view. Views can be iterated multiple times.
+ 
+-The views are read-only iterable containers that are updated as the
+-graph is updated. As with dicts, the graph should not be updated
+-while iterating through the view. Views can be iterated multiple times.
++Views are quick-to-create, read-only iterable containers,
++live (they reflect changes to the graph), and provide
++Pythonic access patterns for all base graph classes:
+ 
+-Edge and Node views also allow data attribute lookup.
+-The resulting attribute dict is writable as `G.edges[3, 4]['color']='red'`
++- set-like membership and set operations for nodes and edges (``n in G.nodes``,
++  ``G.nodes & H.nodes``, ``(u, v) in G.edges``),
++- iteration (``for n in G.nodes``, ``for u, v in G.edges``),
++- mapping-style lookups (``G.nodes[n]`` returns the node attribute dict;
++  ``G.edges[u, v]`` returns the edge attribute dict),
++- data-filtered iteration via ``.data(...)`` and conversion to concrete
++  containers via ``list(...)`` or ``dict(...)``.
++
++The resulting attribute dict is writable as ``G.edges[3, 4]['color'] = 'red'``
+ Degree views allow lookup of degree values for single nodes.
+-Weighted degree is supported with the `weight` argument.
++Weighted degree is supported with the ``weight`` argument.
+ 
+ NodeView
+ ========
+ 
+-    `V = G.nodes` (or `V = G.nodes()`) allows `len(V)`, `n in V`, set
+-    operations e.g. "G.nodes & H.nodes", and `dd = G.nodes[n]`, where
+-    `dd` is the node data dict. Iteration is over the nodes by default.
++``V = G.nodes`` (or ``V = G.nodes()``) allows ``len(V)``, ``n in V``, set
++operations e.g. ``G.nodes & H.nodes``, and ``dd = G.nodes[n]``, where
++``dd`` is the node data dict. Iteration is over the nodes by default.
+ 
+ NodeDataView
+ ============
+ 
+-    To iterate over (node, data) pairs, use arguments to `G.nodes()`
+-    to create a DataView e.g. `DV = G.nodes(data='color', default='red')`.
+-    The DataView iterates as `for n, color in DV` and allows
+-    `(n, 'red') in DV`. Using `DV = G.nodes(data=True)`, the DataViews
+-    use the full datadict in writeable form also allowing contain testing as
+-    `(n, {'color': 'red'}) in VD`. DataViews allow set operations when
+-    data attributes are hashable.
++To iterate over ``(node, data)`` pairs, use arguments to ``G.nodes()``
++to create a DataView e.g. ``DV = G.nodes(data='color', default='red')``.
++The DataView iterates as ``for n, color in DV`` and allows
++``(n, 'red') in DV``. Using ``DV = G.nodes(data=True)``, the DataViews
++use the full datadict in writeable form also allowing contain testing as
++``(n, {'color': 'red'}) in VD``. DataViews allow set operations when
++data attributes are hashable.
+ 
+ DegreeView
+ ==========
+ 
+-    `V = G.degree` allows iteration over (node, degree) pairs as well
+-    as lookup: `deg=V[n]`. There are many flavors of DegreeView
+-    for In/Out/Directed/Multi. For Directed Graphs, `G.degree`
+-    counts both in and out going edges. `G.out_degree` and
+-    `G.in_degree` count only specific directions.
+-    Weighted degree using edge data attributes is provide via
+-    `V = G.degree(weight='attr_name')` where any string with the
+-    attribute name can be used. `weight=None` is the default.
+-    No set operations are implemented for degrees, use NodeView.
++``V = G.degree`` allows iteration over ``(node, degree)`` pairs as well
++as lookup: ``deg = V[n]``. There are many flavors of DegreeView
++for In/Out/Directed/Multi. For Directed Graphs, ``G.degree``
++counts both in and out going edges. ``G.out_degree`` and
++``G.in_degree`` count only specific directions.
++Weighted degree using edge data attributes is provide via
++``V = G.degree(weight='attr_name')`` where any string with the
++attribute name can be used. ``weight=None`` is the default.
++No set operations are implemented for degrees, use NodeView.
+ 
+-    The argument `nbunch` restricts iteration to nodes in nbunch.
+-    The DegreeView can still lookup any node even if nbunch is specified.
++The argument ``nbunch`` restricts iteration to nodes in nbunch.
++The DegreeView can still lookup any node even if nbunch is specified.
+ 
+ EdgeView
+ ========
+ 
+-    `V = G.edges` or `V = G.edges()` allows iteration over edges as well as
+-    `e in V`, set operations and edge data lookup `dd = G.edges[2, 3]`.
+-    Iteration is over 2-tuples `(u, v)` for Graph/DiGraph. For multigraphs
+-    edges 3-tuples `(u, v, key)` are the default but 2-tuples can be obtained
+-    via `V = G.edges(keys=False)`.
++``V = G.edges`` or ``V = G.edges()`` allows iteration over edges as well as
++``e in V``, set operations and edge data lookup ``dd = G.edges[2, 3]``.
++Iteration is over 2-tuples ``(u, v)`` for Graph/DiGraph. For multigraphs
++edges 3-tuples ``(u, v, key)`` are the default but 2-tuples can be obtained
++via ``V = G.edges(keys=False)``.
+ 
+-    Set operations for directed graphs treat the edges as a set of 2-tuples.
+-    For undirected graphs, 2-tuples are not a unique representation of edges.
+-    So long as the set being compared to contains unique representations
+-    of its edges, the set operations will act as expected. If the other
+-    set contains both `(0, 1)` and `(1, 0)` however, the result of set
+-    operations may contain both representations of the same edge.
++Set operations for directed graphs treat the edges as a set of 2-tuples.
++For undirected graphs, 2-tuples are not a unique representation of edges.
++So long as the set being compared to contains unique representations
++of its edges, the set operations will act as expected. If the other
++set contains both ``(0, 1)`` and ``(1, 0)`` however, the result of set
++operations may contain both representations of the same edge.
+ 
+ EdgeDataView
+ ============
+ 
+-    Edge data can be reported using an EdgeDataView typically created
+-    by calling an EdgeView: `DV = G.edges(data='weight', default=1)`.
+-    The EdgeDataView allows iteration over edge tuples, membership checking
+-    but no set operations.
++Edge data can be reported using an EdgeDataView typically created
++by calling an EdgeView: ``DV = G.edges(data='weight', default=1)``.
++The EdgeDataView allows iteration over edge tuples, membership checking
++but no set operations.
+ 
+-    Iteration depends on `data` and `default` and for multigraph `keys`
+-    If `data is False` (the default) then iterate over 2-tuples `(u, v)`.
+-    If `data is True` iterate over 3-tuples `(u, v, datadict)`.
+-    Otherwise iterate over `(u, v, datadict.get(data, default))`.
+-    For Multigraphs, if `keys is True`, replace `u, v` with `u, v, key`
+-    to create 3-tuples and 4-tuples.
++Iteration depends on ``data`` and ``default`` and for multigraph ``keys``
++If ``data is False`` (the default) then iterate over 2-tuples ``(u, v)``.
++If ``data is True`` iterate over 3-tuples ``(u, v, datadict)``.
++Otherwise iterate over ``(u, v, datadict.get(data, default))``.
++For Multigraphs, if ``keys is True``, replace ``u, v`` with `u, v, key`
++to create 3-tuples and 4-tuples.
+ 
+-    The argument `nbunch` restricts edges to those incident to nodes in nbunch.
++The argument ``nbunch`` restricts edges to those incident to nodes in nbunch.
++
++Common usage patterns
++=====================
++
++NodeView / NodeDataView
++-----------------------
++
++- Use ``G.nodes`` when you need membership tests, set-like operations, or to
++  look up a node's attribute dict with ``G.nodes[n]``.
++- Use ``G.nodes(data=...)`` or ``G.nodes.data(attr_name, default=...)`` to
++  iterate node/data pairs or to extract a single attribute for all nodes.
++- Use ``list(G)`` or ``for node in G:`` to iterate over nodes.
++
++Example:
++
++.. code-block:: python
++
++    >>> G = nx.path_graph(3)
++    >>> list(G.nodes)
++    [0, 1, 2]
++    >>> G.add_node(3, color="red")
++    >>> list(G.nodes.data("color", default=None))
++    [(0, None), (1, None), (2, None), (3, 'red')]
++
++EdgeView / EdgeDataView
++-----------------------
++
++- Use ``G.edges`` to iterate or test membership for edges.
++- Call ``G.edges(data=...)`` or ``G.edges(nbunch=..., data=..., keys=...)`` to
++  iterate edges with data, restrict to edges incident to a set of nodes, or
++  include multigraph keys.
++
++.. note::
++   Iteration of ``G.edges()`` yields node pairs as 2-tuples even for multigraphs.
++   Iteration of `G.edges` yields 3-tuples for multigraphs and 2-tuples otherwise.
++   You can also use ``G.edges(keys=True, data=True)`` to receive 4-tuples
++   ``(u, v, key, data)`` for multigraphs.
++
++Example:
++
++.. code-block:: python
++
++    >>> G = nx.Graph()
++    >>> G.add_edge(0, 1, weight=3)
++    >>> list(G.edges(data="weight", default=1))
++    [(0, 1, 3)]
++
++DegreeView
++----------
++
++- Use ``G.degree`` to iterate ``(node, degree)`` pairs or query a single node
++  with ``G.degree[n]``.
++- The function interface ``G.degree(nbunch=..., weight=...)`` allows:
++  * ``weight="attr"`` to compute weighted degree using the named edge attribute, and
++  * ``nbunch`` to restrict iteration to a subset of nodes while still allowing direct lookups.
++
++Example:
++
++.. code-block:: python
++
++    >>> G = nx.cycle_graph(4)
++    >>> dict(G.degree())
++    {0: 2, 1: 2, 2: 2, 3: 2}
++    >>> G.degree[0]
++    2
++    >>> # Add an edge with a weight attribute and compute weighted degrees:
++    >>> G.add_edge(0, 1, weight=5)
++    >>> dict(G.degree(weight="weight"))
++    {0: 6, 1: 6, 2: 2, 3: 2}
++
++Degree Computation
++==================
++
++NetworkX does not store a persistent degree value for each node. Instead, the
++degree is computed when requested by examining the neighbor dictionary for a
++node and counting or summing edge attributes as needed. For multigraphs the key
++dict for each neighbor is scanned; for weighted degree the requested edge
++attribute values are summed.
++
++Because computing degree accesses the adjacency structures, some applications
++cache degree values in a separate dictionary to avoid repeated recomputation:
++
++.. code-block:: python
++
++    >>> G_degree = dict(G.degree)   # make a cached snapshot of degrees
++
++If degrees are cached, update the cached dictionary when edges are modified.
++
++Performance & pitfalls
++======================
++
++- Views are **read-only** wrappers — they do not copy graph data. If you need a stable snapshot
++  (for example when you will modify the graph while iterating), materialize the view using
++  ``list(view)`` or ``dict(view)``.
++- Avoid modifying the graph while iterating over a view (same rule as iterating a dict).
++- DataViews that return full attribute dicts expose writable dicts (modifying those dicts
++  modifies the underlying graph attributes). Use this intentionally.
++- Edge set operations on undirected graphs use 2-tuple representations; be careful when
++  comparing sets that may contain both ``(u, v)`` and ``(v, u)``.
++- DegreeView with ``weight`` performs a sum over edge attributes and can be more expensive
++  than unweighted degree calculations.
++- When ``G`` will not change and you need many degree lookups, store
++  the precomputed degrees using ``degrees = dict(G.degree)``.
+ """
+ 
++import weakref
+ from abc import ABC
+ from collections.abc import Mapping, Set
+ 
+@@ -114,6 +223,48 @@
+ ]
+ 
+ 
++def _dead_ref():
++    return None
++
++
++def _nbunch_iter(adj, nbunch=None):
++    """The body of ``Graph.nbunch_iter`` on an adjacency dict.
++
++    Views call this with the dict they hold so they never need the graph
++    object itself; ``Graph.nbunch_iter`` delegates here.
++    """
++    if nbunch is None:  # include all nodes via iterator
++        return iter(adj)
++    try:
++        single = nbunch in adj
++    except TypeError:
++        single = False
++    if single:  # if nbunch is a single node
++        return iter([nbunch])
++
++    def bunch_iter(nlist, adj):
++        try:
++            for n in nlist:
++                if n in adj:
++                    yield n
++        except TypeError as err:
++            exc, message = err, err.args[0]
++            # capture error for non-sequence/iterator nbunch.
++            if "iter" in message:
++                exc = nx.NetworkXError("nbunch is not a node or a sequence of nodes.")
++            # capture single nodes that are not in the graph.
++            if "object is not iterable" in message:
++                exc = nx.NetworkXError(f"Node {nbunch} is not in the graph.")
++            # capture error for unhashable node.
++            if "hashable" in message:
++                exc = nx.NetworkXError(
++                    f"Node {n} in sequence nbunch is not a valid node."
++                )
++            raise exc
++
++    return bunch_iter(nbunch, adj)
++
++
+ # NodeViews
+ class NodeView(Mapping, Set):
+     """A NodeView class to act as G.nodes for a NetworkX Graph
+@@ -418,26 +569,66 @@
+     >>> assert len(list(DVnbunch)) == 2  # iteration over nbunch only
+     """
+ 
++    # See ``OutEdgeView._graph``: the graph is held weakly so that caching
++    # this view on the graph does not create a reference cycle.
++    @property
++    def _graph(self):
++        G = self._graph_ref()
++        if G is None:
++            raise ReferenceError(
++                "the graph this view was created from no longer exists"
++            )
++        return G
++
++    @_graph.setter
++    def _graph(self, G):
++        self._graph_ref = weakref.ref(G) if G is not None else _dead_ref
++
++    def __getstate__(self):
++        state = self.__dict__.copy()
++        del state["_graph_ref"]
++        state["_graph"] = self._graph_ref()  # strong reference (or None) in the pickle
++        return state
++
++    def __setstate__(self, state):
++        self._graph = state.pop("_graph")  # rebuilds the weak reference
++        self.__dict__.update(state)
++
+     def __init__(self, G, nbunch=None, weight=None):
+         self._graph = G
+         self._succ = G._succ if hasattr(G, "_succ") else G._adj
+         self._pred = G._pred if hasattr(G, "_pred") else G._adj
+-        self._nodes = self._succ if nbunch is None else list(G.nbunch_iter(nbunch))
++        self._nodes = (
++            self._succ if nbunch is None else list(_nbunch_iter(self._succ, nbunch))
++        )
+         self._weight = weight
+ 
++    @classmethod
++    def _from_view(cls, view, nbunch, weight):
++        """A sibling view sharing ``view``'s dicts; needs no graph object."""
++        new = cls.__new__(cls)
++        new._graph_ref = view._graph_ref
++        new._succ = view._succ
++        new._pred = view._pred
++        new._nodes = (
++            new._succ if nbunch is None else list(_nbunch_iter(new._succ, nbunch))
++        )
++        new._weight = weight
++        return new
++
+     def __call__(self, nbunch=None, weight=None):
+         if nbunch is None:
+             if weight == self._weight:
+                 return self
+-            return self.__class__(self._graph, None, weight)
++            return self._from_view(self, None, weight)
+         try:
+             if nbunch in self._nodes:
+                 if weight == self._weight:
+                     return self[nbunch]
+-                return self.__class__(self._graph, None, weight)[nbunch]
++                return self._from_view(self, None, weight)[nbunch]
+         except TypeError:
+             pass
+-        return self.__class__(self._graph, nbunch, weight)
++        return self._from_view(self, nbunch, weight)
+ 
+     def __getitem__(self, n):
+         weight = self._weight
+@@ -547,7 +738,6 @@
+     """A DegreeView class to report out_degree for a DiGraph; See DegreeView"""
+ 
+     def __getitem__(self, n):
+-        weight = self._weight
+         nbrs = self._succ[n]
+         if self._weight is None:
+             return len(nbrs)
+@@ -775,7 +965,7 @@
+             self._nodes_nbrs = adjdict.items
+         else:
+             # dict retains order of nodes but acts like a set
+-            nbunch = dict.fromkeys(viewer._graph.nbunch_iter(nbunch))
++            nbunch = dict.fromkeys(_nbunch_iter(adjdict, nbunch))
+             self._nodes_nbrs = lambda: [(n, adjdict[n]) for n in nbunch]
+         self._nbunch = nbunch
+         self._data = data
+@@ -786,10 +976,8 @@
+         elif data is False:
+             self._report = lambda n, nbr, dd: (n, nbr)
+         else:  # data is attribute name
+-            self._report = (
+-                lambda n, nbr, dd: (n, nbr, dd[data])
+-                if data in dd
+-                else (n, nbr, default)
++            self._report = lambda n, nbr, dd: (
++                (n, nbr, dd[data]) if data in dd else (n, nbr, default)
+             )
+ 
+     def __len__(self):
+@@ -921,7 +1109,7 @@
+             self._nodes_nbrs = adjdict.items
+         else:
+             # dict retains order of nodes but acts like a set
+-            nbunch = dict.fromkeys(viewer._graph.nbunch_iter(nbunch))
++            nbunch = dict.fromkeys(_nbunch_iter(adjdict, nbunch))
+             self._nodes_nbrs = lambda: [(n, adjdict[n]) for n in nbunch]
+         self._nbunch = nbunch
+         self._data = data
+@@ -939,16 +1127,12 @@
+                 self._report = lambda n, nbr, k, dd: (n, nbr)
+         else:  # data is attribute name
+             if keys is True:
+-                self._report = (
+-                    lambda n, nbr, k, dd: (n, nbr, k, dd[data])
+-                    if data in dd
+-                    else (n, nbr, k, default)
++                self._report = lambda n, nbr, k, dd: (
++                    (n, nbr, k, dd[data]) if data in dd else (n, nbr, k, default)
+                 )
+             else:
+-                self._report = (
+-                    lambda n, nbr, k, dd: (n, nbr, dd[data])
+-                    if data in dd
+-                    else (n, nbr, default)
++                self._report = lambda n, nbr, k, dd: (
++                    (n, nbr, dd[data]) if data in dd else (n, nbr, default)
+                 )
+ 
+     def __len__(self):
+@@ -1048,10 +1232,29 @@
+ class OutEdgeView(Set, Mapping, EdgeViewABC):
+     """A EdgeView class for outward edges of a DiGraph"""
+ 
+-    __slots__ = ("_adjdict", "_graph", "_nodes_nbrs")
++    __slots__ = ("_adjdict", "_graph_ref", "_nodes_nbrs")
+ 
++    # The graph caches this view (``G.edges`` is a ``cached_property``), so a
++    # strong ``_graph`` back-reference would make every graph whose views were
++    # ever read reclaimable only by the cyclic garbage collector. Hold the
++    # graph weakly instead. Nothing in the view needs the graph object: it
++    # works from ``_adjdict`` alone, and ``_graph`` is kept only for pickling
++    # and for code that reaches through the view to its graph.
++    @property
++    def _graph(self):
++        G = self._graph_ref()
++        if G is None:
++            raise ReferenceError(
++                "the graph this view was created from no longer exists"
++            )
++        return G
++
++    @_graph.setter
++    def _graph(self, G):
++        self._graph_ref = weakref.ref(G) if G is not None else _dead_ref
++
+     def __getstate__(self):
+-        return {"_graph": self._graph, "_adjdict": self._adjdict}
++        return {"_graph": self._graph_ref(), "_adjdict": self._adjdict}
+ 
+     def __setstate__(self, state):
+         self._graph = state["_graph"]
+@@ -1095,8 +1298,9 @@
+         u, v = e
+         try:
+             return self._adjdict[u][v]
+-        except KeyError as ex:  # Customize msg to indicate exception origin
+-            raise KeyError(f"The edge {e} is not in the graph.")
++        except KeyError as err:
++            err.add_note(f"The edge {e} is not in the graph")
++            raise
+ 
+     # EdgeDataView methods
+     def __call__(self, nbunch=None, data=False, *, default=None):
+@@ -1324,7 +1528,11 @@
+                 f"try list(G.in_edges)[{e.start}:{e.stop}:{e.step}]"
+             )
+         u, v = e
+-        return self._adjdict[v][u]
++        try:
++            return self._adjdict[v][u]
++        except KeyError as err:
++            err.add_note(f"The edge {e} is not in the graph")
++            raise
+ 
+ 
+ class OutMultiEdgeView(OutEdgeView):
+@@ -1366,7 +1574,11 @@
+                 f"try list(G.edges)[{e.start}:{e.stop}:{e.step}]"
+             )
+         u, v, k = e
+-        return self._adjdict[u][v][k]
++        try:
++            return self._adjdict[u][v][k]
++        except KeyError as err:
++            err.add_note(f"The edge {e} is not in the graph")
++            raise
+ 
+     def __call__(self, nbunch=None, data=False, *, default=None, keys=False):
+         if nbunch is None and data is False and keys is True:
+@@ -1444,4 +1656,8 @@
+                 f"try list(G.in_edges)[{e.start}:{e.stop}:{e.step}]"
+             )
+         u, v, k = e
+-        return self._adjdict[v][u][k]
++        try:
++            return self._adjdict[v][u][k]
++        except KeyError as err:
++            err.add_note(f"The edge {e} is not in the graph")
++            raise
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/generators/classic.py b/networkx/generators/classic.py
+--- a/networkx/generators/classic.py	2026-10-31 20:43:49
++++ b/networkx/generators/classic.py	2026-10-31 20:43:49
+@@ -15,7 +15,6 @@
+ 
+ import networkx as nx
+ from networkx.classes import Graph
+-from networkx.exception import NetworkXError
+ from networkx.utils import nodes_or_number, pairwise
+ 
+ __all__ = [
+@@ -48,24 +47,6 @@
+ # -------------------------------------------------------------------
+ 
+ 
+-def _tree_edges(n, r):
+-    if n == 0:
+-        return
+-    # helper function for trees
+-    # yields edges in rooted tree at 0 with n nodes and branching ratio r
+-    nodes = iter(range(n))
+-    parents = [next(nodes)]  # stack of max length r
+-    while parents:
+-        source = parents.pop(0)
+-        for i in range(r):
+-            try:
+-                target = next(nodes)
+-                parents.append(target)
+-                yield source, target
+-            except StopIteration:
+-                break
+-
+-
+ @nx._dispatchable(graphs=None, returns_graph=True)
+ def full_rary_tree(r, n, create_using=None):
+     """Creates a full r-ary tree of `n` nodes.
+@@ -100,7 +81,10 @@
+            James Andrew Storer,  Birkhauser Boston 2001, (page 225).
+     """
+     G = empty_graph(n, create_using)
+-    G.add_edges_from(_tree_edges(n, r))
++    if r > 0:
++        # Nodes are labeled in breadth-first order from the root, so the parent
++        # of node `child` is simply ``(child - 1) // r``.
++        G.add_edges_from(((child - 1) // r, child) for child in range(1, n))
+     return G
+ 
+ 
+@@ -134,9 +118,9 @@
+     True
+     """
+     if n <= 0:
+-        raise NetworkXError("n should be greater than zero")
++        raise nx.NetworkXError("n should be greater than zero")
+     if k <= 0 or k > n:
+-        raise NetworkXError("k should be greater than zero and smaller than n")
++        raise nx.NetworkXError("k should be greater than zero and smaller than n")
+ 
+     G = nx.Graph()
+     # Create all k-subsets of [0, 1, ..., n-1]
+@@ -247,14 +231,14 @@
+ 
+     """
+     if m1 < 2:
+-        raise NetworkXError("Invalid graph description, m1 should be >=2")
++        raise nx.NetworkXError("Invalid graph description, m1 should be >=2")
+     if m2 < 0:
+-        raise NetworkXError("Invalid graph description, m2 should be >=0")
++        raise nx.NetworkXError("Invalid graph description, m2 should be >=0")
+ 
+     # left barbell
+     G = complete_graph(m1, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+ 
+     # connecting path
+     G.add_nodes_from(range(m1, m1 + m2 - 1))
+@@ -373,7 +357,28 @@
+ 
+         >>> nx.draw(nx.circular_ladder_graph(5))
+ 
++    Parameters
++    ----------
++    n : int
++        The length of the ladder. Must be at least 2.
++    create_using : NetworkX graph constructor, optional (default=nx.Graph)
++        Graph type to create. If graph instance, then cleared before populated.
++
++    Returns
++    -------
++    G : Graph
++        A circular ladder graph.
++
++    Raises
++    ------
++    ValueError
++        If `n` is less than 2.
++    NetworkXError
++        If `create_using` is a directed graph.
++
+     """
++    if n < 2:
++        raise ValueError("n must be at least 2 for circular_ladder_graph")
+     G = ladder_graph(n, create_using)
+     G.add_edge(0, n - 1)
+     G.add_edge(n, 2 * n - 1)
+@@ -540,13 +545,13 @@
+         https://mathworld.wolfram.com/Dorogovtsev-Goltsev-MendesGraph.html
+     """
+     if n < 0:
+-        raise NetworkXError("n must be greater than or equal to 0")
++        raise nx.NetworkXError("n must be greater than or equal to 0")
+ 
+     G = empty_graph(0, create_using)
+     if G.is_directed():
+-        raise NetworkXError("directed graph not supported")
++        raise nx.NetworkXError("directed graph not supported")
+     if G.is_multigraph():
+-        raise NetworkXError("multigraph not supported")
++        raise nx.NetworkXError("multigraph not supported")
+ 
+     G.add_edge(0, 1)
+     new_node = 2  # next node to be added
+@@ -676,7 +681,7 @@
+     """
+     G = empty_graph(2 * n, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+     G.add_edges_from(pairwise(range(n)))
+     G.add_edges_from(pairwise(range(n, 2 * n)))
+     G.add_edges_from((v, v + n) for v in range(n))
+@@ -724,7 +729,9 @@
+     m, m_nodes = m
+     M = len(m_nodes)
+     if M < 2:
+-        raise NetworkXError("Invalid description: m should indicate at least 2 nodes")
++        raise nx.NetworkXError(
++            "Invalid description: m should indicate at least 2 nodes"
++        )
+ 
+     n, n_nodes = n
+     if isinstance(m, numbers.Integral) and isinstance(n, numbers.Integral):
+@@ -734,7 +741,7 @@
+     # the ball
+     G = complete_graph(m_nodes, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+ 
+     # the stick
+     G.add_nodes_from(n_nodes)
+@@ -742,7 +749,7 @@
+         G.add_edges_from(pairwise(n_nodes))
+ 
+     if len(G) != M + N:
+-        raise NetworkXError("Nodes must be distinct in containers m and n")
++        raise nx.NetworkXError("Nodes must be distinct in containers m and n")
+ 
+     # connect ball to stick
+     if M > 0 and N > 0:
+@@ -896,7 +903,9 @@
+     m, m_nodes = m
+     M = len(m_nodes)
+     if M < 2:
+-        raise NetworkXError("Invalid description: m should indicate at least 2 nodes")
++        raise nx.NetworkXError(
++            "Invalid description: m should indicate at least 2 nodes"
++        )
+ 
+     n, n_nodes = n
+     if isinstance(m, numbers.Integral) and isinstance(n, numbers.Integral):
+@@ -905,7 +914,7 @@
+     # the circle
+     G = cycle_graph(m_nodes, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+ 
+     # the stick
+     nx.add_path(G, [m_nodes[-1]] + list(n_nodes))
+@@ -957,7 +966,7 @@
+     """
+ 
+     if not 1 <= r <= n:
+-        raise NetworkXError("Must satisfy 1 <= r <= n")
++        raise nx.NetworkXError("Must satisfy 1 <= r <= n")
+ 
+     partitions = [n // r] * (r - (n % r)) + [n // r + 1] * (n % r)
+     G = complete_multipartite_graph(*partitions)
+@@ -990,7 +999,7 @@
+     _, nodes = n
+     G = empty_graph(nodes, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+ 
+     if len(nodes) > 1:
+         hub, *rim = nodes
+@@ -1074,7 +1083,9 @@
+         subsets = subset_sizes
+     else:
+         if any(size < 0 for size in subset_sizes):
+-            raise NetworkXError(f"Negative number of nodes not valid: {subset_sizes}")
++            raise nx.NetworkXError(
++                f"Negative number of nodes not valid: {subset_sizes}"
++            )
+ 
+     # add nodes with subset attribute
+     # while checking that ints are not mixed with iterables
+@@ -1082,7 +1093,7 @@
+         for i, subset in enumerate(subsets):
+             G.add_nodes_from(subset, subset=i)
+     except TypeError as err:
+-        raise NetworkXError("Arguments must be all ints or all iterables") from err
++        raise nx.NetworkXError("Arguments must be all ints or all iterables") from err
+ 
+     # Across subsets, all nodes should be adjacent.
+     # We can use itertools.combinations() because undirected.
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/generators/community.py b/networkx/generators/community.py
+--- a/networkx/generators/community.py	2026-10-31 20:43:49
++++ b/networkx/generators/community.py	2026-10-31 20:43:49
+@@ -552,14 +552,14 @@
+     >>> H = nx.quotient_graph(g, g.graph["partition"], relabel=True)
+     >>> for v in H.nodes(data=True):
+     ...     print(round(v[1]["density"], 3))
+-    0.245
+-    0.348
+-    0.405
++    0.244
++    0.354
++    0.398
+     >>> for v in H.edges(data=True):
+     ...     print(round(1.0 * v[2]["weight"] / (sizes[v[0]] * sizes[v[1]]), 3))
+-    0.051
+-    0.022
+-    0.07
++    0.047
++    0.02
++    0.071
+ 
+     See Also
+     --------
+@@ -635,9 +635,6 @@
+                 edges = itertools.combinations(parts[i], 2)
+                 if selfloops:
+                     edges = itertools.chain(edges, zip(parts[i], parts[i]))
+-            for e in edges:
+-                if seed.random() < p[i][j]:
+-                    g.add_edge(*e)
+         else:
+             edges = itertools.product(parts[i], parts[j])
+         if sparse:
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/generators/geometric.py b/networkx/generators/geometric.py
+--- a/networkx/generators/geometric.py	2026-10-31 20:43:49
++++ b/networkx/generators/geometric.py	2026-10-31 20:43:49
+@@ -982,7 +982,7 @@
+             )
+ 
+         n = len(kappas)
+-        mean_degree = sum(kappas) / len(kappas)
++        mean_degree = sum(kappas.values()) / len(kappas)
+     else:
+         if any((n is None, gamma is None, mean_degree is None)):
+             raise nx.NetworkXError(
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/generators/random_graphs.py b/networkx/generators/random_graphs.py
+--- a/networkx/generators/random_graphs.py	2026-10-31 20:43:49
++++ b/networkx/generators/random_graphs.py	2026-11-01 13:17:37
+@@ -29,12 +29,12 @@
+     "dual_barabasi_albert_graph",
+     "extended_barabasi_albert_graph",
+     "powerlaw_cluster_graph",
+-    "random_lobster",
+     "random_lobster_graph",
+     "random_shell_graph",
+     "random_powerlaw_tree",
+     "random_powerlaw_tree_sequence",
+     "random_kernel_graph",
++    "random_k_lift",
+ ]
+ 
+ 
+@@ -760,7 +760,7 @@
+         Initial network for Barabási–Albert algorithm.
+         A copy of `initial_graph` is used.
+         It should be connected for most use cases.
+-        If None, starts from an star graph on max(m1, m2) + 1 nodes.
++        If None, starts from a star graph on max(m1, m2) + 1 nodes.
+     create_using : Graph constructor, optional (default=nx.Graph)
+         Graph type to create. If graph instance, then cleared before populated.
+         Multigraph and directed types are not supported and raise a ``NetworkXError``.
+@@ -801,7 +801,7 @@
+         return barabasi_albert_graph(n, m2, seed, create_using=create_using)
+ 
+     if initial_graph is None:
+-        # Default initial graph : star graph on max(m1, m2) nodes
++        # Default initial graph : star graph on max(m1, m2) + 1 nodes
+         G = star_graph(max(m1, m2), create_using)
+     else:
+         if len(initial_graph) < max(m1, m2) or len(initial_graph) > n:
+@@ -1151,25 +1151,6 @@
+     return L  # voila, un lobster!
+ 
+ 
+-@py_random_state(3)
+-@nx._dispatchable(graphs=None, returns_graph=True)
+-def random_lobster(n, p1, p2, seed=None, *, create_using=None):
+-    """
+-    .. deprecated:: 3.5
+-       `random_lobster` is a deprecated alias
+-       for `random_lobster_graph`.
+-       Use `random_lobster_graph` instead.
+-    """
+-    import warnings
+-
+-    warnings.warn(
+-        "`random_lobster` is deprecated, use `random_lobster_graph` instead.",
+-        category=DeprecationWarning,
+-        stacklevel=2,
+-    )
+-    return random_lobster_graph(n, p1, p2, seed=seed, create_using=create_using)
+-
+-
+ @py_random_state(1)
+ @nx._dispatchable(graphs=None, returns_graph=True)
+ def random_shell_graph(constructor, seed=None, *, create_using=None):
+@@ -1414,3 +1395,102 @@
+             j = math.ceil(n * kernel_root(i / n, j / n, r))
+             graph.add_edge(i - 1, j - 1)
+     return graph
++
++
++@py_random_state("seed")
++@nx._dispatchable(graphs="G", returns_graph=True)
++def random_k_lift(G, k, seed=None):
++    r"""Return a `k`-lift of a graph using random permutations.
++
++    The resulting graph ``H`` has `k` copies of each node from `G`.
++    For each edge ``(u, v)`` in `G`, a random permutation is used to connect the ``i``-th copy of ``u``
++    to the permuted ``i``-th copy of ``v`` in ``H``.
++
++    Parameters
++    ----------
++    G : Graph or DiGraph
++        Multigraph inputs are not supported: parallel edges would collapse
++        under the per-edge permutation.
++        The base graph to lift. Any standard NetworkX graph type is supported.
++    k : int
++        The lift parameter. Each node in `G` is expanded to `k` copies.
++    seed : int, RandomState, or None (default: None)
++        Seed for the random number generator (used for permutation generation).
++        This ensures reproducibility.
++        See :ref:`Randomness<randomness>`.
++
++    Returns
++    -------
++    H : Graph or DiGraph
++        The resulting `k`-lifted graph. The returned type matches the input graph type.
++
++    Notes
++    -----
++    Given a base graph `G` and a lift parameter `k`, this function performs a `k`-lift as follows:
++
++    - For each node ``v`` in `G`, it creates `k` copies: ``(v, 0), ..., (v, k - 1)``.
++    - For each edge ``(u, v)`` in `G`, a random permutation ``σ`` is applied to determine new edges:
++      if ``σ(i) = j``, then ``((u, i), (v, j))`` is added to ``H``.
++      The permutation is simulated by creating a shuffled list ``permutation`` of values 0 to ``k - 1``.
++      Each ``i``-th copy of ``u`` is then connected to the ``permutation[i]``-th copy of ``v``.
++
++    This operation is often used in the construction of expander graphs [1]_.
++    If the base graph is a decent expander (i.e., has a good spectral gap-the
++    difference between the two largest eigenvalues (in absolute value) of its adjacency matrix),
++    then its `k`-lifts are also expanders, with the spectral gap preserved
++    (or slightly reduced and stabilizing for larger `k` [3]_) with high probability,
++    while producing a larger graph of the same degree.
++
++    For arbitrary input graphs, the lifted graph may be disconnected.
++    Disconnected lifts occur more often when the base graph is a poor expander.
++    Since enforcing connectivity in such cases is unlikely to
++    produce a good expander, this implementation returns the lift directly,
++    even if it is disconnected. Users who require connected results may wrap
++    this function with retries until a connected lift is found.
++
++    While expander graphs are most commonly studied as degree-regular undirected simple graphs/multigraphs,
++    the `k`-lift operation itself is well-defined and can also be beneficial for directed [4]_
++    and non-regular [5]_ graphs.
++
++    References
++    ----------
++    .. [1] Y. Bilu and N. Linial, "Lifts, Discrepancy and Nearly Optimal Spectral Gap."
++       *Combinatorica*, 26(5), pp. 495–519, 2006,
++       https://www.cs.huji.ac.il/~nati/PAPERS/raman_lift.pdf
++    .. [2] A. Valadarsky, G. Shahaf, M. Dinitz and M. Schapira,
++       "Xpander: Towards Optimal-Performance Datacenters.",
++       In *Proceedings of the 12th International Conference on
++       Emerging Networking Experiments and Technologies (CoNEXT)*, 2016,
++       https://dl.acm.org/doi/pdf/10.1145/2999572.2999580
++    .. [3] N. Agarwal, K. Chandrasekaran, A. Kolla and V. Madan,
++       "On the Expansion of Group-Based Lifts.", arXiv preprint arXiv:1311.3268v2, 2016,
++       http://arxiv.org/abs/1311.3268v2
++    .. [4] P. Chebolu and A. Frieze,
++       "Hamilton Cycles in Random Lifts of Directed Graphs.",
++       Department of Mathematics, Carnegie Mellon University, 2007,
++       https://www.math.cmu.edu/~af1p/Texfiles/LiftHamDir.pdf
++    .. [5] S. Hoory,
++       "On the Girth of Graph Lifts." arXiv:2401.01238v1, 2024,
++       https://arxiv.org/pdf/2401.01238
++
++    Examples
++    --------
++    >>> G = nx.complete_graph(4)  # 3-regular, connected graph
++    >>> H = nx.random_k_lift(G, 4, seed=42)  # 4-lift of G
++    >>> H.number_of_nodes()
++    16
++    """
++    H = G.__class__()
++
++    # Create k copies of each node
++    H.add_nodes_from((v, i) for v in G.nodes for i in range(k))
++
++    # Apply random permutation to edges
++    edges = []
++    permutation = list(range(k))
++    for u, v in G.edges():
++        seed.shuffle(permutation)
++        edges.extend(((u, i), (v, permutation[i])) for i in range(k))
++    H.add_edges_from(edges)
++
++    return H
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/generators/small.py b/networkx/generators/small.py
+--- a/networkx/generators/small.py	2026-10-31 20:43:49
++++ b/networkx/generators/small.py	2026-10-31 20:43:49
+@@ -24,6 +24,7 @@
+     "pappus_graph",
+     "petersen_graph",
+     "sedgewick_maze_graph",
++    "shrikhande_graph",
+     "tetrahedral_graph",
+     "truncated_cube_graph",
+     "truncated_tetrahedron_graph",
+@@ -33,7 +34,6 @@
+ from functools import wraps
+ 
+ import networkx as nx
+-from networkx.exception import NetworkXError
+ from networkx.generators.classic import (
+     complete_graph,
+     cycle_graph,
+@@ -57,7 +57,7 @@
+         if create_using is not None:
+             G = nx.empty_graph(create_using=create_using)
+             if G.is_directed():
+-                raise NetworkXError("Directed Graph not supported in create_using")
++                raise nx.NetworkXError("Directed Graph not supported in create_using")
+         return func(*args, **kwargs)
+ 
+     return wrapper
+@@ -121,7 +121,7 @@
+     # start with the n-cycle
+     G = cycle_graph(n, create_using)
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported")
++        raise nx.NetworkXError("Directed Graph not supported")
+     G.name = "LCF_graph"
+     nodes = sorted(G)
+ 
+@@ -824,13 +824,13 @@
+     .. [2] https://en.wikipedia.org/wiki/Generalized_Petersen_graph
+     """
+     if n <= 2:
+-        raise NetworkXError(f"n >= 3 required. Got {n=}")
++        raise nx.NetworkXError(f"n >= 3 required. Got {n=}")
+     if k < 1 or k > n / 2:
+-        raise NetworkXError(f" Got {n=} {k=}. Need 1 <= k <= n/2")
++        raise nx.NetworkXError(f" Got {n=} {k=}. Need 1 <= k <= n/2")
+ 
+     G = nx.cycle_graph(range(n), create_using=create_using)  # u-nodes
+     if G.is_directed():
+-        raise NetworkXError("Directed Graph not supported in create_using")
++        raise nx.NetworkXError("Directed Graph not supported in create_using")
+     for i in range(n):
+         G.add_edge(i, n + i)  # add v-nodes and u to v edges
+         G.add_edge(n + i, n + (i + k) % n)  # edge from v_i to v_(i+k)%n
+@@ -869,6 +869,57 @@
+     G.add_edges_from([[3, 4], [3, 5]])
+     G.add_edges_from([[4, 5], [4, 7], [4, 6]])
+     G.name = "Sedgewick Maze"
++    return G
++
++
++@_raise_on_directed
++@nx._dispatchable(graphs=None, returns_graph=True)
++def shrikhande_graph(create_using=None):
++    r"""Returns the Shrikhane Graph.
++
++    The Shrikhande graph is a 4-by-4, 2-D grid with wraparound connections
++    going in all north and east directions (and south and west -- it is undirected).
++    No connections go northwest or southeast.
++
++    The Shrikhande graph has 16 nodes and 48 edges.
++    This graph can be constructed as a Cayley graph [1]_.
++    The node set is $\mathbb{Z}_4 \times \mathbb{Z}_4$.
++    Two vertices are adjacent if and only if the difference is in
++    $\{\pm(1, 0), \pm(0, 1), \pm(1, 1)\}$.
++    The Shrikhande graph is also known as a troidal graph [2]_.
++
++    Parameters
++    ----------
++    create_using : NetworkX graph constructor, optional (default=nx.Graph)
++       Graph type to create. If graph instance, then cleared before populated.
++
++    Returns
++    -------
++    G : networkx Graph
++        Shrikhande Graph
++
++    References
++    ----------
++    .. [1] https://en.wikipedia.org/wiki/Shrikhande_graph
++    .. [2] https://mathworld.wolfram.com/ShrikhandeGraph.html
++    """
++    # basic 2d 4x4 periodic grid but only connect to the East, North and NE.
++    # Missing edges are SE and NW. The others get filled in by wraparound.
++    #    |/|/|/|/
++    #    O-O-O-O-
++    #    |/|/|/|/        Circle is a node.
++    #    O-O-O-O-        Wrap is shown
++    #    |/|/|/|/        using lines heading
++    #    O-O-O-O-        to the right and up.
++    #    |/|/|/|/
++    #    O-O-O-O-
++    rows = cols = range(4)
++    plus_one = [1, 2, 3, 0]
++    G = nx.empty_graph(0, create_using=create_using)
++    G.name = "Shrikhande Graph"
++    G.add_edges_from(((x, y), (plus_one[x], y)) for x in rows for y in cols)
++    G.add_edges_from(((x, y), (x, plus_one[y])) for x in rows for y in cols)
++    G.add_edges_from(((x, y), (plus_one[x], plus_one[y])) for x in rows for y in cols)
+     return G
+ 
+ 
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/linalg/graphmatrix.py b/networkx/linalg/graphmatrix.py
+--- a/networkx/linalg/graphmatrix.py	2026-10-31 20:43:49
++++ b/networkx/linalg/graphmatrix.py	2026-11-01 11:36:03
+@@ -106,7 +106,7 @@
+ 
+ 
+ @nx._dispatchable(edge_attrs="weight")
+-def adjacency_matrix(G, nodelist=None, dtype=None, weight="weight"):
++def adjacency_matrix(G, nodelist=None, dtype=None, weight="weight", *, format="csr"):
+     """Returns adjacency matrix of `G`.
+ 
+     Parameters
+@@ -127,6 +127,10 @@
+        The edge data key used to provide each value in the matrix.
+        If None, then each edge has weight 1.
+ 
++    format : str in {'bsr', 'csr', 'csc', 'coo', 'lil', 'dia', 'dok'}
++       The sparse format of the array to be returned (default 'csr'). The value
++       is passed through to :func:`to_scipy_sparse_array`.
++
+     Returns
+     -------
+     A : SciPy sparse array
+@@ -165,4 +169,6 @@
+     to_dict_of_dicts
+     adjacency_spectrum
+     """
+-    return nx.to_scipy_sparse_array(G, nodelist=nodelist, dtype=dtype, weight=weight)
++    return nx.to_scipy_sparse_array(
++        G, nodelist=nodelist, dtype=dtype, weight=weight, format=format
++    )
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/linalg/laplacianmatrix.py b/networkx/linalg/laplacianmatrix.py
+--- a/networkx/linalg/laplacianmatrix.py	2026-10-31 20:43:49
++++ b/networkx/linalg/laplacianmatrix.py	2026-10-31 20:43:49
+@@ -16,6 +16,7 @@
+     "normalized_laplacian_matrix",
+     "directed_laplacian_matrix",
+     "directed_combinatorial_laplacian_matrix",
++    "magnetic_laplacian_matrix",
+ ]
+ 
+ 
+@@ -241,6 +242,163 @@
+     diags_sqrt[np.isinf(diags_sqrt)] = 0
+     DH = sp.sparse.dia_array((diags_sqrt, 0), shape=(n, n)).tocsr()
+     return DH @ (L @ DH)
++
++
++@not_implemented_for("multigraph")
++@not_implemented_for("undirected")
++@nx._dispatchable(edge_attrs="weight")
++def magnetic_laplacian_matrix(
++    G, *, nodelist=None, normalized=False, q=0.25, weight="weight"
++):
++    r"""Returns the magnetic Laplacian matrix of DiGraph G.
++
++    The magnetic Laplacian matrix (also called the q-magnetic Laplacian) is a
++    Hermitian matrix for directed graphs that encodes edge directionality
++    via complex phases [1]_.
++
++    Given a weighted directed graph, :math:`G = (V, E, W)`, with :math:`W`
++    the weighted adjacency matrix, the symmetrized weighted adjacency
++    matrix is defined as :math:`W' = 0.5 (W + W^{T})`. A skew-symmetric term
++    :math:`\delta` is introduced to encode directionality, where
++
++    ..math::
++        \delta_{jk} = \begin{cases}
++            +1 & \text{if} j \to k \text{ is an edge and } k \to j \text{ is not}, \\
++            -1 & \text{if} k \to j \text{ is an edge and } j \to k \text{ is not}, \\
++            0 & \text{if both or neither edge is present.}
++            \end{cases}
++
++    Then, the magnetic Laplacian matrix is defined as:
++
++    .. math::
++        L^{(q)} := D - H^{(q)}
++
++    where :math:`H^{(q)}` is the Hermitian adjacency matrix with entries
++    :math:`H^{(q)}_{jk} = W'_{jk} e^{2\pi i q \delta_{jk}}`, and :math:`D` is the
++    degree matrix associated with the symmetrized weight adjacency matrix :math:`W'`.
++
++    If `normalized` is True, compute the normalized version using the Moore-Penrose
++    inverse :math:`D^{+}}` of the degree matrix :math:`D`. The normalized formula
++    is then:
++
++    .. math::
++        L^{(q)}_{norm} = (D^{+})^{0.5} L^{(q)} (D^{+})^{0.5}
++
++    Parameters
++    ----------
++    G : DiGraph
++        A directed graph
++
++    nodelist : list, optional (default=list(G))
++        Node ordering for row/columns.
++
++    normalized : bool, optional (default=False)
++        Bool that encodes if return the magnetic Laplacian or the normalized magnetic
++        Laplacian. If True returns the normalized version.
++
++    q : float, optional (default=0.25)
++        The phase of the magnetic potential is the charge parameter 0 <= q <= 0.5.
++        At q=0 returns the standard Laplacian.
++
++    weight : string or None, optional (default='weight')
++        Edge attribute key for weights. If None, all edges have weight 1.
++
++    Returns
++    -------
++    L : SciPy sparse array (complex dtype)
++        The magnetic Laplacian matrix of `G` if not `normalized`
++        and the normalized version if `normalized`
++
++    Raises
++    ------
++    ValueError
++        If q is not between 0 and 0.5
++
++    NetworkXNotImplemented
++        If `G` is undirected or a multigraph
++
++    References
++    ----------
++    .. [1] Fanuel, M., Alaíz, C. M., Fernández, Á., & Suykens, J. A. (2018).
++       Magnetic eigenmaps for the visualization of directed graphs.
++       Applied and Computational Harmonic Analysis, 44(1), 189–199.
++       <https://doi.org/10.1016/j.acha.2017.01.004>
++    """
++    from collections import defaultdict
++
++    import numpy as np
++    import scipy as sp
++
++    if nodelist is None:
++        nodelist = list(G)
++
++    # Build Hermitian adjacency H
++    n = len(nodelist)
++    node_index = {v: i for i, v in enumerate(nodelist)}
++
++    if not (0 <= q <= 0.5):
++        raise ValueError("Parameter q must be a value between 0 and 0.5")
++
++    phase = 2 * np.pi * q
++
++    # Find "phase" matrix
++    # Dict to encode where have been added symetries
++    delta_phase_edge = defaultdict(int)
++    matrix_weights = defaultdict(float)
++
++    phases = {1: np.exp(1j * phase), -1: np.exp(-1j * phase), 0: 1}
++
++    for u, v, wt in G.edges(data=weight, default=1):
++        if u not in node_index or v not in node_index:
++            continue
++
++        ui, vi = node_index[u], node_index[v]
++        delta_phase_edge[(ui, vi)] += 1
++        delta_phase_edge[(vi, ui)] -= 1
++        matrix_weights[(ui, vi)] += 0.5 * wt
++        matrix_weights[(vi, ui)] += 0.5 * wt
++
++    rows, cols, data = [], [], []
++    for u, v in G.edges():
++        if u not in node_index or v not in node_index:
++            continue
++
++        ui, vi = node_index[u], node_index[v]
++        if ui != vi:
++            if delta_phase_edge[(ui, vi)] == 0:
++                rows.append(ui)
++                cols.append(vi)
++                data.append(matrix_weights[(ui, vi)])
++            else:
++                rows.append(ui)
++                cols.append(vi)
++                data.append(
++                    matrix_weights[(ui, vi)] * phases[delta_phase_edge[(ui, vi)]]
++                )
++                rows.append(vi)
++                cols.append(ui)
++                data.append(
++                    matrix_weights[(vi, ui)] * phases[delta_phase_edge[(vi, ui)]]
++                )
++
++    H = sp.sparse.csr_array((data, (rows, cols)), shape=(n, n), dtype=complex)
++
++    # Build degree matrix D
++    diags = np.abs(H).sum(axis=1).ravel()
++
++    if normalized:
++        with np.errstate(divide="ignore"):
++            diags_sqrt = 1.0 / np.sqrt(diags)
++        diags_sqrt[np.isinf(diags_sqrt)] = 0
++        DH = sp.sparse.dia_array((diags_sqrt, 0), shape=(n, n)).tocsr()
++        H = DH @ (H @ DH)
++        diags = np.ones(
++            n,
++        )
++
++    D = sp.sparse.dia_array((diags, 0), shape=(n, n), dtype=complex).tocsr()
++
++    return D - H
+ 
+ 
+ ###############################################################################
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/linalg/spectrum.py b/networkx/linalg/spectrum.py
+--- a/networkx/linalg/spectrum.py	2026-10-31 20:43:49
++++ b/networkx/linalg/spectrum.py	2026-10-31 20:43:49
+@@ -10,6 +10,7 @@
+     "modularity_spectrum",
+     "normalized_laplacian_spectrum",
+     "bethe_hessian_spectrum",
++    "magnetic_spectrum",
+ ]
+ 
+ 
+@@ -121,6 +122,47 @@
+     import scipy as sp
+ 
+     return sp.linalg.eigvals(nx.adjacency_matrix(G, weight=weight).todense())
++
++
++@nx._dispatchable(edge_attrs="weight")
++def magnetic_spectrum(G, *, q=0.25, weight="weight", normalized=False):
++    """Returns eigenvalues of the magnetic laplacian matrix with phase `q`.
++
++    Parameters
++    ----------
++    G : DiGraph
++        Directed graph
++
++    q : float (default=0.25)
++        The phase of the magnetic potential is the charge parameter 0 <= q <= 0.5.
++        At q=0 returns the standard Laplacian.
++
++    weight : string or None, optional (default='weight')
++       The edge data key used to compute each value in the matrix.
++       If None, then each edge has weight 1.
++
++    normalized : bool, optional (default=False)
++        If True, return the spectrum of the normalized magnetic laplacian matrix.
++        If False, use the magnetic laplacian matrix without normalization.
++
++    Returns
++    -------
++    evals : np.ndarray
++        Eigenvalues of the magnetic Laplacian matrix
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is undirected or a multigraph.
++
++    See Also
++    --------
++    magnetic_laplacian_matrix
++    """
++    import scipy as sp
++
++    ML = nx.magnetic_laplacian_matrix(G, q=q, weight=weight, normalized=normalized)
++    return sp.linalg.eigh(ML.toarray(), eigvals_only=True)
+ 
+ 
+ @nx._dispatchable
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/gexf.py b/networkx/readwrite/gexf.py
+--- a/networkx/readwrite/gexf.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/gexf.py	2026-10-31 20:43:49
+@@ -66,22 +66,79 @@
+     version: string (optional, default: '1.2draft')
+        The version of GEXF to be used for nodes attributes checking
+ 
++    Raises
++    ------
++    ValueError
++        If an attribute has mixed typed values across nodes or edges.
++
+     Examples
+     --------
++    >>> from pathlib import Path
++    >>> import tempfile
++    >>> tmp_path = Path(tempfile.gettempdir())
++
+     >>> G = nx.path_graph(4)
+-    >>> nx.write_gexf(G, "test.gexf")
++    >>> fpath = tmp_path / "test.gexf"
++    >>> nx.write_gexf(G, fpath)
+ 
+-    # visualization data
++    View the GEXF graph data, ignoring the header/metadata:
++
++    >>> with open(fpath) as fh:
++    ...     lines_from_file = fh.readlines()
++    >>> print("".join(lines_from_file[5:-1]))
++      <graph defaultedgetype="undirected" mode="static" name="">
++        <nodes>
++          <node id="0" label="0" />
++          <node id="1" label="1" />
++          <node id="2" label="2" />
++          <node id="3" label="3" />
++        </nodes>
++        <edges>
++          <edge source="0" target="1" id="0" />
++          <edge source="1" target="2" id="1" />
++          <edge source="2" target="3" id="2" />
++        </edges>
++      </graph>
++    <BLANKLINE>
++
++    Visualization data in GEXF format is supported and is read from the ``"viz"``
++    node attribute:
++
+     >>> G.nodes[0]["viz"] = {"size": 54}
+     >>> G.nodes[0]["viz"]["position"] = {"x": 0, "y": 1}
+     >>> G.nodes[0]["viz"]["color"] = {"r": 0, "g": 0, "b": 256}
++    >>> nx.write_gexf(G, fpath)
+ 
++    >>> with open(fpath) as fh:
++    ...     lines_from_file = fh.readlines()
++    >>> print("".join(lines_from_file[5:-1]))  # Ignore header and metadata tags
++      <graph defaultedgetype="undirected" mode="static" name="">
++        <nodes>
++          <node id="0" label="0">
++            <viz:color r="0" g="0" b="256" a="1.0" />
++            <viz:size value="54" />
++            <viz:position x="0" y="1" z="None" />
++          </node>
++          <node id="1" label="1" />
++          <node id="2" label="2" />
++          <node id="3" label="3" />
++        </nodes>
++        <edges>
++          <edge source="0" target="1" id="0" />
++          <edge source="1" target="2" id="1" />
++          <edge source="2" target="3" id="2" />
++        </edges>
++      </graph>
++    <BLANKLINE>
+ 
+     Notes
+     -----
+     This implementation does not support mixed graphs (directed and undirected
+     edges together).
+ 
++    This implementation supports writing a single graph per GEXF file.
++    GEXF documents containing multiple graphs are not supported.
++
+     The node id attribute is set to be the string of the node label.
+     If you want to specify an id use set it as node data, e.g.
+     node['a']['id']=1 to set the id of node 'a' to 1.
+@@ -97,7 +154,7 @@
+ 
+ 
+ def generate_gexf(G, encoding="utf-8", prettyprint=True, version="1.2draft"):
+-    """Generate lines of GEXF format representation of G.
++    r"""Generate lines of GEXF format representation of G.
+ 
+     "GEXF (Graph Exchange XML Format) is a language for describing
+     complex networks structures, their associated data and dynamics" [1]_.
+@@ -105,29 +162,60 @@
+     Parameters
+     ----------
+     G : graph
+-    A NetworkX graph
++       A NetworkX graph
+     encoding : string (optional, default: 'utf-8')
+-    Encoding for text data.
++       Encoding for text data.
+     prettyprint : bool (optional, default: True)
+-    If True use line breaks and indenting in output XML.
++       If True use line breaks and indenting in output XML.
+     version : string (default: 1.2draft)
+-    Version of GEFX File Format (see http://gexf.net/schema.html)
+-    Supported values: "1.1draft", "1.2draft"
++       Version of GEFX File Format (see http://gexf.net/schema.html)
++       Supported values: "1.1draft", "1.2draft"
+ 
++    Yields
++    ------
++    str
++        Lines representing the graph in GEXF format
+ 
++    Raises
++    ------
++    ValueError
++        If an attribute has mixed typed values across nodes or edges.
++
+     Examples
+     --------
++    >>> import itertools
++
+     >>> G = nx.path_graph(4)
+-    >>> linefeed = chr(10)  # linefeed=\n
+-    >>> s = linefeed.join(nx.generate_gexf(G))
+-    >>> for line in nx.generate_gexf(G):  # doctest: +SKIP
+-    ...     print(line)
++    >>> gexf_gen = nx.generate_gexf(G)
+ 
++    The first several lines are the header containing only metadata - skip them
++    in this example for the purposes of viewing only the GEXF-formatted graph data:
++
++    >>> gexf_headerless = itertools.islice(gexf_gen, 4, None)
++    >>> print("\n".join(gexf_headerless))
++      <graph defaultedgetype="undirected" mode="static" name="">
++        <nodes>
++          <node id="0" label="0" />
++          <node id="1" label="1" />
++          <node id="2" label="2" />
++          <node id="3" label="3" />
++        </nodes>
++        <edges>
++          <edge source="0" target="1" id="0" />
++          <edge source="1" target="2" id="1" />
++          <edge source="2" target="3" id="2" />
++        </edges>
++      </graph>
++    </gexf>
++
+     Notes
+     -----
+     This implementation does not support mixed graphs (directed and undirected
+     edges together).
+ 
++    This implementation supports writing a single graph per GEXF file.
++    GEXF documents containing multiple graphs are not supported.
++
+     The node id attribute is set to be the string of the node label.
+     If you want to specify an id use set it as node data, e.g.
+     node['a']['id']=1 to set the id of node 'a' to 1.
+@@ -174,6 +262,9 @@
+     This implementation does not support mixed graphs (directed and undirected
+     edges together).
+ 
++    This implementation supports reading a single graph per GEXF file.
++    GEXF documents containing multiple graphs are not supported.
++
+     References
+     ----------
+     .. [1] GEXF File Format, http://gexf.net/
+@@ -314,11 +405,11 @@
+ 
+         # Make meta element a non-graph element
+         # Also add lastmodifieddate as attribute, not tag
+-        meta_element = Element("meta")
++        self.meta_element = Element("meta")
+         subelement_text = f"NetworkX {nx.__version__}"
+-        SubElement(meta_element, "creator").text = subelement_text
+-        meta_element.set("lastmodifieddate", time.strftime("%Y-%m-%d"))
+-        self.xml.append(meta_element)
++        SubElement(self.meta_element, "creator").text = subelement_text
++        self.meta_element.set("lastmodifieddate", time.strftime("%Y-%m-%d"))
++        self.xml.append(self.meta_element)
+ 
+         register_namespace("viz", self.NS_VIZ)
+ 
+@@ -355,6 +446,14 @@
+             mode = "dynamic"
+         else:
+             mode = "static"
++        # set graph description in meta element
++        description = G.graph.get("description")
++        if description is not None:
++            SubElement(self.meta_element, "description").text = str(description)
++        # set graph keywords in meta element
++        keywords = G.graph.get("keywords")
++        if keywords is not None:
++            SubElement(self.meta_element, "keywords").text = str(keywords)
+         # Add a graph element to the XML
+         if G.is_directed():
+             default = "directed"
+@@ -502,15 +601,18 @@
+                 for val, start, end in v:
+                     e = Element("attvalue")
+                     e.attrib["for"] = attr_id
+-                    e.attrib["value"] = str(val)
+-                    # Handle nan, inf, -inf differently
+-                    if val_type is float:
+-                        if e.attrib["value"] == "inf":
+-                            e.attrib["value"] = "INF"
+-                        elif e.attrib["value"] == "nan":
+-                            e.attrib["value"] = "NaN"
+-                        elif e.attrib["value"] == "-inf":
+-                            e.attrib["value"] = "-INF"
++                    if isinstance(val, bool):
++                        e.attrib["value"] = str(val).lower()
++                    else:
++                        e.attrib["value"] = str(val)
++                        # Handle nan, inf, -inf differently
++                        if val_type is float:
++                            if e.attrib["value"] == "inf":
++                                e.attrib["value"] = "INF"
++                            elif e.attrib["value"] == "nan":
++                                e.attrib["value"] = "NaN"
++                            elif e.attrib["value"] == "-inf":
++                                e.attrib["value"] = "-INF"
+                     if start is not None:
+                         e.attrib["start"] = str(start)
+                     if end is not None:
+@@ -543,11 +645,22 @@
+     def get_attr_id(self, title, attr_type, edge_or_node, default, mode):
+         # find the id of the attribute or generate a new id
+         try:
+-            return self.attr[edge_or_node][mode][title]
++            existing_id = self.attr[edge_or_node][mode][title]["id"]
++            existing_type = self.attr[edge_or_node][mode][title]["attr_type"]
++
++            # Check if the type of the attribute value is consistent with the type of the attribute
++            if existing_type != attr_type:
++                raise ValueError(
++                    f"Attribute {title} has type {existing_type} but value {attr_type} was given."
++                )
++
++            return existing_id
+         except KeyError:
+             # generate new id
+             new_id = str(next(self.attr_id))
+-            self.attr[edge_or_node][mode][title] = new_id
++            self.attr[edge_or_node][mode][title] = {}
++            self.attr[edge_or_node][mode][title]["id"] = new_id
++            self.attr[edge_or_node][mode][title]["attr_type"] = attr_type
+             attr_kwargs = {"id": new_id, "title": title, "type": attr_type}
+             attribute = Element("attribute", **attr_kwargs)
+             # add subelement for data default value if present
+@@ -716,18 +829,20 @@
+ 
+     def __call__(self, stream):
+         self.xml = ElementTree(file=stream)
++        meta = self.xml.find(f"{{{self.NS_GEXF}}}meta")
+         g = self.xml.find(f"{{{self.NS_GEXF}}}graph")
+         if g is not None:
+-            return self.make_graph(g)
++            return self.make_graph(g, meta_xml=meta)
+         # try all the versions
+         for version in self.versions:
+             self.set_version(version)
++            meta = self.xml.find(f"{{{self.NS_GEXF}}}meta")
+             g = self.xml.find(f"{{{self.NS_GEXF}}}graph")
+             if g is not None:
+-                return self.make_graph(g)
++                return self.make_graph(g, meta_xml=meta)
+         raise nx.NetworkXError("No <graph> element in GEXF file.")
+ 
+-    def make_graph(self, graph_xml):
++    def make_graph(self, graph_xml, meta_xml=None):
+         # start with empty DiGraph or MultiDiGraph
+         edgedefault = graph_xml.get("defaultedgetype", None)
+         if edgedefault == "directed":
+@@ -735,6 +850,15 @@
+         else:
+             G = nx.MultiGraph()
+ 
++        # add description and keywords from meta element
++        if meta_xml is not None:
++            description = meta_xml.find(f"{{{self.NS_GEXF}}}description")
++            if description is not None:
++                G.graph["description"] = description.text
++            keywords = meta_xml.find(f"{{{self.NS_GEXF}}}keywords")
++            if keywords is not None:
++                G.graph["keywords"] = keywords.text
++
+         # graph attributes
+         graph_name = graph_xml.get("name", "")
+         if graph_name != "":
+@@ -776,7 +900,7 @@
+                 edge_default.update(ed)
+                 G.graph["edge_default"] = edge_default
+             else:
+-                raise  # unknown attribute class
++                raise nx.NetworkXError(f"Unknown attribute class {attr_class}.")
+ 
+         # Hack to handle Gephi0.7beta bug
+         # add weight attribute
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/gml.py b/networkx/readwrite/gml.py
+--- a/networkx/readwrite/gml.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/gml.py	2026-10-31 20:43:49
+@@ -37,7 +37,6 @@
+ from typing import Any, NamedTuple
+ 
+ import networkx as nx
+-from networkx.exception import NetworkXError
+ from networkx.utils import open_file
+ 
+ __all__ = ["read_gml", "parse_gml", "generate_gml", "write_gml"]
+@@ -162,19 +161,24 @@
+ 
+     Examples
+     --------
++    >>> from pathlib import Path
++    >>> import tempfile
++    >>> tmp_path = Path(tempfile.gettempdir())
++
+     >>> G = nx.path_graph(4)
+-    >>> nx.write_gml(G, "test_path4.gml")
++    >>> fpath = tmp_path / "test_path4.gml"
++    >>> nx.write_gml(G, fpath)
+ 
+     GML values are interpreted as strings by default:
+ 
+-    >>> H = nx.read_gml("test_path4.gml")
++    >>> H = nx.read_gml(fpath)
+     >>> H.nodes
+     NodeView(('0', '1', '2', '3'))
+ 
+     When a `destringizer` is provided, GML values are converted to the provided type.
+     For example, integer nodes can be recovered as shown below:
+ 
+-    >>> J = nx.read_gml("test_path4.gml", destringizer=int)
++    >>> J = nx.read_gml(fpath, destringizer=int)
+     >>> J.nodes
+     NodeView((0, 1, 2, 3))
+ 
+@@ -185,7 +189,7 @@
+             try:
+                 line = line.decode("ascii")
+             except UnicodeDecodeError as err:
+-                raise NetworkXError("input is not ASCII-encoded") from err
++                raise nx.NetworkXError("input is not ASCII-encoded") from err
+             if not isinstance(line, str):
+                 lines = str(lines)
+             if line and line[-1] == "\n":
+@@ -251,7 +255,7 @@
+             try:
+                 line.decode("ascii")
+             except UnicodeDecodeError as err:
+-                raise NetworkXError("input is not ASCII-encoded") from err
++                raise nx.NetworkXError("input is not ASCII-encoded") from err
+         if not isinstance(line, str):
+             line = str(line)
+         return line
+@@ -267,7 +271,7 @@
+                 if line and line[-1] == "\n":
+                     line = line[:-1]
+                 if line.find("\n") != -1:
+-                    raise NetworkXError("input line contains newline")
++                    raise nx.NetworkXError("input line contains newline")
+                 yield line
+ 
+     G = parse_gml_lines(filter_lines(lines), label, destringizer)
+@@ -344,7 +348,7 @@
+                 match = tokens.match(line, pos)
+                 if match is None:
+                     m = f"cannot tokenize {line[pos:]} at ({lineno + 1}, {pos + 1})"
+-                    raise NetworkXError(m)
++                    raise nx.NetworkXError(m)
+                 for i in range(len(patterns)):
+                     group = match.group(i + 1)
+                     if group is not None:
+@@ -366,7 +370,9 @@
+     def unexpected(curr_token, expected):
+         category, value, lineno, pos = curr_token
+         value = repr(value) if value is not None else "EOF"
+-        raise NetworkXError(f"expected {expected}, found {value} at ({lineno}, {pos})")
++        raise nx.NetworkXError(
++            f"expected {expected}, found {value} at ({lineno}, {pos})"
++        )
+ 
+     def consume(curr_token, category, expected):
+         if curr_token.category == category:
+@@ -454,10 +460,10 @@
+         if curr_token.category is not None:  # EOF
+             unexpected(curr_token, "EOF")
+         if "graph" not in dct:
+-            raise NetworkXError("input contains no graph")
++            raise nx.NetworkXError("input contains no graph")
+         graph = dct["graph"]
+         if isinstance(graph, list):
+-            raise NetworkXError("input contains more than one graph")
++            raise nx.NetworkXError("input contains more than one graph")
+         return graph
+ 
+     tokens = tokenize()
+@@ -476,7 +482,9 @@
+         try:
+             return dct.pop(attr)
+         except KeyError as err:
+-            raise NetworkXError(f"{category} #{i} has no {attr!r} attribute") from err
++            raise nx.NetworkXError(
++                f"{category} #{i} has no {attr!r} attribute"
++            ) from err
+ 
+     nodes = graph.get("node", [])
+     mapping = {}
+@@ -484,11 +492,11 @@
+     for i, node in enumerate(nodes if isinstance(nodes, list) else [nodes]):
+         id = pop_attr(node, "node", "id", i)
+         if id in G:
+-            raise NetworkXError(f"node id {id!r} is duplicated")
++            raise nx.NetworkXError(f"node id {id!r} is duplicated")
+         if label is not None and label != "id":
+             node_label = pop_attr(node, "node", label, i)
+             if node_label in node_labels:
+-                raise NetworkXError(f"node label {node_label!r} is duplicated")
++                raise nx.NetworkXError(f"node label {node_label!r} is duplicated")
+             node_labels.add(node_label)
+             mapping[id] = node_label
+         G.add_node(id, **node)
+@@ -498,9 +506,9 @@
+         source = pop_attr(edge, "edge", "source", i)
+         target = pop_attr(edge, "edge", "target", i)
+         if source not in G:
+-            raise NetworkXError(f"edge #{i} has undefined source {source!r}")
++            raise nx.NetworkXError(f"edge #{i} has undefined source {source!r}")
+         if target not in G:
+-            raise NetworkXError(f"edge #{i} has undefined target {target!r}")
++            raise nx.NetworkXError(f"edge #{i} has undefined target {target!r}")
+         if not multigraph:
+             if not G.has_edge(source, target):
+                 G.add_edge(source, target, **edge)
+@@ -636,9 +644,9 @@
+         strings. If it cannot convert a value into a string, it should raise a
+         `ValueError` to indicate that. Default value: None.
+ 
+-    Returns
+-    -------
+-    lines: generator of strings
++    Yields
++    ------
++    str
+         Lines of GML data. Newlines are not appended.
+ 
+     Raises
+@@ -710,9 +718,9 @@
+ 
+     def stringize(key, value, ignored_keys, indent, in_list=False):
+         if not isinstance(key, str):
+-            raise NetworkXError(f"{key!r} is not a string")
++            raise nx.NetworkXError(f"{key!r} is not a string")
+         if not valid_keys.match(key):
+-            raise NetworkXError(f"{key!r} is not a valid key")
++            raise nx.NetworkXError(f"{key!r} is not a valid key")
+         if not isinstance(key, str):
+             key = str(key)
+         if key not in ignored_keys:
+@@ -753,7 +761,8 @@
+                     yield from stringize(key, value, (), next_indent)
+                 yield indent + "]"
+             elif isinstance(value, tuple) and key == "label":
+-                yield indent + key + f' "({",".join(repr(v) for v in value)})"'
++                label = f"({','.join(repr(v) for v in value)})"
++                yield f'{indent}{key} "{escape(label)}"'
+             elif isinstance(value, list | tuple) and key != "label" and not in_list:
+                 if len(value) == 0:
+                     yield indent + key + " " + f'"{value!r}"'
+@@ -766,11 +775,11 @@
+                     try:
+                         value = stringizer(value)
+                     except ValueError as err:
+-                        raise NetworkXError(
++                        raise nx.NetworkXError(
+                             f"{value!r} cannot be converted into a string"
+                         ) from err
+                 if not isinstance(value, str):
+-                    raise NetworkXError(f"{value!r} is not a string")
++                    raise nx.NetworkXError(f"{value!r} is not a string")
+                 yield indent + key + ' "' + escape(value) + '"'
+ 
+     multigraph = G.is_multigraph()
+@@ -868,12 +877,44 @@
+ 
+     Examples
+     --------
+-    >>> G = nx.path_graph(5)
+-    >>> nx.write_gml(G, "test_path5.gml")
++    >>> from pathlib import Path
++    >>> import tempfile
++    >>> tmp_path = Path(tempfile.gettempdir())
+ 
++    >>> fpath = tmp_path / "test_path3.gml"
++    >>> G = nx.path_graph(3)
++    >>> nx.write_gml(G, fpath)
++
++    >>> with open(fpath) as fh:
++    ...     print(fh.read())
++    graph [
++      node [
++        id 0
++        label "0"
++      ]
++      node [
++        id 1
++        label "1"
++      ]
++      node [
++        id 2
++        label "2"
++      ]
++      edge [
++        source 0
++        target 1
++      ]
++      edge [
++        source 1
++        target 2
++      ]
++    ]
++    <BLANKLINE>
++
+     Filenames ending in .gz or .bz2 will be compressed.
+ 
+-    >>> nx.write_gml(G, "test_path5.gml.gz")
++    >>> fpath = tmp_path / "test_path5.gml.gz"
++    >>> nx.write_gml(G, fpath)
+     """
+     for line in generate_gml(G, stringizer):
+         path.write((line + "\n").encode("ascii"))
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/graph6.py b/networkx/readwrite/graph6.py
+--- a/networkx/readwrite/graph6.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/graph6.py	2026-10-31 20:43:49
+@@ -14,7 +14,6 @@
+ from itertools import islice
+ 
+ import networkx as nx
+-from networkx.exception import NetworkXError
+ from networkx.utils import not_implemented_for, open_file
+ 
+ __all__ = ["from_graph6_bytes", "read_graph6", "to_graph6_bytes", "write_graph6"]
+@@ -119,13 +118,13 @@
+         bytes_in = bytes_in[10:]
+ 
+     data = [c - 63 for c in bytes_in]
+-    if any(c > 63 for c in data):
++    if any(c < 0 or c > 63 for c in data):
+         raise ValueError("each input character must be in range(63, 127)")
+ 
+     n, data = data_to_n(data)
+     nd = (n * (n - 1) // 2 + 5) // 6
+     if len(data) != nd:
+-        raise NetworkXError(
++        raise nx.NetworkXError(
+             f"Expected {n * (n - 1) // 2} bits but got {len(data) * 6} in graph6"
+         )
+ 
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/p2g.py b/networkx/readwrite/p2g.py
+--- a/networkx/readwrite/p2g.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/p2g.py	2026-10-31 20:43:49
+@@ -34,8 +34,16 @@
+ 
+ """
+ 
++import warnings
++
+ import networkx as nx
+ from networkx.utils import open_file
++
++warnings.warn(
++    "The p2g module is deprecated and will be removed in v3.9",
++    DeprecationWarning,
++    stacklevel=2,
++)
+ 
+ 
+ @open_file(1, mode="w")
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/pajek.py b/networkx/readwrite/pajek.py
+--- a/networkx/readwrite/pajek.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/pajek.py	2026-10-31 20:43:49
+@@ -110,9 +110,27 @@
+ 
+     Examples
+     --------
++    >>> from pathlib import Path
++    >>> import tempfile
++    >>> tmp_path = Path(tempfile.gettempdir())
++
++    >>> fpath = tmp_path / "test.net"
+     >>> G = nx.path_graph(4)
+-    >>> nx.write_pajek(G, "test.netP4")
++    >>> nx.write_pajek(G, fpath)
+ 
++    >>> with open(fpath) as fh:  # The data as stored in pajek format
++    ...     print(fh.read())
++    *vertices 4
++    1 0 0.0 0.0 ellipse
++    2 1 0.0 0.0 ellipse
++    3 2 0.0 0.0 ellipse
++    4 3 0.0 0.0 ellipse
++    *edges
++    1 2 1.0
++    2 3 1.0
++    3 4 1.0
++    <BLANKLINE>
++
+     Warnings
+     --------
+     Optional node attributes and edge attributes must be non-empty strings.
+@@ -146,13 +164,21 @@
+ 
+     Examples
+     --------
+-    >>> G = nx.path_graph(4)
+-    >>> nx.write_pajek(G, "test.net")
+-    >>> G = nx.read_pajek("test.net")
++    >>> from pathlib import Path
++    >>> import tempfile
++    >>> tmp_path = Path(tempfile.gettempdir())
+ 
++    >>> fpath = tmp_path / "test.net"
++    >>> nx.write_pajek(nx.path_graph(4), fpath)
++    >>> G = nx.read_pajek(fpath)
++    >>> G.edges
++    MultiEdgeView([('0', '1', 0), ('1', '2', 0), ('2', '3', 0)])
++
+     To create a Graph instead of a MultiGraph use
+ 
+     >>> G1 = nx.Graph(G)
++    >>> G1.edges
++    EdgeView([('0', '1'), ('1', '2'), ('2', '3')])
+ 
+     References
+     ----------
+@@ -277,10 +303,14 @@
+ 
+ def make_qstr(t):
+     """Returns the string representation of t.
+-    Add outer double-quotes if the string has a space.
++
++    Wrap the string in double-quotes if it contains whitespace, a double
++    quote, or a backslash, escaping the latter two so the Pajek reader
++    (which splits with shlex) recovers the original string unchanged.
+     """
+     if not isinstance(t, str):
+         t = str(t)
+-    if " " in t:
++    if any(c.isspace() or c in '"\\' for c in t):
++        t = t.replace("\\", "\\\\").replace('"', '\\"')
+         t = f'"{t}"'
+     return t
+diff -ruN --exclude=__pycache__ --exclude=*.pyc a/networkx/readwrite/sparse6.py b/networkx/readwrite/sparse6.py
+--- a/networkx/readwrite/sparse6.py	2026-10-31 20:43:49
++++ b/networkx/readwrite/sparse6.py	2026-10-31 20:43:49
+@@ -13,7 +13,6 @@
+ """
+ 
+ import networkx as nx
+-from networkx.exception import NetworkXError
+ from networkx.readwrite.graph6 import data_to_n, n_to_data
+ from networkx.utils import not_implemented_for, open_file
+ 
+@@ -139,9 +138,11 @@
+     if string.startswith(b">>sparse6<<"):
+         string = string[11:]
+     if not string.startswith(b":"):
+-        raise NetworkXError("Expected leading colon in sparse6")
++        raise nx.NetworkXError("Expected leading colon in sparse6")
+ 
+     chars = [c - 63 for c in string[1:]]
++    if any(c < 0 or c > 63 for c in chars):
++        raise ValueError("each input character must be in range(63, 127)")
+     n, data = data_to_n(chars)
+     k = 1
+     while 1 << k < n:

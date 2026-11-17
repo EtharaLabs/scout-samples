@@ -1,0 +1,241 @@
+# Judged channel for the networkx core-classes, serialisation and spectra bundle.
+#
+# Carries one tenth of the reward. Every criterion is POSITIVE and COMPOUND: each Q item requires
+# that the diff implement behaviour AND that the honesty property hold, so an empty diff fails all
+# twelve and the no-op collects no vacuous pass.
+#
+# Any unreachable judge makes Reward Kit raise rather than degrade and suppresses the whole
+# reward.json
+# including the deterministic channel. The runner MUST give the verifier a route to an
+# OpenAI-compatible endpoint for this judge; without one, no reward.json is written at all.
+
+# Q4 (graded test tree untouched) was REMOVED rather than reworded. final.diff deliberately excludes
+# the test subtrees, so a judge reading it cannot establish that they were untouched: the criterion
+# asked for a verdict the evidence cannot support. The deterministic channel already enforces
+# RL-NO-TEST-EDIT with a hard gate that zeroes the whole score, so the judged duplicate added noise
+# and no coverage. A sibling judge said exactly this when it refused the criterion.
+
+[judge]
+judge = "openai/gpt-5.6-sol"
+files = ["/logs/verifier/final.diff"]
+reasoning_effort = "high"
+samples = 3
+
+[scoring]
+aggregation = "weighted-mean"
+
+[[criterion]]
+
+id = "R1"
+description = "The graph views hold their graph weakly and remain picklable despite it."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "INVARIANT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the views reference their graph through a weak reference, degrade sanely once it is gone, and carry explicit pickling support that reconstructs them on load"
+evaluation_rule = "EVIDENCE: the hunks in the view and graph-class modules. PASS when a weak reference replaces the strong one AND explicit serialisation hooks appear, since a weakly-held attribute cannot be pickled naively. FAIL when the reference is still strong, or when it is weakened without restoring picklability."
+
+[[criterion]]
+
+id = "R2"
+description = "The GEXF reader's graph construction receives the file's metadata so declared attributes are applied."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the construction entry point accepts the metadata element alongside the graph element, and uses it when applying declared attributes"
+evaluation_rule = "EVIDENCE: the hunks in the GEXF module. PASS when the construction method gains a metadata parameter and consults it. It is NOT required that parsing and construction be split into separate passes: the release threads metadata through the existing call rather than restructuring it. FAIL only when metadata is still unavailable at construction time."
+
+[[criterion]]
+
+id = "R3"
+description = "A seedable random walk yields the nodes it visits."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a generator walks from a required start node, optionally biased by an edge attribute and optionally seeded, and the existing walk-counting machinery agrees with it about a step"
+evaluation_rule = "EVIDENCE: the hunks in the walks module. PASS when the walk is a generator with a keyword-only required start. FAIL when it returns a materialised list, since the contract is to yield."
+
+[[criterion]]
+
+id = "R5"
+description = "A random lift realises each original edge as a matching between node fibres."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the construction makes k copies of every node and joins the two endpoint fibres of each original edge by a random perfect matching, under a seed"
+evaluation_rule = "EVIDENCE: the hunks in the random generators module. PASS when a permutation or matching per edge is visible. FAIL when edges are rewired independently, which does not produce a lift."
+
+[[criterion]]
+
+id = "R6"
+description = "The phase-carrying Laplacian and its spectrum take the graph positionally and their options keyword-only."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "each new callable places a keyword-only marker after the graph argument and defaults its phase parameter to a non-zero value"
+evaluation_rule = "EVIDENCE: the two new definition lines, and nothing else. Check exactly two things: a keyword-only star follows the graph parameter, and the phase default is non-zero. Judge NOTHING else. Do not judge the chosen names, which are the release's own. Do not judge which options each takes, since the two deliberately differ. Do not judge the normalisation arithmetic, which the deterministic channel measures. FAIL only when an argument after the graph is positional or a phase defaults to zero."
+
+[[criterion]]
+
+id = "R7"
+description = "The named graph and the surrounding helpers handle their degenerate inputs."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "INVARIANT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the new small graph follows the conventions of its neighbours, and the matrix constructors, graph helpers, distance measures and planarity check behave for the empty, single-node and disconnected cases"
+evaluation_rule = "EVIDENCE: the hunks in the small-graph, matrix, helper and distance modules. PASS when degenerate inputs are handled explicitly. FAIL when a guard is added for one case and the others are left to raise."
+
+[[criterion]]
+
+id = "N1"
+description = "A view refers to its graph weakly so the graph can still be collected."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a reference is WEAK or strong is a lifetime judgment; both read as ordinary attribute assignments and the difference shows only under collection"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the graph views hold their underlying graph through a reference that does not keep it alive, so a graph with only views outstanding can still be collected"
+evaluation_rule = "EVIDENCE: the hunks in the view classes. ANSWER YES IF the view's reference to its graph is one that does not keep the graph alive, and the view resolves it on access. ANSWER NO if the view stores the graph directly, which keeps it alive for the view's lifetime. Judge the LIFETIME relation. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N2"
+description = "Pickle support rebuilds the weak reference on restore rather than trying to serialise it."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether an object is made picklable by RECONSTRUCTION or by serialising what it points at is a judgment about the protocol's semantics"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the views support pickling by carrying the graph itself in the serialised state and rebuilding their non-owning reference to it when restored, rather than attempting to serialise a reference object that cannot survive the round trip"
+evaluation_rule = "EVIDENCE: the hunks adding pickle support to the views. A non-owning reference cannot itself be serialised, so the state MUST carry the graph; that is correct and is never a finding here. ANSWER YES IF the restore path REBUILDS the non-owning reference from the graph the state carried, so the restored view again does not keep its graph alive. ANSWER NO if the restore path leaves the view holding the graph directly, so a restored view owns its graph where a fresh one would not. You are FORBIDDEN from citing the presence of the graph in the serialised state as a defect: that is the only way the rebuild can work. Judge what the RESTORE path leaves behind. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N3"
+description = "A phase convention is applied consistently across the construction."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "INVARIANT"
+residue = "consistency of a sign or phase convention across a construction is a mathematical judgment spanning several expressions; no single line carries it"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the magnetic construction applies one phase convention throughout, so the matrix it produces is consistent rather than mixing conventions between its terms"
+evaluation_rule = "EVIDENCE: the hunks building the magnetic matrix. ANSWER YES IF one convention governs every term, so the result is internally consistent. ANSWER NO if terms disagree on sign or direction, which would make the construction self-inconsistent. Judge CONSISTENCY across terms. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N4"
+description = "A width measure derives from the structure rather than from exhaustive enumeration."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a measure is DERIVED from structure or brute-forced is an algorithmic judgment; both return the same kind of integer"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the width measure is obtained from the ordering structure the definition names, rather than by enumerating all candidate sets and taking a maximum"
+evaluation_rule = "EVIDENCE: the hunks computing the width. ANSWER YES IF the computation exploits the ordering or matching structure the definition rests on. ANSWER NO if it enumerates candidate sets exhaustively. Judge the ALGORITHM, not the answer. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N5"
+description = "A walk respects edge weights where weights are requested."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether a traversal HONOURS weights or chooses uniformly is semantic; both are a selection from the same neighbour collection"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the walk selects its next step in proportion to edge weight when weighting is requested, rather than choosing uniformly and ignoring the weights"
+evaluation_rule = "EVIDENCE: the hunks implementing the walk. ANSWER YES IF the selection is weighted by the edge attribute when weighting is requested. ANSWER NO if the selection is uniform regardless. Judge the SELECTION rule. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N6"
+description = "A round trip through the reader and writer preserves attribute meaning."
+type = "binary"
+weight = 1
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether a round trip PRESERVES type and meaning or stringifies everything is a judgment spanning the writer and the reader together"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "an attribute written by the writer and read back by the reader retains its meaning, rather than returning as text that the caller must reinterpret"
+evaluation_rule = "EVIDENCE: the hunks in the reader and writer modules. ANSWER YES IF the pair preserves the attribute's type or records enough to restore it. ANSWER NO if the writer discards type and the reader returns text for everything. Judge the WRITER and READER together. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."

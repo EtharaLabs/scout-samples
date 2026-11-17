@@ -1,0 +1,351 @@
+{
+  "schema": "scout.group-map/v1",
+  "grouping": "file::class",
+  "group_count": 42,
+  "weight_rule": "equal per group: every group carries 0.02381",
+  "groups": {
+    "test_classic::TestGeneratorClassic": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/generators/tests/test_classic.py::TestGeneratorClassic::test_circular_ladder_graph"
+      ]
+    },
+    "test_community": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/generators/tests/test_community.py::test_sbm_sparse_applies_to_diagonal_blocks",
+        "networkx/generators/tests/test_community.py::test_stochastic_block_model"
+      ]
+    },
+    "test_dag": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_dag.py::test_is_aperiodic_undirected_raises[Graph]",
+        "networkx/algorithms/tests/test_dag.py::test_is_aperiodic_undirected_raises[MultiGraph]"
+      ]
+    },
+    "test_dag::TestDAG": {
+      "node_count": 3,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_dag.py::TestDAG::test_antichain_width",
+        "networkx/algorithms/tests/test_dag.py::TestDAG::test_antichain_width_exceptions",
+        "networkx/algorithms/tests/test_dag.py::TestDAG::test_antichain_width_multidigraph"
+      ]
+    },
+    "test_digraph::TestDiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_digraph.py::TestDiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_distance_measures::TestCentroid": {
+      "node_count": 5,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_distance_measures.py::TestCentroid::test_barycenter_alias",
+        "networkx/algorithms/tests/test_distance_measures.py::TestCentroid::test_must_be_connected",
+        "networkx/algorithms/tests/test_distance_measures.py::TestCentroid::test_sp_kwarg",
+        "networkx/algorithms/tests/test_distance_measures.py::TestCentroid::test_this_one_specific_tree",
+        "networkx/algorithms/tests/test_distance_measures.py::TestCentroid::test_trees"
+      ]
+    },
+    "test_distance_measures::TestDistance": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_distance_measures.py::TestDistance::test_diameter_radius_empty_graph",
+        "networkx/algorithms/tests/test_distance_measures.py::TestDistance::test_eccentricity"
+      ]
+    },
+    "test_function": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_function.py::test_remove_attributes_clears_cache[remove_edge_attributes]",
+        "networkx/classes/tests/test_function.py::test_remove_attributes_clears_cache[remove_node_attributes]"
+      ]
+    },
+    "test_function::TestFunction": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_function.py::TestFunction::test_describe_info_dict"
+      ]
+    },
+    "test_geometric": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/generators/tests/test_geometric.py::test_S1_kappas_mean_degree_from_values"
+      ]
+    },
+    "test_gexf": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_gexf.py::test_dynamic_boolean_attvalue_is_lowercase"
+      ]
+    },
+    "test_gexf::TestGEXF": {
+      "node_count": 6,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_meta_description_keywords_round_trip",
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_read_attribute_graphml",
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_round_trip_mixed_type_float_to_string",
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_round_trip_mixed_type_int_to_string",
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_unknown_attribute_class_raises[<attributes class=\"graph\">]",
+        "networkx/readwrite/tests/test_gexf.py::TestGEXF::test_unknown_attribute_class_raises[<attributes>]"
+      ]
+    },
+    "test_gml::TestGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_gml.py::TestGraph::test_tuple_label_quote_escape"
+      ]
+    },
+    "test_graph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_graph.py::test_graph_new_extra_args"
+      ]
+    },
+    "test_graph6": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_graph6.py::test_from_graph6_raises_header_newline"
+      ]
+    },
+    "test_graph6::TestFromGraph6Bytes": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_graph6.py::TestFromGraph6Bytes::test_from_graph6_bytes_rejects_below_range"
+      ]
+    },
+    "test_graph::TestGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_graph.py::TestGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_graphmatrix": {
+      "node_count": 8,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[bsr]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[coo]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[csc]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[csr]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[dense]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[dia]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[dok]",
+        "networkx/linalg/tests/test_graphmatrix.py::test_adjacency_matrix_format[lil]"
+      ]
+    },
+    "test_laplacian::TestMagneticLaplacian": {
+      "node_count": 3,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/linalg/tests/test_laplacian.py::TestMagneticLaplacian::test_inputs",
+        "networkx/linalg/tests/test_laplacian.py::TestMagneticLaplacian::test_magnetic_laplacian",
+        "networkx/linalg/tests/test_laplacian.py::TestMagneticLaplacian::test_norm_mag_laplacian"
+      ]
+    },
+    "test_mis": {
+      "node_count": 3,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_mis.py::test_K5[graph0]",
+        "networkx/algorithms/tests/test_mis.py::test_K5[graph1]",
+        "networkx/algorithms/tests/test_mis.py::test_random_seed"
+      ]
+    },
+    "test_multidigraph::TestMultiDiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_multidigraph.py::TestMultiDiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_multidigraph::TestMultiDiGraphSubclass": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_multidigraph.py::TestMultiDiGraphSubclass::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_multigraph::TestMultiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_multigraph.py::TestMultiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_multigraph::TestMultiGraphSubclass": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_multigraph.py::TestMultiGraphSubclass::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_p2g": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_p2g.py::test_fn_import_from_module_deprecation",
+        "networkx/readwrite/tests/test_p2g.py::test_import_deprecation"
+      ]
+    },
+    "test_pajek::TestPajek": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_pajek.py::TestPajek::test_quotes_and_backslashes_roundtrip"
+      ]
+    },
+    "test_planarity::TestPlanarEmbeddingClass": {
+      "node_count": 5,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_planarity.py::TestPlanarEmbeddingClass::test_faces_cycle_graph_and_half_edge_partition",
+        "networkx/algorithms/tests/test_planarity.py::TestPlanarEmbeddingClass::test_faces_disconnected_components_return_component_local_boundary_walks",
+        "networkx/algorithms/tests/test_planarity.py::TestPlanarEmbeddingClass::test_faces_isolated_nodes_have_no_faces",
+        "networkx/algorithms/tests/test_planarity.py::TestPlanarEmbeddingClass::test_faces_k4_match_euler_formula",
+        "networkx/algorithms/tests/test_planarity.py::TestPlanarEmbeddingClass::test_faces_tree_has_single_face_walk_with_repeated_vertices"
+      ]
+    },
+    "test_random_graphs": {
+      "node_count": 8,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift__digraph",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_multigraph",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_non_regular",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_size_and_structure[1-2-1]",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_size_and_structure[3-40-8]",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_size_and_structure[4-8-4]",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_size_and_structure[40-60-6]",
+        "networkx/generators/tests/test_random_graphs.py::test_random_k_lift_size_and_structure[6-20-3]"
+      ]
+    },
+    "test_reportviews::TestInMultiEdgeView": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_reportviews.py::TestInMultiEdgeView::test_getitem"
+      ]
+    },
+    "test_reportviews::TestMultiEdgeView": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_reportviews.py::TestMultiEdgeView::test_getitem"
+      ]
+    },
+    "test_reportviews::TestOutMultiEdgeView": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_reportviews.py::TestOutMultiEdgeView::test_getitem"
+      ]
+    },
+    "test_richclub": {
+      "node_count": 2,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_richclub.py::test_rich_club_invalid_n_samples",
+        "networkx/algorithms/tests/test_richclub.py::test_rich_club_zero_division_error"
+      ]
+    },
+    "test_small::TestGeneratorsSmall": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/generators/tests/test_small.py::TestGeneratorsSmall::test_properties_of_named_small_graphs"
+      ]
+    },
+    "test_sparse6::TestSparseGraph6": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/readwrite/tests/test_sparse6.py::TestSparseGraph6::test_from_sparse6_bytes_rejects_out_of_range"
+      ]
+    },
+    "test_special::TestSpecialDiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestSpecialDiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_special::TestSpecialGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestSpecialGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_special::TestSpecialMultiDiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestSpecialMultiDiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_special::TestSpecialMultiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestSpecialMultiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_special::TestThinDiGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestThinDiGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_special::TestThinGraph": {
+      "node_count": 1,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/classes/tests/test_special.py::TestThinGraph::test_views_do_not_create_reference_cycles"
+      ]
+    },
+    "test_spectrum::TestSpectrum": {
+      "node_count": 3,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/linalg/tests/test_spectrum.py::TestSpectrum::test_magnetic_spectrum",
+        "networkx/linalg/tests/test_spectrum.py::TestSpectrum::test_magnetic_spectrum_raises",
+        "networkx/linalg/tests/test_spectrum.py::TestSpectrum::test_normalized_magnetic_spectrum"
+      ]
+    },
+    "test_walks": {
+      "node_count": 9,
+      "weight": 0.02381,
+      "nodes": [
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_missing_start_node_raises_nodenotfound",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_multigraph_not_implemented",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_omitted_start_raises_typeerror",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_start_must_be_keyword",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_unweighted_dead_end",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_unweighted_directed",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_unweighted_with_negative_weight_attr",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_weighted_negative_weight_raises",
+        "networkx/algorithms/tests/test_walks.py::test_random_walk_weighted_zero_weight_stops"
+      ]
+    }
+  }
+}

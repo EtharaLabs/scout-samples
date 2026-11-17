@@ -1,0 +1,1608 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/app/amqp.py /app/celery/app/amqp.py
+--- /opt/pristine/celery/app/amqp.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/app/amqp.py	2026-11-17 07:20:08.000000000 +0000
+@@ -2,6 +2,7 @@
+ import numbers
+ from collections import namedtuple
+ from collections.abc import Mapping
++from copy import copy
+ from datetime import timedelta
+ from weakref import WeakValueDictionary
+ 
+@@ -46,6 +47,15 @@
+         create_missing (bool): By default any unknown queues will be
+             added automatically, but if this flag is disabled the occurrence
+             of unknown queues in `wanted` will raise :exc:`KeyError`.
++        create_missing_queue_type (str): Type of the queues created
++            automatically for unknown queue names (e.g. ``"classic"``,
++            the default, or ``"quorum"``).  Any type other than
++            ``"classic"`` is declared using the ``x-queue-type``
++            queue argument.
++        create_missing_queue_exchange_type (str): Type of the exchange
++            used by queues created automatically for unknown queue names
++            (e.g. ``"direct"``, ``"topic"`` or ``"fanout"``).  If not set,
++            the exchange returned by `autoexchange` is used unchanged.
+         max_priority (int): Default x-max-priority for queues with none set.
+     """
+ 
+@@ -54,13 +64,16 @@
+     _consume_from = None
+ 
+     def __init__(self, queues=None, default_exchange=None,
+-                 create_missing=True, autoexchange=None,
++                 create_missing=True, create_missing_queue_type=None,
++                 create_missing_queue_exchange_type=None, autoexchange=None,
+                  max_priority=None, default_routing_key=None):
+         super().__init__()
+         self.aliases = WeakValueDictionary()
+         self.default_exchange = default_exchange
+         self.default_routing_key = default_routing_key
+         self.create_missing = create_missing
++        self.create_missing_queue_type = create_missing_queue_type
++        self.create_missing_queue_exchange_type = create_missing_queue_exchange_type
+         self.autoexchange = Exchange if autoexchange is None else autoexchange
+         self.max_priority = max_priority
+         if queues is not None and not isinstance(queues, Mapping):
+@@ -181,7 +194,23 @@
+                 self._consume_from.pop(queue, None)
+ 
+     def new_missing(self, name):
+-        return Queue(name, self.autoexchange(name), name)
++        queue_arguments = None
++        queue_type = self.create_missing_queue_type
++        if queue_type and queue_type != 'classic':
++            queue_arguments = {'x-queue-type': queue_type}
++
++        exchange = self.autoexchange(name)
++        exchange_type = self.create_missing_queue_exchange_type
++        if exchange_type:
++            if isinstance(exchange, Exchange) and exchange.name:
++                # never modify an exchange instance the hook may share.
++                exchange = copy(exchange)
++                exchange.type = exchange_type
++            else:
++                # e.g. ``autoexchange = lambda name: None`` (default exchange)
++                exchange = Exchange(name, type=exchange_type)
++
++        return Queue(name, exchange, name, queue_arguments=queue_arguments)
+ 
+     @property
+     def consume_from(self):
+@@ -239,6 +268,8 @@
+         return self._create_task_sender()
+ 
+     def Queues(self, queues, create_missing=None,
++               create_missing_queue_type=None,
++               create_missing_queue_exchange_type=None,
+                autoexchange=None, max_priority=None):
+         # Create new :class:`Queues` instance, using queue defaults
+         # from the current configuration.
+@@ -246,6 +277,11 @@
+         default_routing_key = conf.task_default_routing_key
+         if create_missing is None:
+             create_missing = conf.task_create_missing_queues
++        if create_missing_queue_type is None:
++            create_missing_queue_type = conf.task_create_missing_queue_type
++        if create_missing_queue_exchange_type is None:
++            create_missing_queue_exchange_type = (
++                conf.task_create_missing_queue_exchange_type)
+         if max_priority is None:
+             max_priority = conf.task_queue_max_priority
+         if not queues and conf.task_default_queue:
+@@ -260,6 +296,7 @@
+                         else autoexchange)
+         return self.queues_cls(
+             queues, self.default_exchange, create_missing,
++            create_missing_queue_type, create_missing_queue_exchange_type,
+             autoexchange, max_priority, default_routing_key,
+         )
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/app/base.py /app/celery/app/base.py
+--- /opt/pristine/celery/app/base.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/app/base.py	2026-11-17 07:43:09.000000000 +0000
+@@ -30,6 +30,7 @@
+ from celery.loaders import get_loader_cls
+ from celery.local import PromiseProxy, maybe_evaluate
+ from celery.utils import abstract
++from celery.utils import time as time_utils
+ from celery.utils.collections import AttributeDictMixin
+ from celery.utils.dispatch import Signal
+ from celery.utils.functional import first, head_from_fun, maybe_list
+@@ -74,6 +75,11 @@
+ """
+ 
+ 
++def get_localzone():
++    """Return the timezone of the system, used when UTC is disabled."""
++    return time_utils.get_localzone()
++
++
+ def app_has_custom(app, attr):
+     """Return true if app has customized method `attr`.
+ 
+@@ -1495,13 +1501,22 @@
+ 
+         This is a cached property taking the time zone from the
+         :setting:`timezone` setting.
++
++        If the setting is not set, UTC is used unless :setting:`enable_utc`
++        is disabled, in which case the timezone of the system is used
++        (falling back to UTC if it cannot be determined).
+         """
+         conf = self.conf
+         if not conf.timezone:
+             if conf.enable_utc:
+                 return timezone.utc
+-            else:
+-                return timezone.local
++            try:
++                return get_localzone()
++            except Exception as exc:  # pylint: disable=broad-except
++                logger.warning(
++                    'Cannot determine the local timezone (%r), using UTC '
++                    'instead. Set the timezone setting to avoid this.', exc)
++                return timezone.utc
+         return timezone.get_timezone(conf.timezone)
+ 
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/app/control.py /app/celery/app/control.py
+--- /opt/pristine/celery/app/control.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/app/control.py	2026-11-17 07:18:53.000000000 +0000
+@@ -20,7 +20,7 @@
+ from kombu.utils.functional import lazy
+ from kombu.utils.objects import cached_property
+ 
+-from celery.exceptions import DuplicateNodenameWarning
++from celery.exceptions import DuplicateNodenameWarning, _ConflictingQueueOptions
+ from celery.utils.log import get_logger
+ from celery.utils.text import pluralize
+ 
+@@ -428,6 +428,14 @@
+ 
+     def __init__(self, app=None):
+         self.app = app
++        queue_durable = app.conf.control_queue_durable
++        queue_exclusive = app.conf.control_queue_exclusive
++        if queue_durable and queue_exclusive:
++            raise _ConflictingQueueOptions(
++                'control_queue_durable and control_queue_exclusive cannot '
++                'both be True (exclusive queues are automatically deleted '
++                'and cannot be durable).'
++            )
+         self.mailbox = self.Mailbox(
+             app.conf.control_exchange,
+             type='fanout',
+@@ -437,6 +445,8 @@
+             queue_ttl=app.conf.control_queue_ttl,
+             reply_queue_ttl=app.conf.control_queue_ttl,
+             queue_expires=app.conf.control_queue_expires,
++            queue_exclusive=queue_exclusive,
++            queue_durable=queue_durable,
+             reply_queue_expires=app.conf.control_queue_expires,
+         )
+         register_after_fork(self, _after_fork_cleanup_control)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/app/defaults.py /app/celery/app/defaults.py
+--- /opt/pristine/celery/app/defaults.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/app/defaults.py	2026-11-17 07:17:43.000000000 +0000
+@@ -150,6 +150,8 @@
+     control=Namespace(
+         queue_ttl=Option(300.0, type='float'),
+         queue_expires=Option(10.0, type='float'),
++        queue_exclusive=Option(False, type='bool'),
++        queue_durable=Option(False, type='bool'),
+         exchange=Option('celery', type='string'),
+     ),
+     couchbase=Namespace(
+@@ -179,6 +181,8 @@
+         queue_expires=Option(60.0, type='float'),
+         queue_ttl=Option(5.0, type='float'),
+         queue_prefix=Option('celeryev'),
++        queue_exclusive=Option(False, type='bool'),
++        queue_durable=Option(False, type='bool'),
+         serializer=Option('json'),
+         exchange=Option('celeryev', type='string'),
+     ),
+@@ -186,6 +190,8 @@
+         __old__=old_ns('celery_redis'),
+ 
+         backend_use_ssl=Option(type='dict'),
++        backend_credential_provider=Option(type='string'),
++        client_name=Option(type='string'),
+         db=Option(type='int'),
+         host=Option(type='string'),
+         max_connections=Option(type='int'),
+@@ -260,6 +266,8 @@
+         annotations=Option(type='any'),
+         compression=Option(type='string', old={'celery_message_compression'}),
+         create_missing_queues=Option(True, type='bool'),
++        create_missing_queue_type=Option('classic', type='string'),
++        create_missing_queue_exchange_type=Option(None, type='string'),
+         inherit_parent_priority=Option(False, type='bool'),
+         default_delivery_mode=Option(2, type='string'),
+         default_queue=Option('celery'),
+@@ -319,6 +327,7 @@
+         disable_rate_limits=Option(
+             False, type='bool', old={'celery_disable_rate_limits'},
+         ),
++        disable_prefetch=Option(False, type='bool'),
+         deduplicate_successful_tasks=Option(
+             False, type='bool'
+         ),
+@@ -351,6 +360,7 @@
+         timer=Option(type='string'),
+         timer_precision=Option(1.0, type='float'),
+         detect_quorum_queues=Option(True, type='bool'),
++        eta_task_limit=Option(None, type='int'),
+     ),
+ )
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/app/task.py /app/celery/app/task.py
+--- /opt/pristine/celery/app/task.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/app/task.py	2026-11-17 07:32:31.000000000 +0000
+@@ -790,12 +790,18 @@
+         if throw is None:
+             throw = app.conf.task_eager_propagates
+ 
++        parent_id, root_id = self._apply_parent_and_root_ids(
++            task_id, options.get('parent_id'), options.get('root_id'),
++        )
++
+         # Make sure we get the task instance, not class.
+         task = app._tasks[self.name]
+ 
+         request = {
+             'id': task_id,
+             'task': self.name,
++            'parent_id': parent_id,
++            'root_id': root_id,
+             'retries': retries,
+             'is_eager': True,
+             'logfile': logfile,
+@@ -834,6 +840,27 @@
+         state = states.SUCCESS if ret.info is None else ret.info.state
+         return EagerResult(task_id, retval, state, traceback=tb, name=self.name)
+ 
++    @staticmethod
++    def _apply_parent_and_root_ids(task_id, parent_id=None, root_id=None):
++        """Return the parent and root ids of a task applied locally.
++
++        Ids given explicitly are used as is, otherwise they are taken from
++        the task currently being executed (if any), which is the parent:
++        the root id is then the root of the parent (or the task itself if
++        the parent has none).  A task applied outside of any task is the
++        root of its own workflow.
++        """
++        if parent_id is None or root_id is None:
++            parent_task = _task_stack.top
++            parent_request = (parent_task.request
++                              if parent_task is not None else None)
++            if parent_request:
++                if parent_id is None:
++                    parent_id = parent_request.id
++                if root_id is None:
++                    root_id = parent_request.root_id
++        return parent_id, root_id or task_id
++
+     def AsyncResult(self, task_id, **kwargs):
+         """Get AsyncResult instance for the specified task.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/backends/asynchronous.py /app/celery/backends/asynchronous.py
+--- /opt/pristine/celery/backends/asynchronous.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/backends/asynchronous.py	2026-11-17 07:24:14.000000000 +0000
+@@ -21,6 +21,35 @@
+ drainers = {}
+ 
+ 
++class EventletAdaptedEvent:
++    """An eventlet event adapted to the :class:`threading.Event` API.
++
++    :class:`eventlet.event.Event` can only be sent once and has neither
++    ``is_set()`` nor ``set()``, while waiting on a :class:`threading.Event`
++    blocks the whole hub (unless monkey patched) so other green threads
++    cannot run.  This adapter makes waiting on the events used by the
++    result drainers behave the same under eventlet.
++    """
++
++    def __init__(self):
++        import eventlet
++        self.evt = eventlet.Event()
++
++    def is_set(self):
++        return self.evt.ready()
++
++    def set(self):
++        try:
++            return self.evt.send()
++        except AssertionError:
++            # An eventlet event can only be sent once, while setting a
++            # :class:`threading.Event` that is already set does nothing.
++            pass
++
++    def wait(self, timeout=None):
++        return self.evt.wait(timeout)
++
++
+ def register_drainer(name):
+     """Decorator used to register a new result drainer type."""
+     def _inner(cls):
+@@ -76,11 +105,15 @@
+         """raise self._drain_complete_event for wakeup .wait_for"""
+         pass
+ 
++    def _create_event(self):
++        """Create the event used to signal the drainer state changes."""
++        return threading.Event()
++
+     def __init__(self, *args, **kwargs):
+         super().__init__(*args, **kwargs)
+-        self._started = threading.Event()
+-        self._stopped = threading.Event()
+-        self._shutdown = threading.Event()
++        self._started = self._create_event()
++        self._stopped = self._create_event()
++        self._shutdown = self._create_event()
+         self._create_drain_complete_event()
+ 
+     def run(self):
+@@ -119,12 +152,14 @@
+         sleep(0)
+         return g
+ 
++    def _create_event(self):
++        return EventletAdaptedEvent()
++
+     def _create_drain_complete_event(self):
+-        from eventlet.event import Event
+-        self._drain_complete_event = Event()
++        self._drain_complete_event = EventletAdaptedEvent()
+ 
+     def _send_drain_complete_event(self):
+-        self._drain_complete_event.send()
++        self._drain_complete_event.set()
+ 
+ 
+ @register_drainer('gevent')
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/backends/base.py /app/celery/backends/base.py
+--- /opt/pristine/celery/backends/base.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/backends/base.py	2026-11-17 07:42:54.000000000 +0000
+@@ -9,6 +9,7 @@
+ import time
+ import warnings
+ from collections import namedtuple
++from collections.abc import Mapping
+ from datetime import timedelta
+ from functools import partial
+ from weakref import WeakValueDictionary
+@@ -78,6 +79,54 @@
+     return request.ignore_result
+ 
+ 
++def _create_chord_error_with_cause(message, original_exc=None):
++    """Create a :exc:`~celery.exceptions.ChordError` caused by `original_exc`.
++
++    The original exception is preserved as the ``__cause__`` of the chord
++    error, which is left unset when `original_exc` is not an exception.
++    """
++    chord_error = ChordError(message)
++    if isinstance(original_exc, BaseException):
++        chord_error.__cause__ = original_exc
++    return chord_error
++
++
++def _create_fake_task_request(task_id, errbacks=None, task_name='unknown',
++                              **extra):
++    """Create a stand-in request for a task that never got to run.
++
++    Used to call the error callbacks of a task which failed (or is
++    considered failed) without it having been executed, e.g. the
++    callback(s) of a failed chord.  Any extra keyword arguments are
++    added to the request as is.
++    """
++    return Context({
++        'id': task_id,
++        'errbacks': errbacks or [],
++        'delivery_info': dict(),
++        'task': task_name,
++        **extra
++    })
++
++
++def _maybe_options(sig):
++    """Return the options of signature `sig`, or an empty mapping."""
++    options = getattr(sig, 'options', None)
++    return options if isinstance(options, Mapping) else {}
++
++
++def _group_task_signatures(group_sig):
++    """Map the task ids of the (frozen) tasks of a group to their signature."""
++    try:
++        tasks = list(group_sig.tasks)
++    except TypeError:
++        return {}
++    return {
++        _maybe_options(sig).get('task_id'): sig
++        for sig in tasks
++    }
++
++
+ class Backend:
+     READY_STATES = states.READY_STATES
+     UNREADY_STATES = states.UNREADY_STATES
+@@ -285,17 +334,22 @@
+             backend = app._tasks[callback.task].backend
+         except KeyError:
+             backend = self
++
++        if isinstance(callback, group):
++            # Every task of a group body has to be failed, otherwise
++            # they'd be left pending forever.
++            return self._handle_group_chord_error(callback, backend, exc=exc)
++
+         # We have to make a fake request since either the callback failed or
+         # we're pretending it did since we don't have information about the
+         # chord part(s) which failed. This request is constructed as a best
+         # effort for new style errbacks and may be slightly misleading about
+         # what really went wrong, but at least we call them!
+-        fake_request = Context({
+-            "id": callback.options.get("task_id"),
+-            "errbacks": callback.options.get("link_error", []),
+-            "delivery_info": dict(),
++        fake_request = _create_fake_task_request(
++            task_id=callback.options.get("task_id"),
++            errbacks=callback.options.get("link_error", []),
+             **callback
+-        })
++        )
+         try:
+             self._call_task_errbacks(fake_request, exc, None)
+         except Exception as eb_exc:  # pylint: disable=broad-except
+@@ -303,8 +357,73 @@
+         else:
+             return backend.fail_from_current_stack(callback.id, exc=exc)
+ 
++    def _handle_group_chord_error(self, group_callback, backend, exc=None):
++        """Fail all the tasks of a chord body which is a group.
++
++        None of the tasks of the body will run since the chord failed,
++        so each of them is revoked, gets its error callbacks called and
++        is marked as failed, rather than being left pending forever.
++
++        The tasks are failed with the original exception when `exc` is a
++        :exc:`~celery.exceptions.ChordError` caused by one.  Errors raised
++        while cleaning up (freezing the group, revoking a task, calling
++        the error callbacks) are logged and never replace that exception.
++
++        Returns:
++            GroupResult: the result of the group body.
++        """
++        original_exc = exc
++        if (isinstance(exc, ChordError) and
++                isinstance(exc.__cause__, BaseException)):
++            original_exc = exc.__cause__
++
++        try:
++            # The group body was frozen when the chord was applied, so this
++            # gives back the results with the ids of the body tasks.
++            frozen_group = group_callback.freeze()
++            results = list(frozen_group.results)
++        except Exception as cleanup_exc:  # pylint: disable=broad-except
++            logger.exception(
++                'Chord callback group %r could not be resolved: %r',
++                group_callback.id, cleanup_exc)
++            if not group_callback.id:
++                return None
++            return backend.fail_from_current_stack(
++                group_callback.id, exc=original_exc)
++
++        signatures = _group_task_signatures(group_callback)
++        group_errbacks = _maybe_options(group_callback).get('link_error') or []
++        for result in results:
++            try:
++                result.revoke()
++            except Exception as revoke_exc:  # pylint: disable=broad-except
++                logger.exception(
++                    'Failed to revoke task %r of the chord callback group: %r',
++                    result.id, revoke_exc)
++
++            task_sig = signatures.get(result.id)
++            errbacks = list(_maybe_options(task_sig).get('link_error') or [])
++            errbacks.extend(eb for eb in group_errbacks if eb not in errbacks)
++            fake_request = _create_fake_task_request(
++                task_id=result.id,
++                errbacks=errbacks,
++                task_name=getattr(task_sig, 'task', None) or 'unknown',
++            )
++            try:
++                backend._call_task_errbacks(fake_request, original_exc, None)
++            except Exception as eb_exc:  # pylint: disable=broad-except
++                # Keep going, all the tasks of the group must be failed.
++                logger.exception(
++                    'Error callback of task %r of the chord callback group '
++                    'raised: %r', result.id, eb_exc)
++            backend.fail_from_current_stack(result.id, exc=original_exc)
++        return frozen_group
++
+     def fail_from_current_stack(self, task_id, exc=None):
+         type_, real_exc, tb = sys.exc_info()
++        if tb is None and exc is not None:
++            # Not called while an exception is being handled.
++            return self._fail_from_exception(task_id, exc)
+         try:
+             exc = real_exc if exc is None else exc
+             exception_info = ExceptionInfo((type_, exc, tb))
+@@ -322,6 +441,18 @@
+ 
+             del tb
+ 
++    def _fail_from_exception(self, task_id, exc):
++        tb = exc.__traceback__
++        if tb is None:
++            # The exception was never raised, raise it to get a traceback.
++            try:
++                raise exc
++            except BaseException:  # pylint: disable=broad-except
++                tb = sys.exc_info()[2]
++        exception_info = ExceptionInfo((type(exc), exc, tb))
++        self.mark_as_failure(task_id, exc, exception_info.traceback)
++        return exception_info
++
+     def prepare_exception(self, exc, serializer=None):
+         """Prepare exception for serialization."""
+         serializer = self.serializer if serializer is None else serializer
+@@ -1031,7 +1162,8 @@
+             logger.exception('Chord %r raised: %r', gid, exc)
+             return self.chord_error_from_stack(
+                 callback,
+-                ChordError(f'Cannot restore group: {exc!r}'),
++                _create_chord_error_with_cause(
++                    f'Cannot restore group: {exc!r}', exc),
+             )
+         if deps is None:
+             try:
+@@ -1070,7 +1202,9 @@
+                     reason = repr(exc)
+ 
+                 logger.exception('Chord %r raised: %r', gid, reason)
+-                self.chord_error_from_stack(callback, ChordError(reason))
++                self.chord_error_from_stack(
++                    callback, _create_chord_error_with_cause(reason, exc),
++                )
+             else:
+                 try:
+                     callback.delay(ret)
+@@ -1078,14 +1212,25 @@
+                     logger.exception('Chord %r raised: %r', gid, exc)
+                     self.chord_error_from_stack(
+                         callback,
+-                        ChordError(f'Callback error: {exc!r}'),
++                        _create_chord_error_with_cause(
++                            f'Callback error: {exc!r}', exc),
+                     )
+             finally:
+-                deps.delete()
+-                self.delete(key)
++                self._cleanup_chord(gid, deps, key)
+         else:
+             self.expire(key, self.expires)
+ 
++    def _cleanup_chord(self, gid, deps, key):
++        # An error raised while cleaning up must not mask (or replace)
++        # the outcome of the chord, so it's only logged.
++        for cleanup in (deps.delete, partial(self.delete, key)):
++            try:
++                cleanup()
++            except Exception as exc:  # pylint: disable=broad-except
++                logger.exception(
++                    'Chord %r: failed to clean up after completion: %r',
++                    gid, exc)
++
+ 
+ class KeyValueStoreBackend(BaseKeyValueStoreBackend, SyncBackendMixin):
+     """Result backend base class for key/value stores."""
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/backends/redis.py /app/celery/backends/redis.py
+--- /opt/pristine/celery/backends/redis.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/backends/redis.py	2026-11-17 07:45:32.000000000 +0000
+@@ -15,11 +15,12 @@
+ from celery.exceptions import BackendStoreError, ChordError, ImproperlyConfigured
+ from celery.result import GroupResult, allow_join_result
+ from celery.utils.functional import _regen, dictfilter
++from celery.utils.imports import symbol_by_name
+ from celery.utils.log import get_logger
+ from celery.utils.time import humanize_seconds
+ 
+ from .asynchronous import AsyncBackendMixin, BaseResultConsumer
+-from .base import BaseKeyValueStoreBackend
++from .base import BaseKeyValueStoreBackend, _create_chord_error_with_cause
+ 
+ try:
+     import redis.connection
+@@ -29,6 +30,11 @@
+     get_redis_error_classes = None
+ 
+ try:
++    from redis.credentials import CredentialProvider
++except ImportError:
++    CredentialProvider = None
++
++try:
+     import redis.sentinel
+ except ImportError:
+     pass
+@@ -57,6 +63,11 @@
+ leaves you vulnerable to man in the middle attacks.
+ """
+ 
++E_REDIS_CREDENTIAL_PROVIDER_INVALID = """
++Credential provider is not an instance of a redis.CredentialProvider \
++or a subclass\
++"""
++
+ E_REDIS_SSL_PARAMS_AND_SCHEME_MISMATCH = """
+ SSL connection parameters have been provided but the specified URL scheme \
+ is redis://. A Redis SSL connection URL should use the scheme rediss://.
+@@ -229,6 +240,9 @@
+         retry_on_timeout = _get('redis_retry_on_timeout')
+         socket_keepalive = _get('redis_socket_keepalive')
+         health_check_interval = _get('redis_backend_health_check_interval')
++        credential_provider = _get('redis_backend_credential_provider')
++        client_name = _get('redis_client_name') or (
++            _get('result_backend_transport_options') or {}).get('client_name')
+ 
+         self.connparams = {
+             'host': _get('redis_host') or 'localhost',
+@@ -256,6 +270,16 @@
+         if health_check_interval:
+             self.connparams["health_check_interval"] = health_check_interval
+ 
++        # Only set when configured, the client name is left untouched
++        # (i.e. redis-py's default) otherwise.
++        if client_name:
++            self.connparams['client_name'] = client_name
++
++        if credential_provider:
++            # May be overridden by the ``credential_provider`` query
++            # parameter of the URL below.
++            self.connparams['credential_provider'] = credential_provider
++
+         # absent in redis.connection.UnixDomainSocketConnection
+         if socket_keepalive:
+             self.connparams['socket_keepalive'] = socket_keepalive
+@@ -271,6 +295,8 @@
+         if url:
+             self.connparams = self._params_from_url(url, self.connparams)
+ 
++        self._process_credential_provider(self.connparams)
++
+         # If we've received SSL parameters via query string or the
+         # redis_backend_use_ssl dict, check ssl_cert_reqs is valid. If set
+         # via query string ssl_cert_reqs will be a string so convert it here
+@@ -304,6 +330,34 @@
+             self._pending_results, self._pending_messages,
+         )
+ 
++    @staticmethod
++    def _process_credential_provider(connparams):
++        """Resolve the credential provider found in `connparams` (if any).
++
++        The credential provider may be given either through the
++        :setting:`redis_backend_credential_provider` setting or the
++        ``credential_provider`` query parameter of the backend URL,
++        as an instance of :class:`redis.CredentialProvider` or as the
++        fully qualified name of such a class (which is instantiated
++        without arguments).
++
++        Since the credentials are provided by it, any username and password
++        is removed from `connparams` when a credential provider is used.
++        """
++        credential_provider = connparams.get('credential_provider')
++        if not credential_provider:
++            connparams.pop('credential_provider', None)
++            return
++        if isinstance(credential_provider, str):
++            credential_provider = symbol_by_name(credential_provider)()
++        if (CredentialProvider is None or
++                not isinstance(credential_provider, CredentialProvider)):
++            raise ValueError(E_REDIS_CREDENTIAL_PROVIDER_INVALID.strip())
++        connparams['credential_provider'] = credential_provider
++        # The credential provider supplies the username and password.
++        connparams.pop('username', None)
++        connparams.pop('password', None)
++
+     def _params_from_url(self, url, defaults):
+         scheme, host, port, username, password, path, query = _parse_url(url)
+         connparams = dict(
+@@ -538,15 +592,12 @@
+                             'Chord callback for %r raised: %r', request.group, exc)
+                         return self.chord_error_from_stack(
+                             callback,
+-                            ChordError(f'Callback error: {exc!r}'),
++                            _create_chord_error_with_cause(
++                                f'Callback error: {exc!r}', exc),
+                         )
+                     finally:
+-                        with client.pipeline() as pipe:
+-                            pipe \
+-                                .delete(jkey) \
+-                                .delete(tkey) \
+-                                .delete(skey) \
+-                                .execute()
++                        self._cleanup_chord_keys(
++                            request.group, jkey, tkey, skey)
+             except ChordError as exc:
+                 logger.exception('Chord %r raised: %r', request.group, exc)
+                 return self.chord_error_from_stack(callback, exc)
+@@ -554,9 +605,23 @@
+                 logger.exception('Chord %r raised: %r', request.group, exc)
+                 return self.chord_error_from_stack(
+                     callback,
+-                    ChordError(f'Join error: {exc!r}'),
++                    _create_chord_error_with_cause(
++                        f'Join error: {exc!r}', exc),
+                 )
+ 
++    def _cleanup_chord_keys(self, group_id, *keys):
++        # An error raised while cleaning up must not mask (or replace)
++        # the outcome of the chord, so it's only logged.
++        try:
++            with self.client.pipeline() as pipe:
++                for key in keys:
++                    pipe = pipe.delete(key)
++                pipe.execute()
++        except Exception as exc:  # pylint: disable=broad-except
++            logger.exception(
++                'Chord %r: failed to clean up after completion: %r',
++                group_id, exc)
++
+     def _create_client(self, **params):
+         return self._get_client()(
+             connection_pool=self._get_pool(**params),
+@@ -642,7 +707,8 @@
+             connparams.pop(param)
+ 
+         # Adding db/password in connparams to connect to the correct instance
+-        for param in ("db", "password"):
++        # (and the credential provider given in the URL, if any)
++        for param in ("db", "password", "credential_provider"):
+             if connparams['hosts'] and param in connparams['hosts'][0]:
+                 connparams[param] = connparams['hosts'][0].get(param)
+         return connparams
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/beat.py /app/celery/beat.py
+--- /opt/pristine/celery/beat.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/beat.py	2026-11-17 07:25:36.000000000 +0000
+@@ -5,6 +5,7 @@
+ import errno
+ import heapq
+ import os
++import pickle
+ import shelve
+ import sys
+ import time
+@@ -41,6 +42,12 @@
+ 
+ DEFAULT_MAX_INTERVAL = 300  # 5 minutes
+ 
++#: Errors raised when a value stored in the schedule database
++#: cannot be loaded (e.g. the file is corrupted).
++_SCHEDULE_LOAD_ERRORS = (
++    KeyError, UnicodeDecodeError, TypeError, EOFError, pickle.UnpicklingError,
++)
++
+ 
+ class SchedulingError(Exception):
+     """An error occurred while scheduling a task."""
+@@ -542,12 +549,12 @@
+         self._create_schedule()
+ 
+         tz = self.app.conf.timezone
+-        stored_tz = self._store.get('tz')
++        stored_tz = self._get_stored('tz')
+         if stored_tz is not None and stored_tz != tz:
+             warning('Reset: Timezone changed from %r to %r', stored_tz, tz)
+             self._store.clear()   # Timezone changed, reset db!
+         utc = self.app.conf.enable_utc
+-        stored_utc = self._store.get('utc_enabled')
++        stored_utc = self._get_stored('utc_enabled')
+         if stored_utc is not None and stored_utc != utc:
+             choices = {True: 'enabled', False: 'disabled'}
+             warning('Reset: UTC changed from %s to %s',
+@@ -565,12 +572,21 @@
+         debug('Current schedule:\n' + '\n'.join(
+             repr(entry) for entry in entries.values()))
+ 
++    def _get_stored(self, key):
++        try:
++            return self._store.get(key)
++        except _SCHEDULE_LOAD_ERRORS as exc:
++            # The value is corrupted, it's overwritten when syncing.
++            error('Ignoring corrupted %r of schedule file %r: %r',
++                  key, self.schedule_filename, exc)
++            return None
++
+     def _create_schedule(self):
+         for _ in (1, 2):
+             try:
+                 self._store['entries']
+-            except (KeyError, UnicodeDecodeError, TypeError):
+-                # new schedule db
++            except _SCHEDULE_LOAD_ERRORS:
++                # new schedule db (or the schedule could not be unpickled)
+                 try:
+                     self._store['entries'] = {}
+                 except (KeyError, UnicodeDecodeError, TypeError) + dbm.error as exc:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/bin/worker.py /app/celery/bin/worker.py
+--- /opt/pristine/celery/bin/worker.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/bin/worker.py	2026-11-17 07:45:52.000000000 +0000
+@@ -182,6 +182,14 @@
+               help_group="Worker Options",
+               help="Set custom prefetch multiplier value "
+                    "for this worker instance.")
++@click.option('--disable-prefetch',
++              is_flag=True,
++              default=None,
++              cls=CeleryOption,
++              help_group="Worker Options",
++              help="Disable prefetching: only fetch messages from the broker "
++                   "when there's capacity to execute them "
++                   "(see worker_disable_prefetch).")
+ @click.option('-c',
+               '--concurrency',
+               type=int,
+@@ -314,6 +322,8 @@
+     """
+     try:
+         app = ctx.obj.app
++        if kwargs.get('disable_prefetch') is not None:
++            app.conf.worker_disable_prefetch = kwargs['disable_prefetch']
+         if ctx.args:
+             try:
+                 app.config_from_cmdline(ctx.args, namespace='worker')
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/canvas.py /app/celery/canvas.py
+--- /opt/pristine/celery/canvas.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/canvas.py	2026-11-17 07:48:22.000000000 +0000
+@@ -495,11 +495,11 @@
+         # pylint: disable=redefined-outer-name
+         #   XXX chord is also a class in outer scope.
+         opts = self.options
+-        try:
+-            # if there is already an id for this task, return it
+-            tid = opts['task_id']
+-        except KeyError:
+-            # otherwise, use the _id sent to this function, falling back on a generated UUID
++        # if there is already an id for this task, return it
++        tid = opts.get('task_id')
++        if not tid:
++            # otherwise, use the _id sent to this function, falling back on a
++            # generated UUID (an empty id is no id at all).
+             tid = opts['task_id'] = _id or uuid()
+         if root_id:
+             opts['root_id'] = root_id
+@@ -1829,9 +1829,8 @@
+         # pylint: disable=redefined-outer-name
+         #  XXX chord is also a class in outer scope.
+         opts = self.options
+-        try:
+-            gid = opts['task_id']
+-        except KeyError:
++        gid = opts.get('task_id')
++        if not gid:
+             gid = opts['task_id'] = group_id or uuid()
+         if group_id:
+             opts['group_id'] = group_id
+@@ -2235,6 +2234,11 @@
+             body.options.update(options)
+ 
+         bodyres = body.freeze(task_id, root_id=root_id)
++        if not body.id and bodyres is not None:
++            # The body must have a task id, even when none was given: e.g.
++            # a chain frozen without an id doesn't have one, while the id of
++            # a chain is that of its last task (i.e. the result of the body).
++            body.id = bodyres.id
+ 
+         # Chains should not be passed to the header tasks. See #3771
+         options.pop('chain', None)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/events/cursesmon.py /app/celery/events/cursesmon.py
+--- /opt/pristine/celery/events/cursesmon.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/events/cursesmon.py	2026-11-17 07:19:33.000000000 +0000
+@@ -3,7 +3,7 @@
+ import curses
+ import sys
+ import threading
+-from datetime import datetime
++from datetime import datetime, timezone
+ from itertools import count
+ from math import ceil
+ from textwrap import wrap
+@@ -322,8 +322,8 @@
+         attr = curses.A_NORMAL
+         if task.uuid == self.selected_task:
+             attr = curses.A_STANDOUT
+-        timestamp = datetime.utcfromtimestamp(
+-            task.timestamp or time(),
++        timestamp = datetime.fromtimestamp(
++            task.timestamp or time(), tz=timezone.utc,
+         )
+         timef = timestamp.strftime('%H:%M:%S')
+         hostname = task.worker.hostname if task.worker else '*NONE*'
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/events/dumper.py /app/celery/events/dumper.py
+--- /opt/pristine/celery/events/dumper.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/events/dumper.py	2026-11-17 07:47:14.000000000 +0000
+@@ -4,7 +4,7 @@
+ as they happen.  Think of it like a `tcpdump` for Celery events.
+ """
+ import sys
+-from datetime import datetime
++from datetime import datetime, timezone
+ 
+ from celery.app import app_or_default
+ from celery.utils.functional import LRUCache
+@@ -48,7 +48,7 @@
+             pass
+ 
+     def on_event(self, ev):
+-        timestamp = datetime.utcfromtimestamp(ev.pop('timestamp'))
++        timestamp = datetime.fromtimestamp(ev.pop('timestamp'), timezone.utc)
+         type = ev.pop('type').lower()
+         hostname = ev.pop('hostname')
+         if type.startswith('task-'):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/events/receiver.py /app/celery/events/receiver.py
+--- /opt/pristine/celery/events/receiver.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/events/receiver.py	2026-11-17 07:19:06.000000000 +0000
+@@ -8,6 +8,7 @@
+ 
+ from celery import uuid
+ from celery.app import app_or_default
++from celery.exceptions import _ConflictingQueueOptions
+ from celery.utils.time import adjust_timestamp
+ 
+ from .event import get_exchange
+@@ -34,7 +35,8 @@
+ 
+     def __init__(self, channel, handlers=None, routing_key='#',
+                  node_id=None, app=None, queue_prefix=None,
+-                 accept=None, queue_ttl=None, queue_expires=None):
++                 accept=None, queue_ttl=None, queue_expires=None,
++                 queue_exclusive=None, queue_durable=None):
+         self.app = app_or_default(app or self.app)
+         self.channel = maybe_channel(channel)
+         self.handlers = {} if handlers is None else handlers
+@@ -48,11 +50,24 @@
+             queue_ttl = self.app.conf.event_queue_ttl
+         if queue_expires is None:
+             queue_expires = self.app.conf.event_queue_expires
++        if queue_exclusive is None:
++            queue_exclusive = self.app.conf.event_queue_exclusive
++        if queue_durable is None:
++            queue_durable = self.app.conf.event_queue_durable
++        queue_exclusive, queue_durable = bool(queue_exclusive), bool(queue_durable)
++        if queue_exclusive and queue_durable:
++            raise _ConflictingQueueOptions(
++                'Queue cannot be both exclusive and durable, '
++                'choose one or the other (event_queue_exclusive and '
++                'event_queue_durable cannot both be True).'
++            )
+         self.queue = Queue(
+             '.'.join([self.queue_prefix, self.node_id]),
+             exchange=self.exchange,
+             routing_key=self.routing_key,
+-            auto_delete=True, durable=False,
++            auto_delete=not queue_durable,
++            durable=queue_durable,
++            exclusive=queue_exclusive,
+             message_ttl=queue_ttl,
+             expires=queue_expires,
+         )
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/exceptions.py /app/celery/exceptions.py
+--- /opt/pristine/celery/exceptions.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/exceptions.py	2026-11-17 07:18:47.000000000 +0000
+@@ -207,6 +207,15 @@
+     """Celery is somehow improperly configured."""
+ 
+ 
++class _ConflictingQueueOptions(ImproperlyConfigured, ValueError):
++    """Queue declaration settings that cannot be enabled together.
++
++    Raised when a queue is configured to be both exclusive and durable.
++    It is also a :exc:`ValueError` since that is what
++    :class:`kombu.pidbox.Mailbox` raises for the very same combination.
++    """
++
++
+ class SecurityError(CeleryError):
+     """Security related exception."""
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/fixups/django.py /app/celery/fixups/django.py
+--- /opt/pristine/celery/fixups/django.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/fixups/django.py	2026-11-17 07:25:46.000000000 +0000
+@@ -2,6 +2,8 @@
+ import os
+ import sys
+ import warnings
++from collections.abc import Mapping
++from contextlib import suppress
+ from datetime import datetime, timezone
+ from importlib import import_module
+ from typing import IO, TYPE_CHECKING, Any, List, Optional, cast
+@@ -202,6 +204,7 @@
+             try:
+                 if force:
+                     conn.close()
++                    self._maybe_close_db_pool(conn)
+                 else:
+                     conn.close_if_unusable_or_obsolete()
+             except self.interface_errors:
+@@ -211,8 +214,35 @@
+                 if 'closed' not in str_exc and 'not connected' not in str_exc:
+                     raise
+ 
++    def _maybe_close_db_pool(self, conn: "BaseDatabaseWrapper") -> None:
++        # Django 5.1+ may use a connection pool (the "pool" database option),
++        # which must not be shared with the parent process either.
++        if not self._db_pool_enabled(conn) or not hasattr(conn, 'close_pool'):
++            return
++        # The pool may be gone already, e.g. closed by another connection
++        # of the same alias.
++        with suppress(KeyError):
++            conn.close_pool()
++
++    def _db_pool_enabled(self, conn: "BaseDatabaseWrapper") -> bool:
++        """Return whether the "pool" option is set for the database of `conn`.
++
++        This follows the ``DATABASES`` setting rather than assuming every
++        connection which is able to close a pool is using one.
++        """
++        alias = getattr(conn, 'alias', None)
++        databases = getattr(self._settings, 'DATABASES', None)
++        if isinstance(databases, Mapping):
++            db_settings = databases.get(alias)
++        else:
++            # Fall back on the settings the connection was created with.
++            db_settings = getattr(conn, 'settings_dict', None)
++        if not isinstance(db_settings, Mapping):
++            return bool(db_settings)
++        options = db_settings.get('OPTIONS')
++        if not isinstance(options, Mapping):
++            return False
++        return bool(options.get('pool'))
++
+     def close_cache(self) -> None:
+-        try:
+-            self._cache.close_caches()
+-        except (TypeError, AttributeError):
+-            pass
++        self._cache.close_caches()
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/result.py /app/celery/result.py
+--- /opt/pristine/celery/result.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/result.py	2026-11-17 07:24:49.000000000 +0000
+@@ -137,6 +137,12 @@
+         self._cache = None
+         if self.parent:
+             self.parent.forget()
++        # Stop tracking the result as pending (e.g. stop listening for its
++        # state changes), else it would be kept in memory forever.
++        remove_pending_result = getattr(
++            self.backend, 'remove_pending_result', None)
++        if remove_pending_result is not None:
++            remove_pending_result(self)
+         self.backend.forget(self.id)
+ 
+     def revoke(self, connection=None, terminate=False, signal=None,
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/utils/time.py /app/celery/utils/time.py
+--- /opt/pristine/celery/utils/time.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/utils/time.py	2026-11-17 07:51:49.000000000 +0000
+@@ -26,6 +26,11 @@
+ else:
+     from backports.zoneinfo import ZoneInfo
+ 
++try:
++    import tzlocal
++except ImportError:  # pragma: no cover
++    tzlocal = None
++
+ 
+ __all__ = (
+     'LocalTimezone', 'timezone', 'maybe_timedelta',
+@@ -33,7 +38,7 @@
+     'humanize_seconds', 'maybe_iso8601', 'is_naive',
+     'make_aware', 'localize', 'to_utc', 'maybe_make_aware',
+     'ffwd', 'utcoffset', 'adjust_timestamp',
+-    'get_exponential_backoff_interval',
++    'get_exponential_backoff_interval', 'get_localzone',
+ )
+ 
+ C_REMDEBUG = os.environ.get('C_REMDEBUG', False)
+@@ -115,9 +120,24 @@
+         return tt.tm_isdst > 0
+ 
+ 
++def get_localzone() -> tzinfo:
++    """Return the timezone of the system (e.g. ``Europe/Paris``).
++
++    The timezone is determined using :pypi:`tzlocal`, if it's not
++    available a :class:`LocalTimezone` is returned.
++
++    Raises:
++        Exception: if the timezone of the system cannot be determined.
++    """
++    if tzlocal is None:  # pragma: no cover
++        return LocalTimezone()
++    return tzlocal.get_localzone()
++
++
+ class _Zone:
+     """Timezone class that provides the timezone for the application.
+-    If `enable_utc` is disabled, LocalTimezone is provided as the timezone provider through local().
++    If `enable_utc` is disabled, the timezone of the system is provided as the timezone provider
++    through local() (a LocalTimezone instance if it cannot be determined).
+     Otherwise, this class provides a UTC ZoneInfo instance as the timezone provider for the application.
+ 
+     Additionally this class provides a few utility methods for converting datetimes.
+@@ -158,9 +178,16 @@
+         return zone
+ 
+     @cached_property
+-    def local(self) -> LocalTimezone:
+-        """Return LocalTimezone instance for the application."""
+-        return LocalTimezone()
++    def local(self) -> tzinfo:
++        """Return the timezone of the system.
++
++        A :class:`LocalTimezone` instance is returned if the timezone
++        of the system cannot be determined.
++        """
++        try:
++            return get_localzone()
++        except Exception:  # pylint: disable=broad-except
++            return LocalTimezone()
+ 
+     @cached_property
+     def utc(self) -> tzinfo:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/worker/consumer/consumer.py /app/celery/worker/consumer/consumer.py
+--- /opt/pristine/celery/worker/consumer/consumer.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/worker/consumer/consumer.py	2026-11-17 07:29:42.000000000 +0000
+@@ -31,7 +31,8 @@
+ from celery.utils.text import truncate
+ from celery.utils.time import humanize_seconds, rate
+ from celery.worker import loops
+-from celery.worker.state import active_requests, maybe_shutdown, requests, reserved_requests, task_reserved
++from celery.worker.state import (active_requests, maybe_shutdown, requests, reserved_requests, successful_requests,
++                                 task_reserved)
+ 
+ __all__ = ('Consumer', 'Evloop', 'dump_body')
+ 
+@@ -157,6 +158,10 @@
+     #: connection attempt.
+     first_connection_attempt = True
+ 
++    #: Number of the broker connection attempt in progress while retrying
++    #: to establish a connection (0 when no retry is in progress).
++    broker_connection_retry_attempt = 0
++
+     class Blueprint(bootsteps.Blueprint):
+         """Consumer blueprint."""
+ 
+@@ -195,6 +200,7 @@
+         self.connection_errors = self.conninfo.connection_errors
+         self.channel_errors = self.conninfo.channel_errors
+         self._restart_state = restart_state(maxR=5, maxT=1)
++        self.broker_connection_retry_attempt = 0
+ 
+         self._does_info = logger.isEnabledFor(logging.INFO)
+         self._limit_order = 0
+@@ -486,14 +492,18 @@
+         # Callback called for each retry while the connection
+         # can't be established.
+         def _error_handler(exc, interval, next_step=CONNECTION_RETRY_STEP):
++            self.broker_connection_retry_attempt += 1
+             if getattr(conn, 'alt', None) and interval == 0:
+                 next_step = CONNECTION_FAILOVER
+             next_step = next_step.format(
+                 when=humanize_seconds(interval, 'in', ' '),
+-                retries=int(interval / 2),
++                retries=self.broker_connection_retry_attempt,
+                 max_retries=self.app.conf.broker_connection_max_retries)
+             error(CONNECTION_ERROR, conn.as_uri(), exc, next_step)
+ 
++        # A new series of connection attempts starts.
++        self.broker_connection_retry_attempt = 0
++
+         # Remember that the connection is lazy, it won't establish
+         # until needed.
+ 
+@@ -532,6 +542,8 @@
+             callback=maybe_shutdown,
+         )
+         self.first_connection_attempt = False
++        # Connected: no retry is in progress anymore.
++        self.broker_connection_retry_attempt = 0
+         return conn
+ 
+     def _flush_events(self):
+@@ -756,6 +768,25 @@
+             for request in requests_to_cancel:
+                 request.cancel(self.pool)
+ 
++    def cancel_active_requests(self):
++        """Cancel all the requests currently being executed.
++
++        Requests of tasks that already succeeded are left untouched.
++
++        Requests of tasks with late acknowledgment enabled are terminated
++        without announcing them as retried, as their message has not been
++        acknowledged and will thus be redelivered by the broker.
++        """
++        def should_cancel(request):
++            # Never cancel a task that already succeeded.
++            return request.id not in successful_requests
++
++        for request in tuple(filter(should_cancel, active_requests)):
++            if request.task.acks_late:
++                request.cancel(self.pool, emit_retry=False)
++            else:
++                request.cancel(self.pool)
++
+ 
+ class Evloop(bootsteps.StartStopStep):
+     """Event loop service.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/worker/consumer/delayed_delivery.py /app/celery/worker/consumer/delayed_delivery.py
+--- /opt/pristine/celery/worker/consumer/delayed_delivery.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/worker/consumer/delayed_delivery.py	2026-11-17 07:37:14.000000000 +0000
+@@ -3,18 +3,25 @@
+ This module provides the DelayedDelivery bootstep which handles setup and configuration
+ of native delayed delivery functionality when using quorum queues.
+ """
++from contextlib import nullcontext
+ from typing import Iterator, List, Optional, Set, Union, ValuesView
+ 
+ from kombu import Connection, Queue
+ from kombu.transport.native_delayed_delivery import (bind_queue_to_native_delayed_delivery_exchange,
+                                                      declare_native_delayed_delivery_exchanges_and_queues)
+ from kombu.utils.functional import retry_over_time
++from kombu.utils.url import maybe_sanitize_url
+ 
+ from celery import Celery, bootsteps
+ from celery.utils.log import get_logger
+ from celery.utils.quorum_queues import detect_quorum_queues
+ from celery.worker.consumer import Consumer, Tasks
+ 
++try:
++    from builtins import ExceptionGroup
++except ImportError:  # pragma: no cover  (Python < 3.11)
++    from exceptiongroup import ExceptionGroup
++
+ __all__ = ('DelayedDelivery',)
+ 
+ logger = get_logger(__name__)
+@@ -24,11 +31,22 @@
+ RETRY_INTERVAL = 1.0  # seconds between retries
+ MAX_RETRIES = 3      # maximum number of retries
+ 
++# Exceptions (e.g. the broker is not ready yet) for which setting up the
++# native delayed delivery is retried, any other exception is fatal.
++RETRIED_EXCEPTIONS = (ConnectionRefusedError, OSError)
++
+ 
+ # Valid queue types for delayed delivery
+ VALID_QUEUE_TYPES = {'classic', 'quorum'}
+ 
+ 
++def _maybe_closing(connection):
++    """Return a context manager releasing `connection` on exit (if supported)."""
++    if hasattr(connection, '__enter__') and hasattr(connection, '__exit__'):
++        return connection
++    return nullcontext(connection)
++
++
+ class DelayedDelivery(bootsteps.StartStopStep):
+     """Bootstep that sets up native delayed delivery functionality.
+ 
+@@ -84,7 +102,7 @@
+                 retry_over_time(
+                     self._setup_delayed_delivery,
+                     args=(c, broker_url),
+-                    catch=(ConnectionRefusedError, OSError),
++                    catch=RETRIED_EXCEPTIONS,
+                     errback=self._on_retry,
+                     interval_start=RETRY_INTERVAL,
+                     max_retries=MAX_RETRIES,
+@@ -92,7 +110,7 @@
+             except Exception as e:
+                 logger.warning(
+                     "Failed to setup delayed delivery for %r: %s",
+-                    broker_url, str(e)
++                    maybe_sanitize_url(broker_url), str(e)
+                 )
+                 setup_errors.append((broker_url, e))
+ 
+@@ -115,48 +133,59 @@
+             Exception: For other unexpected errors during setup
+         """
+         connection: Connection = c.app.connection_for_write(url=broker_url)
+-        queue_type = c.app.conf.broker_native_delayed_delivery_queue_type
+-        logger.debug(
+-            "Setting up delayed delivery for broker %r with queue type %r",
+-            broker_url, queue_type
+-        )
+-
+-        try:
+-            declare_native_delayed_delivery_exchanges_and_queues(
+-                connection,
+-                queue_type
+-            )
+-        except Exception as e:
+-            logger.warning(
+-                "Failed to declare exchanges and queues for %r: %s",
+-                broker_url, str(e)
++        # Make sure the connection is released once done with it.
++        with _maybe_closing(connection):
++            queue_type = c.app.conf.broker_native_delayed_delivery_queue_type
++            logger.debug(
++                "Setting up delayed delivery for broker %r with queue type %r",
++                maybe_sanitize_url(broker_url), queue_type
+             )
+-            raise
+ 
+-        try:
+-            self._bind_queues(c.app, connection)
+-        except Exception as e:
+-            logger.warning(
+-                "Failed to bind queues for %r: %s",
+-                broker_url, str(e)
+-            )
+-            raise
++            try:
++                declare_native_delayed_delivery_exchanges_and_queues(
++                    connection,
++                    queue_type
++                )
++            except Exception as e:
++                logger.warning(
++                    "Failed to declare exchanges and queues for %r: %s",
++                    maybe_sanitize_url(broker_url), str(e)
++                )
++                raise
++
++            try:
++                self._bind_queues(c.app, connection)
++            except Exception as e:
++                logger.warning(
++                    "Failed to bind queues for %r: %s",
++                    maybe_sanitize_url(broker_url), str(e)
++                )
++                raise
+ 
+     def _bind_queues(self, app: Celery, connection: Connection) -> None:
+         """Bind all application queues to delayed delivery exchanges.
+ 
++        A queue failing to be bound doesn't prevent the remaining queues
++        from being bound, unless the failure is one of
++        :data:`RETRIED_EXCEPTIONS` (e.g. the broker is not ready yet): the
++        whole setup is retried in that case.
++
+         Args:
+             app: The Celery application instance
+             connection: The broker connection to use
+ 
+         Raises:
+-            Exception: If queue binding fails
++            Exception: One of :data:`RETRIED_EXCEPTIONS` raised while binding
++                a queue.
++            ExceptionGroup: The exceptions raised while binding the queues
++                that could not be bound.
+         """
+         queues: ValuesView[Queue] = app.amqp.queues.values()
+         if not queues:
+             logger.warning("No queues found to bind for delayed delivery")
+             return
+ 
++        exceptions: List[Exception] = []
+         for queue in queues:
+             try:
+                 logger.debug("Binding queue %r to delayed delivery exchange", queue.name)
+@@ -166,20 +195,37 @@
+                     "Failed to bind queue %r: %s",
+                     queue.name, str(e)
+                 )
+-                raise
++                # Must be raised as is to be retried by retry_over_time()
++                # (which can't catch exceptions in an exception group).
++                if isinstance(e, RETRIED_EXCEPTIONS):
++                    raise
++                exceptions.append(e)
++
++        if exceptions:
++            raise ExceptionGroup(
++                "One or more failures occurred while binding queues to "
++                "delayed delivery exchanges",
++                exceptions,
++            )
+ 
+-    def _on_retry(self, exc: Exception, interval_range: Iterator[float], intervals_count: int) -> None:
++    def _on_retry(self, exc: Exception, interval_range: Iterator[float], intervals_count: int) -> float:
+         """Callback for retry attempts.
+ 
+         Args:
+             exc: The exception that triggered the retry
+             interval_range: An iterator which returns the time in seconds to sleep next
+             intervals_count: Number of retry attempts so far
++
++        Returns:
++            float: The number of seconds to sleep before the next attempt.
+         """
++        interval = float(next(interval_range))
+         logger.warning(
+-            "Retrying delayed delivery setup (attempt %d/%d) after error: %s",
+-            intervals_count + 1, MAX_RETRIES, str(exc)
++            "Retrying delayed delivery setup (attempt %d/%d) after error: %s. "
++            "Sleeping %.2f seconds.",
++            intervals_count + 1, MAX_RETRIES, str(exc), interval
+         )
++        return interval
+ 
+     def _validate_configuration(self, app: Celery) -> None:
+         """Validate all required configuration settings.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/worker/consumer/tasks.py /app/celery/worker/consumer/tasks.py
+--- /opt/pristine/celery/worker/consumer/tasks.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/worker/consumer/tasks.py	2026-11-17 07:46:31.000000000 +0000
+@@ -2,11 +2,14 @@
+ 
+ from __future__ import annotations
+ 
++from types import MethodType
++
+ from kombu.common import QoS, ignore_errors
+ 
+ from celery import bootsteps
+ from celery.utils.log import get_logger
+ from celery.utils.quorum_queues import detect_quorum_queues
++from celery.worker import state
+ 
+ from .mingle import Mingle
+ 
+@@ -17,6 +20,23 @@
+ debug = logger.debug
+ 
+ 
++def _max_concurrency(c):
++    """Return the maximum number of tasks the worker may execute at once.
++
++    That's the maximum concurrency of the autoscaler when autoscaling,
++    otherwise the size of the pool.
++    """
++    controller = c.controller
++    for limit in (
++        # the autoscaler's limit may be changed at runtime.
++        getattr(getattr(controller, 'autoscaler', None), 'max_concurrency', None),
++        getattr(controller, 'max_concurrency', None),
++    ):
++        if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
++            return limit
++    return c.pool.num_processes
++
++
+ class Tasks(bootsteps.StartStopStep):
+     """Bootstep starting the task message consumer."""
+ 
+@@ -46,7 +66,40 @@
+                 prefetch_count=prefetch_count,
+                 apply_global=qos_global,
+             )
+-        c.qos = QoS(set_prefetch_count, c.initial_prefetch_count)
++        # The prefetch count is increased for every ETA/countdown task
++        # held by the worker: limiting it bounds the number of such tasks
++        # kept in memory.  Note that a limit of 0 is not the same as
++        # no limit (:const:`None`).
++        eta_task_limit = c.app.conf.worker_eta_task_limit
++        c.qos = QoS(
++            set_prefetch_count, c.initial_prefetch_count,
++            max_prefetch=eta_task_limit,
++        )
++
++        if c.app.conf.worker_disable_prefetch:
++            self._disable_prefetch(c)
++
++    def _disable_prefetch(self, c):
++        """Only fetch messages when there's capacity to execute them.
++
++        The channel is prevented from consuming more messages while the
++        number of reserved requests has reached the maximum concurrency
++        of the worker (that of the autoscaler when autoscaling).
++        """
++        channel_qos = getattr(c.task_consumer.channel, 'qos', None)
++        if channel_qos is None or not hasattr(channel_qos, 'can_consume'):
++            logger.warning(
++                'worker_disable_prefetch is not supported by the %r transport',
++                getattr(c.connection.transport, 'driver_type', None))
++            return
++        original_can_consume = channel_qos.can_consume
++
++        def can_consume(self):
++            if len(state.reserved_requests) >= _max_concurrency(c):
++                return False
++            return original_can_consume()
++
++        channel_qos.can_consume = MethodType(can_consume, channel_qos)
+ 
+     def stop(self, c):
+         """Stop task consumer."""
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/worker/request.py /app/celery/worker/request.py
+--- /opt/pristine/celery/worker/request.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/worker/request.py	2026-11-17 07:29:13.000000000 +0000
+@@ -422,11 +422,27 @@
+             if obj is not None:
+                 obj.terminate(signal)
+ 
+-    def cancel(self, pool, signal=None):
++    def cancel(self, pool, signal=None, emit_retry=True):
++        """Cancel the request, terminating its execution if started.
++
++        Arguments:
++            pool: The worker pool executing the task.
++            signal: Signal used to terminate the task (default ``TERM``).
++            emit_retry (bool): Announce the task as being retried
++                (``RETRY`` state, :signal:`task_retry` signal, ...) when
++                its execution is cancelled.  When disabled the task is
++                simply terminated, e.g. because its message is going to
++                be redelivered by the broker anyway.
++        """
+         signal = _signals.signum(signal or TERM_SIGNAME)
+         if self.time_start:
+             pool.terminate_job(self.worker_pid, signal)
+-            self._announce_cancelled()
++            if emit_retry:
++                self._announce_cancelled()
++            else:
++                # Terminated on purpose: the failure caused by the
++                # termination must not be reported.
++                self._already_cancelled = True
+ 
+         if self._apply_result is not None:
+             obj = self._apply_result()  # is a weakref
+@@ -525,6 +541,10 @@
+                  timeout, self.name, self.id)
+         else:
+             task_ready(self)
++            if self._already_cancelled or self._already_revoked:
++                # The task was terminated on purpose (cancelled/revoked)
++                # and its outcome was handled already.
++                return
+             error('Hard time limit (%ss) exceeded for %s[%s]',
+                   timeout, self.name, self.id)
+             exc = TimeLimitExceeded(timeout)
+@@ -588,6 +608,11 @@
+                 self._announce_revoked(
+                     'terminated', True, str(exc), False)
+             return
++        elif self._already_cancelled or self._already_revoked:
++            # The task was terminated on purpose (cancelled/revoked), e.g.
++            # the process executing it was killed, and its outcome was
++            # handled already: there's no failure to report.
++            return
+         elif isinstance(exc, MemoryError):
+             raise MemoryError(f'Process got: {exc}')
+         elif isinstance(exc, Reject):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' /opt/pristine/celery/worker/worker.py /app/celery/worker/worker.py
+--- /opt/pristine/celery/worker/worker.py	2026-11-17 09:54:36.000000000 +0000
++++ /app/celery/worker/worker.py	2026-11-17 07:46:00.000000000 +0000
+@@ -368,7 +368,8 @@
+                        max_tasks_per_child=None,
+                        prefetch_multiplier=None, disable_rate_limits=None,
+                        worker_lost_wait=None,
+-                       max_memory_per_child=None, **_kw):
++                       max_memory_per_child=None, disable_prefetch=None,
++                       **_kw):
+         either = self.app.either
+         self.loglevel = loglevel
+         self.logfile = logfile
+@@ -407,6 +408,12 @@
+         self.disable_rate_limits = either(
+             'worker_disable_rate_limits', disable_rate_limits,
+         )
++        if disable_prefetch is not None:
++            # read by the consumer when starting to consume tasks.
++            self.app.conf.worker_disable_prefetch = disable_prefetch
++        self.disable_prefetch = either(
++            'worker_disable_prefetch', disable_prefetch,
++        )
+         self.worker_lost_wait = either('worker_lost_wait', worker_lost_wait)
+ 
+     def wait_for_soft_shutdown(self):

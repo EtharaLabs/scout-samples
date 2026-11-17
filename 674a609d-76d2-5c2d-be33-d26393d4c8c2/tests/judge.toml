@@ -1,0 +1,261 @@
+# Judged channel for the celery backends, worker-pipeline and messaging bundle.
+#
+# Carries one tenth of the reward. Every criterion is POSITIVE and COMPOUND: each Q item requires
+# that the diff implement behaviour AND that the honesty property hold, so an empty diff fails all
+# twelve and the no-op collects no vacuous pass. A negated criterion passes vacuously on an empty
+# diff, which is what held an earlier sibling's no-op at a third of the judged channel instead of
+# zero.
+#
+# Any unreachable judge makes Reward Kit raise rather than degrade and suppresses the whole
+# reward.json
+# including the deterministic channel. The runner MUST give the verifier a route to an
+# OpenAI-compatible endpoint for this judge; without one, no reward.json is written at all.
+
+# There is no Q4. The sibling bundles carried a "graded test tree untouched" criterion and it was
+# REMOVED rather than reworded: final.diff deliberately excludes the test tree, so a judge reading it
+# cannot establish that the tree was untouched, and the criterion asked for a verdict the evidence
+# cannot support. A sibling judge said exactly this when it refused it. The deterministic channel
+# already enforces the no-test-edit red line with a hard gate that zeroes the whole score. This
+# bundle's repository keeps its tests in a separate top-level t/ tree that the verifier replaces
+# wholesale, so the red line is even further out of the judge's reach here.
+
+[judge]
+judge = "openai/gpt-5.6-sol"
+files = ["/logs/verifier/final.diff"]
+reasoning_effort = "high"
+# Three samples per criterion, median taken. A single sample is not a stable instrument: across five
+# measured rounds on IDENTICAL reference bytes, individual criteria flipped verdict repeatedly, and
+# the scope criterion passed twice then failed while citing files that its own authoritative list
+# names. With twelve criteria, even 95 percent per-criterion reliability compounds to roughly a
+# coin flip on an all-pass result, which is unusable now that the channel reports its raw mean
+# instead of a thresholded one. The median of three collapses a lone dissenting sample.
+samples = 3
+
+[scoring]
+# weighted-mean, NOT threshold. `threshold` computes this same weighted mean and then rounds it to
+# 1.0 or 0.0 against a bar, which inflates every partial submission: the first recorded rollout
+# scored a judged mean of 0.6667 and the threshold paid it a full 1.0, lifting its reward from
+# 0.5328 to 0.5661 for work it had not done. The raw mean is reported instead, so the judged tenth
+# pays exactly what the rubric measured.
+#
+# The consequence is that the REFERENCE must satisfy every criterion. A criterion the oracle fails
+# puts a ceiling below 1.0 on a correct answer, which is a defect in the criterion or in the
+# reference's own tidiness, never a property of the task. Both are fixed at source rather than
+# absorbed by a threshold: the oracle and no-op means were measured before delivery.
+aggregation = "weighted-mean"
+
+[[criterion]]
+
+id = "R1"
+description = "A failing chord carries the originating exception rather than a substitute, and the diff implements task-queue behaviour."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "VALUE"
+residue = "whether an error PRESERVES its originating cause or substitutes a generic one is a judgment about which exception object travels to the callback; both forms are written with the same raise and attribute syntax"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the chord-error path carries the exception that actually failed through to the error callback, rather than replacing it with a generic or freshly constructed error that discards what went wrong"
+evaluation_rule = "EVIDENCE: the hunks in the result-backend modules on the chord-error path. Follow which exception object reaches the callback. ANSWER YES IF the originating exception is recovered and travels onward, whether attached as a cause, carried in the error's payload, or passed directly. ANSWER NO if the path constructs a fresh error and discards the original, so a caller cannot learn what failed. You are judging which object SURVIVES the path, not whether any helper exists. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R2"
+description = "The worker can be told not to prefetch, and only a Redis broker honours it."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the new setting is off by default, is reachable from the command line as well as configuration, is ignored for brokers other than Redis, and when active bounds messages in flight by both the autoscaler's maximum concurrency and the reserved-request limit"
+evaluation_rule = "EVIDENCE: the hunks in the consumer, the worker entry point and the defaults module. PASS when a broker check gates the behaviour AND at least one of the two bounds is visibly consulted. FAIL when the behaviour applies to every broker unconditionally, or when leaving the setting unset changes existing conduct. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R3"
+description = "The consumer cancels requests in flight, and an individual cancel chooses whether to retry."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the consumer gains a way to cancel every request it currently holds while leaving already-successful tasks alone, and cancelling one request takes a parameter selecting whether a retry is published or the task is simply terminated"
+evaluation_rule = "EVIDENCE: the hunks in the consumer and request modules. PASS when both paths are present and the successful-task exclusion is visible. FAIL when cancellation is indiscriminate, or when the retry choice is hard-coded rather than parameterised. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R4"
+description = "Control and event queues each declare durability and exclusivity from their own settings."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the control namespace and the event namespace each carry an independent pair of settings for durable and exclusive declaration, both defaulting to false, and an incoherent combination is rejected rather than accepted silently"
+evaluation_rule = "EVIDENCE: the hunks in the defaults, control and event-receiver modules. PASS when two INDEPENDENT pairs appear, one per namespace, AND a validation path rejects an incoherent combination. FAIL when one namespace inherits the other's pair, or when the settings exist but nothing validates them. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R5"
+description = "The queue created for an unknown route takes its type from configuration or an explicit parameter."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the queue registry constructor gains parameters for the created queue's type and its exchange type, positioned directly after the existing create-missing flag rather than appended at the end of the parameter list"
+evaluation_rule = "EVIDENCE: the changed definition line in the messaging module, and the calls to it. Check exactly two things: both parameters appear, and they sit immediately after the existing create-missing flag rather than after the trailing options. POSITION is the whole point: callers in this repository pass the trailing options positionally, so appending instead misroutes arguments silently. Judge NOTHING else here. Do not judge the chosen default values, which the deterministic channel measures. FAIL only when a parameter is missing or appended after the trailing options. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R6"
+description = "Consumption admission is bounded by in-flight work against the effective concurrency limit, and otherwise defers to the original check."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether a replacement admission check COMPOSES WITH or REPLACES the one it overrides is a relation between the override and the captured prior callable, and no single statement in the hunk says which"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a replacement admission check refuses new work once in-flight requests reach the effective concurrency limit, and when under that limit defers to the check it replaced rather than unconditionally admitting"
+evaluation_rule = "EVIDENCE: the hunks installing a replacement admission check on the consumer channel. ANSWER YES IF the replacement refuses admission once the count of in-flight or reserved requests reaches an effective concurrency limit, AND when below that limit it calls through to the check it captured rather than simply returning true. The limit may be taken from an autoscaler bound when one is set and from the pool size otherwise; both are CORRECT. ANSWER NO if the replacement discards the original check, or admits without consulting in-flight work. Judge the RELATION between the override and the captured original; the presence of a function named for admission proves nothing. IMPORTANT: judge the SUBMISSION, not the upstream release design. An argument that the approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R7"
+description = "Binding delayed-delivery queues retries a defined set of transient failures."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "robustness"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "setting up native delayed delivery retries on an enumerated set of transient exception types rather than treating the first failure as fatal, continues past a single queue's failure where it can, surfaces the failure when it cannot, and tolerates a backoff value returned as a float"
+evaluation_rule = "EVIDENCE: the hunks in the delayed-delivery module. PASS when the retried exception types are named as an explicit set rather than caught as a bare Exception, AND the continue-past-one-failure path is distinguishable from the give-up path. A bare `except Exception` retry loop is a FAIL even if it happens to retry the right things, because the objective is a DEFINED set. FAIL also when every binding failure is fatal. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R8"
+description = "Django teardown suppresses a vanished connection pool but lets a cache failure propagate."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "closing database connections consults the relevant framework setting to decide whether a pooled connection is closed, suppresses the lookup error raised when the pool is already gone, and does NOT suppress a failure raised while closing the cache"
+evaluation_rule = "EVIDENCE: the hunks in the framework-integration module. PASS when the two failure kinds are treated DIFFERENTLY, one suppressed and one allowed to propagate. FAIL when a single broad handler swallows both, which would hide the cache failure the objective requires surfacing. IMPORTANT: judge the SUBMISSION, not the upstream release's design. The reference implementation reproduces that release faithfully, so an argument that the release's own approach is incomplete, could miss a case, handles a neighbouring situation poorly, or should have been designed differently is OUT OF SCOPE and is NOT a finding here. Behavioural correctness is measured by the deterministic channel against the release's own tests, which the reference passes in full. Judge ONLY whether the diff IMPLEMENTS the objective described above."
+
+[[criterion]]
+
+id = "R9"
+description = "A chord body receives an identity derived from the chord rather than a fabricated placeholder."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "VALUE"
+residue = "whether an identifier is DERIVED from the object it names or merely fabricated to be non-empty is a judgment about provenance, and both produce a syntactically valid id"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the chord body obtains its task identity by freezing the chord's own structure, so the identity corresponds to the body being run, rather than by generating an unrelated value purely to avoid an empty field"
+evaluation_rule = "EVIDENCE: the hunks in the canvas module on the chord path. ANSWER YES IF the identity comes from freezing or otherwise resolving the body's own signature, so it corresponds to the work being run. ANSWER NO if an arbitrary value is produced solely to populate the field, with no relation to the body. Judge the PROVENANCE of the identity. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R10"
+description = "The eager application path builds its request with lineage read from the task stack when a calling task is present."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a lineage field is INHERITED from a caller or fabricated at the callee is a relation between the task stack and the constructed request, and no single assignment in the hunk states it"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "an eager task application consults the current task stack and records the calling task identity on the request it constructs, so an eagerly applied child is not lineage-blind"
+evaluation_rule = "EVIDENCE: the hunks in the eager application path. ANSWER YES IF that path consults the current task stack and, when a calling task with a request is present, records that caller identity as the parent and carries the caller root forward, AND the request it constructs now carries both lineage fields where it previously carried neither. ANSWER NO if the eager path constructs its request without consulting the stack, so lineage is absent or fabricated at every level. EXPLICITLY CORRECT AND NOT FINDINGS, because they are the defined base cases of a lineage chain: a call with no caller on the stack recording no parent and itself as root, and a caller that carries no root of its own falling back to the new id. IMPORTANT: judge the SUBMISSION, not the upstream release design. An argument that the approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R11"
+description = "A corrupted stored schedule is rebuilt rather than silently swallowed."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "robustness"
+mode = "judged"
+type = "EFFECT"
+residue = "the difference between RECOVERING from a corrupt store and merely suppressing the error is a judgment about what state the code leaves behind; both are written as exception handling"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "when the persistent scheduler cannot read its stored schedule, it re-establishes a usable schedule rather than only suppressing the failure and continuing with unusable state"
+evaluation_rule = "EVIDENCE: the hunks in the beat scheduler. ANSWER YES IF the handler re-establishes a usable schedule, by rebuilding, reinitialising or falling back to a known-good source. ANSWER NO if the handler only suppresses the error and continues, leaving the scheduler holding nothing usable. Judge the STATE left behind, not the presence of a try block. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R12"
+description = "Termination on failure and on timeout reports through the shared path rather than a bespoke one."
+type = "binary"
+weight = 1
+negate = false
+[criterion.annotations]
+obligation = "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+dimension = "robustness"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether two paths converge on shared reporting or each invents its own is a structural judgment about the code's shape, invisible to any single-line check"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the two paths that terminate a running request route their termination through the same handling, rather than one of them carrying a parallel bespoke implementation that could drift from the other"
+evaluation_rule = "EVIDENCE: the hunks in the worker request module covering the failure and timeout paths. ANSWER YES IF both reach termination through shared handling, whether a common helper, a common method or the same call. ANSWER NO if one path carries its own duplicate termination logic that could diverge from the other. Judge whether the two paths CONVERGE. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."

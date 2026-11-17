@@ -1,0 +1,289 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.3465,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 1.0,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "a_single_shared_accessor_resolves_edge_c",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "A single shared accessor resolves edge capacity and the flow algorithms use it rather than each resolving capacity itself.",
+              "reasoning": "`networkx.algorithms.flow.utils._capacity_function` is the shared capacity resolver. The maximum-flow implementations call it and residual-network construction also relies on it, rather than duplicating string/callable resolution logic.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R2",
+              "name": "the_accessor_passes_a_callable_specifier",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The accessor passes a callable specifier through untouched and builds an equivalent callable for a string specifier.",
+              "reasoning": "`_capacity_function` returns a callable capacity specifier unchanged. For a non-callable name, it returns a `(u, v, d)` callable that reads `d.get(capacity, inf)`.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R3",
+              "name": "a_cutoff_that_the_chosen_flow_function_c",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A cutoff that the chosen flow function cannot honour is rejected with an error rather than silently ignored.",
+              "reasoning": "The shared `_resolve_flow_func` rejects a non-None cutoff when the selected function is `preflow_push`, the built-in flow function that cannot honor a cutoff, instead of passing or ignoring it.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R4",
+              "name": "minimum_cuts_report_the_partition_the_un",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Minimum cuts report the partition the underlying maximum flow induces.",
+              "reasoning": "`minimum_cut` requests a complete flow with `value_only=False` and computes the source side by traversing positive residual-capacity edges in that exact residual network.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R6",
+              "name": "group_betweenness_is_computed_over_the_g",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Group betweenness is computed over the group as a whole rather than aggregated from single-node values.",
+              "reasoning": "The new group algorithm counts shortest paths avoiding the entire group and subtracts that count from all shortest paths. Thus a path meeting multiple group members contributes only once rather than once per member.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N1",
+              "name": "a_capacity_specifier_that_is_callable_is",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "A capacity specifier that is callable is resolved without being invoked too early.",
+              "reasoning": "Callable capacity specifiers are returned untouched by `_capacity_function`; they are invoked only while individual graph edges are being resolved in `build_residual_network`.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N2",
+              "name": "a_rejected_cutoff_names_the_incompatibil",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A rejected cutoff names the incompatibility rather than failing opaquely.",
+              "reasoning": "The rejection explicitly states that `cutoff` should not be specified and includes the selected function's name followed by `does not support a cutoff`.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N3",
+              "name": "the_reported_cut_partition_is_the_one_th",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The reported cut partition is the one the computed flow induces.",
+              "reasoning": "The reported partition is `(reachable, set(flowG) - reachable)`, where `reachable` is computed directly from the residual network produced by the selected flow computation.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N4",
+              "name": "unreachable_nodes_are_handled_by_compone",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Unreachable nodes are handled by component rather than counted as adjacent.",
+              "reasoning": "Incremental closeness explicitly recognizes nodes absent from both endpoint distance maps as belonging to an unaffected component and preserves their previous values; affected or newly connected components are recomputed.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N5",
+              "name": "a_group_measure_treats_the_group_as_one",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A group measure treats the group as one unit rather than summing its members.",
+              "reasoning": "`_group_dependency` tracks paths that avoid all nodes in the group simultaneously, so the group is treated as a single interception set rather than as a sum of individual-node measures.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N6",
+              "name": "one_shared_accessor_serves_the_algorithm",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "One shared accessor serves the algorithms rather than each carrying its own copy.",
+              "reasoning": "Capacity interpretation is centralized in the one `_capacity_function` helper in `flow.utils`, and the modified flow algorithms import and use that helper.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N7",
+              "name": "a_specifier_given_as_a_name_is_distingui",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 1.0,
+              "description": "A specifier given as a name is distinguished from one given as a value.",
+              "reasoning": "The resolver distinguishes callable specifiers from attribute-name specifiers: callables pass through, while names are converted into edge-attribute lookup functions with infinite capacity for missing attributes.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 3,
+            "guard": "off"
+          },
+          "judge_output": "--- sample 1 ---\n{\"a_single_shared_accessor_resolves_edge_c\":{\"score\":\"yes\",\"reasoning\":\"`flow.utils._capacity_function` is the shared capacity resolver. The maximum-flow implementations import and use it, and `build_residual_network` also relies on it instead of duplicating string/callable resolution.\"},\"the_accessor_passes_a_callable_specifier\":{\"score\":\"yes\",\"reasoning\":\"`_capacity_function` returns a callable capacity specifier unchanged. For a non-callable attribute name, it returns a `(u, v, d)` callable that reads `d.get(capacity, inf)`.\"},\"a_cutoff_that_the_chosen_flow_function_c\":{\"score\":\"yes\",\"reasoning\":\"`_resolve_flow_func` detects a non-None cutoff used with `preflow_push`, which cannot honor it, and raises `NetworkXError` rather than silently dropping it.\"},\"minimum_cuts_report_the_partition_the_un\":{\"score\":\"yes\",\"reasoning\":\"`minimum_cut` requests a complete flow with `value_only=False` and constructs the partition from source reachability through positive residual-capacity edges in that flow's residual network.\"},\"group_betweenness_is_computed_over_the_g\":{\"score\":\"yes\",\"reasoning\":\"The new group algorithm counts shortest paths avoiding the entire group and subtracts that count from all shortest paths. Thus a path intersecting multiple group members is counted only once, rather than summing per-node betweenness values.\"},\"a_capacity_specifier_that_is_callable_is\":{\"score\":\"yes\",\"reasoning\":\"Callable capacity specifiers are returned untouched by `_capacity_function`; they are only invoked while residual-network edges are being resolved, once per relevant input edge.\"},\"a_rejected_cutoff_names_the_incompatibil\":{\"score\":\"yes\",\"reasoning\":\"The rejection explicitly states that the selected function, such as `preflow_push`, does not support a cutoff, producing a descriptive `NetworkXError`.\"},\"the_reported_cut_partition_is_the_one_th\":{\"score\":\"yes\",\"reasoning\":\"The helper `_source_side_of_cut` traverses exactly the edges with remaining residual capacity, so the reported source side is the partition induced by the computed flow rather than an independently selected minimum cut.\"},\"unreachable_nodes_are_handled_by_compone\":{\"score\":\"yes\",\"reasoning\":\"Incremental closeness explicitly recognizes nodes unreachable from both modified-edge endpoints as belonging to unaffected components and preserves their previous values; reachable nodes are evaluated from their finite-distance component.\"},\"a_group_measure_treats_the_group_as_one\":{\"score\":\"yes\",\"reasoning\":\"`_group_dependency` sets the avoiding-path count to zero on entry to any group node and computes one through-group fraction per path, treating the set as a single interception unit.\"},\"one_shared_accessor_serves_the_algorithm\":{\"score\":\"yes\",\"reasoning\":\"There is one `_capacity_function` implementation in `flow.utils`, imported by the flow implementations; no separate capacity-resolution copies are introduced in each algorithm.\"},\"a_specifier_given_as_a_name_is_distingui\":{\"score\":\"yes\",\"reasoning\":\"The accessor distinguishes callable values from attribute-name specifiers: callables pass through, while names are converted into edge-attribute lookup functions with infinite capacity as the missing-value default.\"}}\n\n--- sample 2 ---\n{\"a_single_shared_accessor_resolves_edge_c\":{\"score\":\"yes\",\"reasoning\":\"`networkx.algorithms.flow.utils._capacity_function` is the shared capacity resolver. The maximum-flow implementations call it and residual-network construction also relies on it, rather than duplicating string/callable resolution logic.\"},\"the_accessor_passes_a_callable_specifier\":{\"score\":\"yes\",\"reasoning\":\"`_capacity_function` returns a callable capacity specifier unchanged. For a non-callable name, it returns a `(u, v, d)` callable that reads `d.get(capacity, inf)`.\"},\"a_cutoff_that_the_chosen_flow_function_c\":{\"score\":\"yes\",\"reasoning\":\"The shared `_resolve_flow_func` rejects a non-None cutoff when the selected function is `preflow_push`, the built-in flow function that cannot honor a cutoff, instead of passing or ignoring it.\"},\"minimum_cuts_report_the_partition_the_un\":{\"score\":\"yes\",\"reasoning\":\"`minimum_cut` requests a complete flow with `value_only=False` and computes the source side by traversing positive residual-capacity edges in that exact residual network.\"},\"group_betweenness_is_computed_over_the_g\":{\"score\":\"yes\",\"reasoning\":\"The new group algorithm counts shortest paths avoiding the entire group and subtracts that count from all shortest paths. Thus a path meeting multiple group members contributes only once rather than once per member.\"},\"a_capacity_specifier_that_is_callable_is\":{\"score\":\"yes\",\"reasoning\":\"Callable capacity specifiers are returned untouched by `_capacity_function`; they are invoked only while individual graph edges are being resolved in `build_residual_network`.\"},\"a_rejected_cutoff_names_the_incompatibil\":{\"score\":\"yes\",\"reasoning\":\"The rejection explicitly states that `cutoff` should not be specified and includes the selected function's name followed by `does not support a cutoff`.\"},\"the_reported_cut_partition_is_the_one_th\":{\"score\":\"yes\",\"reasoning\":\"The reported partition is `(reachable, set(flowG) - reachable)`, where `reachable` is computed directly from the residual network produced by the selected flow computation.\"},\"unreachable_nodes_are_handled_by_compone\":{\"score\":\"yes\",\"reasoning\":\"Incremental closeness explicitly recognizes nodes absent from both endpoint distance maps as belonging to an unaffected component and preserves their previous values; affected or newly connected components are recomputed.\"},\"a_group_measure_treats_the_group_as_one\":{\"score\":\"yes\",\"reasoning\":\"`_group_dependency` tracks paths that avoid all nodes in the group simultaneously, so the group is treated as a single interception set rather than as a sum of individual-node measures.\"},\"one_shared_accessor_serves_the_algorithm\":{\"score\":\"yes\",\"reasoning\":\"Capacity interpretation is centralized in the one `_capacity_function` helper in `flow.utils`, and the modified flow algorithms import and use that helper.\"},\"a_specifier_given_as_a_name_is_distingui\":{\"score\":\"yes\",\"reasoning\":\"The resolver distinguishes callable specifiers from attribute-name specifiers: callables pass through, while names are converted into edge-attribute lookup functions with infinite capacity for missing attributes.\"}}\n\n--- sample 3 ---\n{\"a_single_shared_accessor_resolves_edge_c\":{\"score\":\"yes\",\"reasoning\":\"`flow.utils._capacity_function` is the shared capacity resolver, and the maximum-flow implementations call it instead of independently interpreting capacity attributes.\"},\"the_accessor_passes_a_callable_specifier\":{\"score\":\"yes\",\"reasoning\":\"`_capacity_function` returns callable capacity specifiers unchanged; for non-callable attribute-name specifiers it returns a `(u, v, d)` callable using `d.get(capacity, inf)`.\"},\"a_cutoff_that_the_chosen_flow_function_c\":{\"score\":\"yes\",\"reasoning\":\"`_resolve_flow_func` rejects a non-None cutoff when `preflow_push`, the built-in flow function without cutoff support, is selected rather than forwarding or ignoring it.\"},\"minimum_cuts_report_the_partition_the_un\":{\"score\":\"yes\",\"reasoning\":\"`minimum_cut` requests a complete flow with `value_only=False` and derives its partition from source reachability through positive residual-capacity edges.\"},\"group_betweenness_is_computed_over_the_g\":{\"score\":\"yes\",\"reasoning\":\"The new group dependency calculation counts shortest paths avoiding the entire group and subtracts that count from all shortest paths, so a path meeting multiple group members is counted only once.\"},\"a_capacity_specifier_that_is_callable_is\":{\"score\":\"yes\",\"reasoning\":\"A callable is returned untouched by `_capacity_function` and is only invoked while residual-network edges are being examined, once per relevant input edge.\"},\"a_rejected_cutoff_names_the_incompatibil\":{\"score\":\"yes\",\"reasoning\":\"The raised `NetworkXError` explicitly states that the named flow function does not support a cutoff, for example `preflow_push does not support a cutoff`.\"},\"the_reported_cut_partition_is_the_one_th\":{\"score\":\"yes\",\"reasoning\":\"The reported source side is exactly `_source_side_of_cut(R, source)`, using the residual network produced by the selected flow function, with every other graph node placed on the sink side.\"},\"unreachable_nodes_are_handled_by_compone\":{\"score\":\"yes\",\"reasoning\":\"The incremental closeness logic recognizes nodes unreachable from both modified-edge endpoints as belonging to unaffected components, while closeness calculations use only finite-distance nodes. The cut logic also assigns residual-unreachable nodes consistently through source reachability.\"},\"a_group_measure_treats_the_group_as_one\":{\"score\":\"yes\",\"reasoning\":\"The group is represented as one set in `_group_dependency`; avoidance is propagated for the whole set instead of summing individual-node centralities.\"},\"one_shared_accessor_serves_the_algorithm\":{\"score\":\"yes\",\"reasoning\":\"Capacity interpretation is centralized in `flow.utils._capacity_function`, imported and reused by Boykov-Kolmogorov, Dinitz, Edmonds-Karp, preflow-push, and shortest augmenting path, as well as residual construction.\"},\"a_specifier_given_as_a_name_is_distingui\":{\"score\":\"yes\",\"reasoning\":\"The accessor distinguishes callable specifiers from attribute-name specifiers: callables pass through, while names are converted into attribute-reading functions with infinite capacity as the missing-value default.\"}}",
+          "usage": {
+            "input_tokens": 70119,
+            "output_tokens": 8694,
+            "total_tokens": 78813,
+            "cost_usd": 0.454356,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 70119,
+                "output_tokens": 8694,
+                "total_tokens": 78813,
+                "cost_usd": 0.454356
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.2739,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:39"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:39"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS",
+              "reasoning": "regressed:19"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            },
+            {
+              "name": "cm_scope_paths",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 1.0,
+              "description": "CM-SCOPE-PATHS"
+            },
+            {
+              "name": "cm_no_debug_marker",
+              "value": 0.2739,
+              "raw": 0.2738999397227246,
+              "weight": 1.0,
+              "description": "CM-NO-DEBUG-MARKER"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,244 @@
+schema_version = "1.4"
+reward_type = "bounded_continuous"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent
+# environment before teardown. [verifier].environment_mode is "separate", so these are also the
+# only bytes that reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/networkx  the package tree the solver evolves; the graded deliverable.
+#
+# This repository keeps its tests INSIDE the package, at networkx/<area>/tests/test_*.py, so the
+# graded tree and the test tree are one tree. That differs from the sibling dvc bundle, which
+# snapshots /app/dvc and /app/tests separately, and it forces the control below rather than
+# allowing it.
+#
+# The verifier restores every networkx/**/tests/ subtree from the target revision before any test
+# runs. That single act does two jobs: it supplies the required tests, which do not exist at the
+# base revision, and it neutralises any edit the solver made to a test, because the restored bytes
+# overwrite the submitted ones. The agent's test bytes are still snapshotted first, so the
+# no-test-edit assertion can compare them against what the image shipped and report an attempt
+# even though the attempt could not have changed a grade.
+artifacts = [
+  "/app/networkx",
+]
+
+[task]
+name = "scout/b9876d0d-3754-5ed2-8e50-e40688f31fca"
+version = "1.0.0"
+description = "Evolve a pinned graph-library source tree across a feature release boundary in community structure and bipartite analysis, from the release specification alone."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+summary = """
+Evolve networkx from a pinned revision so that community-detection and bipartite
+analysis gain the behaviour a later release describes. The work spans community
+metric optimization, partition quality measures, bipartite modularity, bipartite
+clustering, and the matrix forms that carry bipartite graphs.
+"""
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:890377"
+task_lane = "sample"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# The unmodified base tree resolves nothing in the required-to-pass set: the base revision was run
+# twice against its own suite at 6955 passed and 0 failed, and every required node comes from the
+# later revision's tests, so an empty submission scores exactly zero under the bound reward schema.
+null_floor = 0.0
+# The largest share of full reward that losing one node may cost, measured per group against the
+# pinned scorer. tests/group_map.json carries twelve equally weighted groups over the 187 required
+# nodes, cut at file::class because that is the behavioural unit the suite itself uses. No group
+# holds a single node, so unlike DVC the ceiling is not 1/12: the costliest single-node loss is one
+# of the two in the smallest group, at (1/12)/2. One of the 48 in the largest group costs 0.0017.
+discrimination_weight = 0.0417
+selection_note = """
+Selected by measurement, not by inspection. The required set was derived by running the
+later revision's tests against this base revision's source, twice for stability, and
+measuring the per-file distribution of the result. The chosen cluster carries 187
+required nodes over 8 test files with no file above 25.7 percent, against a one-third
+ceiling. The two mega-files of the same release, isomorphism common-subgraph (501 nodes)
+and shortest-paths dense (522 nodes), are excluded: each is a single heavily
+parametrised feature that would place 50 to 60 percent of the set in one file.
+
+This cluster requires one private symbol, not zero. An earlier draft of this note claimed
+all of them were public and used that as a deciding argument over the flow cluster; the
+claim was false. _bipartite_modularity_merge_delta is private, sits inside this cluster,
+and carries 8 of the 187 required nodes. It is disclosed in the interface_spec block
+because its signature is underivable: `m` is keyword-only with no default and the two
+degree-attribute names cannot be guessed.
+
+The comparison still favours this cluster, but by less than claimed: one private symbol
+here against two in the flow and link-analysis cluster, which needs _capacity_function and
+_hits_svd. The third private helper the release adds, _feasible_look_ahead, falls outside
+both.
+
+Every one of the twelve groups in tests/group_map.json maps to a stated objective. Four
+groups, test_utils, test_louvain, TestCoverage and TestPerformance, totalling 14 nodes,
+fail only because their module imports constant_potts_model at module scope; they resolve
+as collateral of objective 2 and ask for no separate work.
+"""
+
+[environment]
+build_timeout_sec = 3600.0
+# The build plane needs no model and reaches nothing. Only the agent and verifier planes carry an
+# allowlist.
+network_mode = "no-network"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 10800.0
+network_mode = "no-network"
+user = "10001:10001"
+
+[verifier]
+timeout_sec = 5400.0
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+environment_mode = "separate"
+# The uid the grading container runs as, declared here rather than left implicit in the
+# Dockerfile. It is distinct from the agent's 10001 so no agent artifact arrives owning anything
+# the scorer reads. Launcher-versus-runner separation inside the verifier is not yet implemented:
+# pytest and the scorer still share this uid, so agent code imported during collection runs as
+# the uid that owns /tests.
+user = "10002:10002"
+
+[verifier.env]
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+LITELLM_LOCAL_MODEL_COST_MAP = "True"
+
+[verifier.environment]
+network_mode = "allowlist"
+# Same list as the [verifier] plane, for the same reason recorded there: a bridge on the private
+# ranges when one exists, and the public endpoint when it does not.
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-10-31"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/networkx/networkx"
+base_commit = "bb9a6ded1889f182d7a5b76831c389c335d52910"
+event_timestamp = "2025-11-24T02:57:00Z"
+
+[span_provenance]
+enumerated_objective_count = 7
+pr_count = 0
+pr_count_note = """
+Pull request numbers, tags and diffs are withheld. The release prose is read by the
+author and the objectives are restated positionally, because a tag, a pull request
+number or a diff is each a retrieval handle to the published answer. The solver
+receives the objectives and the bound interface, never the provenance that resolves
+them.
+"""
+
+[interface_spec]
+bound = true
+bound_note = """
+Six symbols, each signature read from the target revision rather than asserted. The set
+is not exhaustive and instruction.md says so: objectives absent from it require the
+interface to be derived. The control exists because a solver that implements the right
+behaviour behind a different name, arity or return shape fails tests it has functionally
+satisfied: the sibling conan bundle lost 47 nodes to exactly that, a helper returning an
+int where the suite asserts a str.
+
+One entry here is that hazard in its purest form. bipartite.community.modularity takes a
+required positional `nodes` argument, while the long-standing community.quality.modularity
+takes none. A solver reading only prose would almost certainly reproduce the existing
+arity and fail every bipartite modularity assertion while computing Barber's measure
+correctly.
+"""
+
+[[interface_spec.symbol]]
+objective = "community detection by metric optimization"
+module = "networkx.algorithms.community.leiden"
+symbol = "leiden_communities"
+parameters = "G, *, weight=\"weight\", resolution=1.0, max_level=None, seed=None, metric=\"cpm\", theta=0.01"
+returns = "the best node communities of G. This symbol ALREADY EXISTS at the base revision as leiden_communities(G, weight=\"weight\", resolution=1, max_level=None, seed=None): positional-or-keyword, with no metric and no theta. The target makes every tuning argument KEYWORD-ONLY and adds the two new parameters. Preserving the base arity passes a positional call and fails the suite, which calls by keyword."
+
+[[interface_spec.symbol]]
+objective = "community detection by metric optimization"
+module = "networkx.algorithms.community.leiden"
+symbol = "leiden_partitions"
+parameters = "G, *, weight=\"weight\", resolution=1.0, max_level=None, seed=None, metric=\"cpm\", theta=0.01"
+returns = "successive partitions rather than one result, so the caller observes the optimization as it proceeds. Keyword-only on the same terms as leiden_communities. This symbol ALREADY EXISTS at the base revision as leiden_partitions(G, weight=\"weight\", resolution=1, seed=None), decorated nx._dispatchable(implemented_by_nx=False) with a body that raises NotImplementedError and a docstring reading 'backend required'. The work is to implement it natively: that stub is why all 48 required nodes in test_leiden fail."
+
+[[interface_spec.symbol]]
+objective = "a partition quality measure usable by that detection"
+module = "networkx.algorithms.community.quality"
+symbol = "constant_potts_model"
+parameters = "G, communities, weight=\"weight\", node_weight=\"node_weight\", resolution=1"
+returns = "the constant Potts model quality of the partition. Note node_weight is a distinct argument from weight and is positional-or-keyword, unlike the leiden entries above."
+
+[[interface_spec.symbol]]
+objective = "a partition quality measure usable by that detection"
+module = "networkx.algorithms.community.quality"
+symbol = "_quality_delta_cpm_undirected"
+parameters = "G, nodes_to_add, community, resolution, weight=\"weight\", node_weight=\"node_weight\""
+returns = "the change in constant-Potts quality from adding nodes to a community, for an undirected graph, as E_D - resolution * n_size * comm_size where E_D is the edge weight between the added nodes and the community. PRIVATE but graded: test_quality.py imports it at module scope, so until it exists NONE of that module's tests can run. Discovered by a solver rollout stalling on exactly this import."
+
+[[interface_spec.symbol]]
+objective = "a partition quality measure usable by that detection"
+module = "networkx.algorithms.community.quality"
+symbol = "_quality_delta_cpm_directed"
+parameters = "G, nodes_to_add, community, resolution, weight=\"weight\", node_weight=\"node_weight\""
+returns = "the directed counterpart, as E_D_out + E_D_in - resolution * 2 * n_size * comm_size. Note the factor of two on the null term, which the undirected form does not carry. PRIVATE but graded, imported at module scope by test_quality.py."
+
+[[interface_spec.symbol]]
+objective = "modularity for an overlapping cover"
+module = "networkx.algorithms.community.quality"
+symbol = "overlapping_modularity"
+parameters = "G, communities, *, weight=\"weight\", resolution=1"
+returns = "Shen et al.'s extended modularity EQ for a cover whose sets may overlap, as a float. Absent at the base revision. Each node's contribution is discounted by the number of communities it belongs to, so on a true partition EQ reduces to standard modularity. Raises NetworkXError when `communities` is not a valid cover of G's nodes, and NetworkXNotImplemented on a directed graph. weight and resolution are keyword-only, unlike the sibling quality.modularity."
+
+[[interface_spec.symbol]]
+objective = "bipartite modularity as a quality function"
+module = "networkx.algorithms.bipartite.community"
+symbol = "modularity"
+parameters = "G, communities, nodes, *, weight=\"weight\", resolution=1"
+returns = "Barber's bipartite modularity. `nodes` is REQUIRED and POSITIONAL, naming one side of the bipartition. This differs from networkx.algorithms.community.quality.modularity(G, communities, weight, resolution), which has no nodes argument. The module itself is new and must be created."
+
+[[interface_spec.symbol]]
+objective = "bipartite modularity as a quality function"
+module = "networkx.algorithms.bipartite.community"
+symbol = "_bipartite_modularity_merge_delta"
+parameters = "G, community_a, community_b, resolution, weight=\"weight\", *, red_degree_attr=\"red_degree\", blue_degree_attr=\"blue_degree\", m"
+returns = "the change in bipartite modularity from merging two communities. PRIVATE but graded: the suite imports it by name and calls it as (G, {u}, B, 1, m=m), passing resolution positionally and m by keyword. `m` is keyword-only and has NO default, so omitting it is a TypeError. The two degree-attribute names are keyword-only with the defaults shown. None of this is derivable from prose, which is why it is disclosed here."
+
+[[interface_spec.symbol]]
+objective = "splitting nodes into two communities"
+module = "networkx.algorithms.community.bipartitions"
+symbol = "spectral_modularity_bipartition"
+parameters = "G"
+returns = "a 2-tuple of sets bipartitioning G's nodes by the spectrum of the modularity matrix B = A - k_i k_j / 2m. Nodes whose eigenvector component is negative go in one block, the rest in the other. Takes G alone: no keyword arguments, and no seed, so the result is deterministic for a given graph. Absent at the base revision and lives in the same new module as greedy_node_swap_bipartition."
+
+[[interface_spec.symbol]]
+objective = "splitting nodes into two communities"
+module = "networkx.algorithms.community.bipartitions"
+symbol = "greedy_node_swap_bipartition"
+parameters = "G, *, init_split=None, max_iter=10"
+returns = "two communities, obtained by greedy modularity maximization over node swaps. Both tuning arguments are keyword-only."
+
+[[interface_spec.symbol]]
+objective = "counting a bipartite clustering motif"
+module = "networkx.algorithms.bipartite.cluster"
+symbol = "butterflies"
+parameters = "G, nodes=None"
+returns = "the number of butterflies per node, a butterfly being a complete bipartite K_{2,2} subgraph. nodes is positional-or-keyword and optional, matching the surrounding bipartite cluster functions rather than the keyword-only style of the community additions."

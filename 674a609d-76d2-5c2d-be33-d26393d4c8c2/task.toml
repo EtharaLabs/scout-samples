@@ -1,0 +1,291 @@
+schema_version = "1.4"
+reward_type = "bounded_continuous"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent environment
+# before teardown. [verifier].environment_mode is "separate", so this is also the only bytes that
+# reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/celery  the package tree the solver evolves; the graded deliverable.
+#
+# Unlike the three networkx bundles, THIS repository keeps its tests in a separate top-level `t/`
+# tree, outside the graded package. That makes the boundary clean rather than overlapping:
+# tests/test.sh replaces `t/` wholesale from the target revision, and no part of the graded tree is
+# a test. The networkx bundles needed an in-package overlay and a conftest restore to achieve the
+# same separation, and both of those were a source of grading defects; neither is needed here.
+artifacts = [
+  "/app/celery",
+]
+
+[task]
+name = "scout/674a609d-76d2-5c2d-be33-d26393d4c8c2"
+version = "1.0.0"
+description = "Evolve a pinned distributed-task-queue source tree across a feature release boundary spanning the result backends, the worker consumer and request pipeline, and the app-level messaging surface."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+summary = """
+Evolve celery from a pinned revision so that the result backends, the worker consumer and
+request pipeline, and the app-level messaging surface gain the behaviour a later release
+describes. The work is broad rather than deep: 64 required nodes spread over 17 test files
+and 20 behavioural groups, with no group holding more than 20.3 percent, so no single
+insight carries the task.
+
+What distinguishes this bundle from its networkx siblings is the regression surface. The
+graded suite holds 3144 nodes that must keep passing, and several objectives are new
+configuration settings threaded through queue declaration, so a plausible-looking
+implementation that misnames a setting or declares a queue with the wrong durability breaks
+hundreds of unrelated tests rather than failing quietly.
+"""
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:celery/celery"
+task_lane = "sample"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# The unmodified base tree resolves nothing in the required set, by construction: required_to_pass
+# is exactly the nodes that fail or are absent at the no-op. It is measured rather than argued: the
+# no-op here is base-revision source under the TARGET test tree, since tests/test.sh replaces t/
+# wholesale, and that tree was run under the EXACT verifier invocation at 67 failed / 3144 passed /
+# 27 skipped, with 0 of the 64 required nodes passing and 0 must-keep damage. Both graded invariants
+# therefore hold by construction, and a third holds with them: 0 required nodes pass under the stub
+# probe described in selection_note, so no stub-shaped submission can earn anything.
+null_floor = 0.0
+# tests/group_map.json carries 20 equally weighted groups over the 64 required nodes, cut at
+# file::class. FOUR groups hold a single node, so the costliest single-node loss is a whole group at
+# 1/20, which is what discrimination_weight below records.
+discrimination_weight = 0.0250
+selection_note = """
+Selected by measurement, and chosen specifically to leave the networkx family: three
+bundles drawn from one repository share an idiom, and a benchmark built only on that idiom
+measures familiarity with it rather than the capability named here.
+
+The span is v5.5.3 to v5.6.0, 109 commits. It passes the compiled-dependency screen: the
+repository holds no pyx, cargo, c or meson surface, so nothing in the span moves a compiled
+pin. The one dependency bump in the span, kombu from >=5.5.2,<5.6 to >=5.6.0, was checked
+rather than assumed to be inert: the base revision gives an identical 24 failed / 3238
+passed under kombu 5.5.4 and under 5.6.2, so the bump carries no behaviour of its own and
+the task cannot be resolved by upgrading a dependency.
+
+The minimal implementation surface was found by subtraction rather than assumed. The full
+source diff across the span is 34 files; 21 resolve all 64 required nodes with zero
+regressions, and the 13 excluded were proven unnecessary in two measured rounds rather than
+reasoned away. Those rounds corrected an author error worth recording: an initial surface
+chosen by mapping test module names to source files dropped celery/app/defaults.py, which
+broke 373 of the must-keep nodes on four missing configuration settings, and a later round
+showed celery/backends/mongodb.py is NOT needed at all because the nodes that looked like
+its own are satisfied through the shared base backend.
+
+The required set was re-derived twice, and both corrections matter more than the surface
+work. The first derivation ran against an incomplete environment missing pytest-click and
+redis, which turned 17 nodes into collection errors and understated the set at 43. The
+second ran the two endpoints against DIFFERENT test trees — base source with base tests
+against target source with target tests — which is the wrong topology for a verifier that
+replaces t/ wholesale. Measured correctly, with both endpoints under the target tree, 18 of
+those nodes already passed at the no-op, so the null floor that bundle claimed was false.
+
+The third derivation surfaced the defect that actually governs this bundle's quality.
+t/unit/backends/test_base.py imports two private names that do not exist at the base
+revision, so at the no-op the module cannot be imported and every one of its nodes reads as
+absent. Treated naively that puts 120 of 171 nodes, 70.2 percent of the deterministic
+channel, behind two stub definitions: a solver defining two empty functions would restore
+collection and flip roughly a hundred nodes that test behaviour the release never touched.
+The two classes were separated by measurement rather than judgement. A probe tree restores
+collection using deliberately non-functional stubs; nodes that pass under it never needed
+the release and are excluded, nodes that still fail are required. That cut the set to 64,
+dropped the largest group from 70.2 to 20.3 percent, and is verified by a third invariant:
+zero required nodes pass under the stub probe, so no stub-shaped submission can earn
+anything.
+"""
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "no-network"
+cpus = 4
+# 8 GiB, matching the sibling bundles. With the reaping plugin test.sh installs, `pytest t/unit`
+# peaks at 2.52 GiB on the oracle tree and 2.54 GiB at the no-op, and still only 3.90 GiB when the
+# pool is sized against 34 host cores, so this carries roughly twice the measured demand. The
+# earlier 16 GiB figure predated that plugin, when leaked pool workers pushed the suite to 7 GiB.
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 7200.0
+network_mode = "no-network"
+user = "10001:10001"
+
+[verifier]
+timeout_sec = 5400.0
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+environment_mode = "separate"
+user = "10002:10002"
+
+[verifier.env]
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+LITELLM_LOCAL_MODEL_COST_MAP = "True"
+
+[verifier.environment]
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+build_timeout_sec = 3600.0
+cpus = 4
+# Same 8 GiB as [environment], for the reason recorded there. This is the plane the measurements
+# were taken on.
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-11-01"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/celery/celery"
+base_commit = "088c39c0f78b23a9cdf8d1c9e265ea64d02cfd86"
+event_timestamp = "2025-11-30T19:20:43Z"
+
+[span_provenance]
+enumerated_objective_count = 19
+pr_count = 0
+pr_count_note = """
+Pull request numbers, tags and diffs are withheld. The release prose is read by the author
+and the objectives are restated positionally, because a tag, a pull request number or a
+diff is each a retrieval handle to the published answer.
+"""
+
+[interface_spec]
+bound = true
+bound_note = """
+This bundle discloses more than its networkx siblings, and the reason is structural rather
+than generous. All 64 required nodes are new test FUNCTIONS inside test files that DO exist
+at the base revision, so the solver can read every surrounding file and learn its
+conventions, and no required node sits in a file it cannot open at all. What it cannot read
+is the new assertions themselves. Where a required node turns on an exact NAME the solver
+has no way to derive, that name is disclosed here.
+
+Eight of the thirteen objectives are new configuration settings. A setting name is pure
+convention: nothing in the repository implies `control_queue_durable` rather than
+`control_durable_queue`, and a solver that picks the second writes correct behaviour that
+no test can reach. These were extracted from the target revision and cross-checked against
+measurement: four of the eight are provably load-bearing, because removing the file that
+defines them breaks 373 of the must-keep nodes with `has no attribute` on exactly those
+four names.
+
+Extracting them corrected two author errors worth recording. A top-level AST walk reported
+zero new settings, because celery declares them as nested `Namespace(key=Option(...))`
+CALLS rather than dict literals; a second pass that assumed dict literals also reported
+zero. Only a walk over keyword arguments of nested calls recovers the set, and it then
+agrees with the runtime evidence.
+
+The set is not exhaustive for behaviour. The backend, trace and chord objectives change
+conduct behind callables the pinned revision already exports, and those interfaces must be
+derived from the repository and from what the tests assert.
+"""
+
+[[interface_spec.symbol]]
+objective = "declaring the control-command queues"
+module = "celery.app.defaults"
+symbol = "control_queue_durable"
+parameters = "Option(False, type='bool')"
+returns = "a boolean setting, default False. When true the control mailbox queues are declared durable. Exposed to application code as `app.conf.control_queue_durable`, and reached by the suite through the config namespace rather than by import."
+
+[[interface_spec.symbol]]
+objective = "declaring the control-command queues"
+module = "celery.app.defaults"
+symbol = "control_queue_exclusive"
+parameters = "Option(False, type='bool')"
+returns = "a boolean setting, default False. When true the control mailbox queues are declared exclusive. Note durability and exclusivity are SEPARATE settings rather than one mode, and both default False."
+
+[[interface_spec.symbol]]
+objective = "declaring the event queues"
+module = "celery.app.defaults"
+symbol = "event_queue_durable"
+parameters = "Option(False, type='bool')"
+returns = "a boolean setting, default False, the event-queue counterpart of control_queue_durable. The event namespace carries its OWN pair of settings; it does not inherit the control pair."
+
+[[interface_spec.symbol]]
+objective = "declaring the event queues"
+module = "celery.app.defaults"
+symbol = "event_queue_exclusive"
+parameters = "Option(False, type='bool')"
+returns = "a boolean setting, default False, the event-queue counterpart of control_queue_exclusive."
+
+[[interface_spec.symbol]]
+objective = "the kind of queue created for an unknown task route"
+module = "celery.app.defaults"
+symbol = "task_create_missing_queue_type"
+parameters = "Option('classic', type='string')"
+returns = "a string setting whose default is the literal 'classic'. Selects the queue type declared when a task names a queue that does not exist."
+
+[[interface_spec.symbol]]
+objective = "the kind of queue created for an unknown task route"
+module = "celery.app.defaults"
+symbol = "task_create_missing_queue_exchange_type"
+parameters = "Option(None, type='string')"
+returns = "a string setting defaulting to None, selecting the exchange type for that auto-created queue. Unlike its sibling above this one DOES default to None, meaning fall back to the existing behaviour."
+
+[[interface_spec.symbol]]
+objective = "a worker that does not prefetch"
+module = "celery.app.defaults"
+symbol = "worker_disable_prefetch"
+parameters = "Option(False, type='bool')"
+returns = "a boolean setting, default False. When true the worker fetches no more messages than it can currently execute. Also surfaced as a command-line flag on the worker entry point."
+
+[[interface_spec.symbol]]
+objective = "bounding how many future-dated tasks a worker holds"
+module = "celery.app.defaults"
+symbol = "worker_eta_task_limit"
+parameters = "Option(None, type='int')"
+returns = "an integer setting defaulting to None, meaning unbounded. Caps how many ETA or countdown tasks a worker will hold in memory at once."
+
+[[interface_spec.symbol]]
+objective = "the kind of queue created for an unknown task route"
+module = "celery.app.amqp"
+symbol = "AMQP.Queues"
+parameters = "self, queues, create_missing=None, create_missing_queue_type=None, create_missing_queue_exchange_type=None, autoexchange=None, max_priority=None"
+returns = "the queue registry. Two parameters are NEW and both are inserted directly after `create_missing`, BEFORE `autoexchange` and `max_priority`. The position matters: callers in this repository pass these positionally, so appending them at the end instead silently misroutes arguments."
+
+[[interface_spec.symbol]]
+objective = "cancelling work a worker is already running"
+module = "celery.worker.request"
+symbol = "Request.cancel"
+parameters = "self, pool, signal, emit_retry"
+returns = "cancels the request. `emit_retry` is NEW and is appended as the last parameter. It controls whether cancelling publishes a retry for the task rather than simply terminating it."
+
+[[interface_spec.symbol]]
+objective = "cancelling work a worker is already running"
+module = "celery.worker.consumer.consumer"
+symbol = "Consumer.cancel_active_requests"
+parameters = "self"
+returns = "cancels every request the consumer currently has in flight. Takes no arguments beyond self."
+
+[[interface_spec.symbol]]
+objective = "reporting broker reconnection progress"
+module = "celery.worker.consumer.consumer"
+symbol = "Consumer.broker_connection_retry_attempt"
+parameters = "(attribute, not a method)"
+returns = "an attribute on the consumer tracking which reconnection attempt is in progress. It is read, not called."
+
+[[interface_spec.symbol]]
+objective = "waiting for results under a green-thread pool"
+module = "celery.backends.asynchronous"
+symbol = "EventletAdaptedEvent"
+parameters = "class with methods: is_set(self), set(self), wait(self, timeout)"
+returns = "an event primitive presenting the threading.Event interface over an eventlet-compatible wait, so result-backend waiting behaves the same under a green-thread pool. `wait` takes a `timeout` positionally."
+
+[[interface_spec.symbol]]
+objective = "retrying delayed-delivery setup against a broker that is not ready"
+module = "celery.worker.consumer.delayed_delivery"
+symbol = "RETRIED_EXCEPTIONS"
+parameters = "(module-level constant)"
+returns = "the tuple of exception types whose occurrence during native delayed-delivery setup is retried rather than fatal. A module-level name the suite reaches directly."

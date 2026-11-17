@@ -1,0 +1,4549 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/__init__.py /app/sympy/__init__.py
+--- /opt/pristine/sympy/__init__.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/__init__.py	2026-11-17 08:00:25.000000000 +0000
+@@ -149,7 +149,8 @@
+         binomial_coefficients, binomial_coefficients_list,
+         multinomial_coefficients, continued_fraction_periodic,
+         continued_fraction_iterator, continued_fraction_reduce,
+-        continued_fraction_convergents, continued_fraction, egyptian_fraction)
++        continued_fraction_convergents, continued_fraction, egyptian_fraction,
++        factor_cache)
+ 
+ from .concrete import product, Product, summation, Sum
+ 
+@@ -380,7 +381,7 @@
+     'binomial_coefficients_list', 'multinomial_coefficients',
+     'continued_fraction_periodic', 'continued_fraction_iterator',
+     'continued_fraction_reduce', 'continued_fraction_convergents',
+-    'continued_fraction', 'egyptian_fraction',
++    'continued_fraction', 'egyptian_fraction', 'factor_cache',
+ 
+     # sympy.concrete
+     'product', 'Product', 'summation', 'Sum',
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/assumptions/handlers/matrices.py /app/sympy/assumptions/handlers/matrices.py
+--- /opt/pristine/sympy/assumptions/handlers/matrices.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/assumptions/handlers/matrices.py	2026-11-17 08:12:28.000000000 +0000
+@@ -7,7 +7,7 @@
+ from sympy.assumptions import Q, ask
+ from sympy.assumptions.handlers import test_closed_group
+ from sympy.matrices import MatrixBase
+-from sympy.matrices.expressions import (BlockMatrix, BlockDiagMatrix, Determinant,
++from sympy.matrices.expressions import (Adjoint, BlockMatrix, BlockDiagMatrix, Determinant,
+     DiagMatrix, DiagonalMatrix, HadamardProduct, Identity, Inverse, MatAdd, MatMul,
+     MatPow, MatrixExpr, MatrixSlice, MatrixSymbol, OneMatrix, Trace, Transpose,
+     ZeroMatrix)
+@@ -15,9 +15,11 @@
+ from sympy.matrices.expressions.factorizations import Factorization
+ from sympy.matrices.expressions.fourier import DFT
+ from sympy.core.logic import fuzzy_and
++from sympy.multipledispatch import MDNotImplementedError
+ from sympy.utilities.iterables import sift
+ from sympy.core import Basic
+ 
++from ..predicates.sets import HermitianPredicate, AntihermitianPredicate
+ from ..predicates.matrices import (SquarePredicate, SymmetricPredicate,
+     InvertiblePredicate, OrthogonalPredicate, UnitaryPredicate,
+     FullRankPredicate, PositiveDefinitePredicate, UpperTriangularPredicate,
+@@ -105,6 +107,148 @@
+     return True
+ 
+ 
++# HermitianPredicate and AntihermitianPredicate
++#
++# The handlers in sets.py treat their argument as a scalar, so matrix
++# expressions need their own handlers based on the structure of the
++# expression: a matrix X is hermitian if adjoint(X) == X and antihermitian
++# if adjoint(X) == -X.
++
++def _matrix_herm_antiherm(expr, assumptions, predicate):
++    if isinstance(expr, MatrixBase):
++        # explicit matrices are handled by checking their elements
++        raise MDNotImplementedError
++    if ask(Q.square(expr), assumptions) is False:
++        return False
++    if predicate(expr) in conjuncts(assumptions):
++        return True
++    from sympy.functions.elementary.complexes import adjoint
++    adj = adjoint(expr)
++    if predicate is Q.hermitian:
++        if adj == expr:
++            return True
++    elif adj == -expr:
++        return True
++    return None
++
++@HermitianPredicate.register(MatrixExpr)
++def _(expr, assumptions):
++    return _matrix_herm_antiherm(expr, assumptions, Q.hermitian)
++
++@AntihermitianPredicate.register(MatrixExpr)
++def _(expr, assumptions):
++    return _matrix_herm_antiherm(expr, assumptions, Q.antihermitian)
++
++@HermitianPredicate.register_many(Identity, OneMatrix, ZeroMatrix)
++def _(expr, assumptions):
++    return ask(Q.square(expr), assumptions)
++
++@AntihermitianPredicate.register(ZeroMatrix)
++def _(expr, assumptions):
++    return ask(Q.square(expr), assumptions)
++
++@AntihermitianPredicate.register_many(Identity, OneMatrix)
++def _(expr, assumptions):
++    return False
++
++@HermitianPredicate.register_many(Adjoint, Transpose, Inverse)
++def _(expr, assumptions):
++    return ask(Q.hermitian(expr.arg), assumptions)
++
++@AntihermitianPredicate.register_many(Adjoint, Transpose, Inverse)
++def _(expr, assumptions):
++    return ask(Q.antihermitian(expr.arg), assumptions)
++
++@HermitianPredicate.register(MatPow)
++def _(expr, assumptions):
++    base, exp = expr.args
++    if not ask(Q.integer(exp), assumptions):
++        return _matrix_herm_antiherm(expr, assumptions, Q.hermitian)
++    if ask(Q.hermitian(base), assumptions):
++        return True
++    if ask(Q.antihermitian(base), assumptions):
++        # (-A)**k = (-1)**k*A**k
++        return ask(Q.even(exp), assumptions)
++    return _matrix_herm_antiherm(expr, assumptions, Q.hermitian)
++
++@AntihermitianPredicate.register(MatPow)
++def _(expr, assumptions):
++    base, exp = expr.args
++    if ask(Q.integer(exp), assumptions) and ask(Q.antihermitian(base), assumptions):
++        return ask(Q.odd(exp), assumptions)
++    return _matrix_herm_antiherm(expr, assumptions, Q.antihermitian)
++
++@HermitianPredicate.register(MatAdd)
++def _(expr, assumptions):
++    rv = test_closed_group(expr, assumptions, Q.hermitian)
++    if rv is None:
++        return _matrix_herm_antiherm(expr, assumptions, Q.hermitian)
++    return rv
++
++@AntihermitianPredicate.register(MatAdd)
++def _(expr, assumptions):
++    rv = test_closed_group(expr, assumptions, Q.antihermitian)
++    if rv is None:
++        return _matrix_herm_antiherm(expr, assumptions, Q.antihermitian)
++    return rv
++
++def _matmul_herm_antiherm(expr, assumptions, herm):
++    # c*M1*M2*...*Mk with M_i = adjoint(M_(k+1-i)) is hermitian if the
++    # middle factor (for odd k) is hermitian and c is real
++    from sympy.functions.elementary.complexes import adjoint
++    factor, mmul = expr.as_coeff_mmul()
++    mats = list(mmul.args)
++    k = len(mats)
++    if not all(mats[i] == adjoint(mats[k - 1 - i]) for i in range(k // 2)):
++        return _matrix_herm_antiherm(expr, assumptions,
++                                     Q.hermitian if herm else Q.antihermitian)
++    if k % 2:
++        middle = mats[k // 2]
++        if ask(Q.hermitian(middle), assumptions):
++            pass
++        elif ask(Q.antihermitian(middle), assumptions):
++            herm = not herm
++        else:
++            return None
++    # the matrix part is hermitian: the result depends on the coefficient
++    # (a nonreal coefficient does not exclude the zero matrix)
++    if herm:
++        if ask(Q.real(factor), assumptions):
++            return True
++    else:
++        if ask(Q.imaginary(factor), assumptions):
++            return True
++        if ask(Q.zero(factor), assumptions):
++            return True
++    return None
++
++@HermitianPredicate.register(MatMul)
++def _(expr, assumptions):
++    return _matmul_herm_antiherm(expr, assumptions, True)
++
++@AntihermitianPredicate.register(MatMul)
++def _(expr, assumptions):
++    return _matmul_herm_antiherm(expr, assumptions, False)
++
++@AntihermitianPredicate.register(MatrixBase)
++def _(mat, assumptions):
++    from sympy.core.relational import Eq
++    from sympy.functions.elementary.complexes import conjugate
++    from sympy.core.logic import fuzzy_bool
++    if not mat.is_square:
++        return False
++    ret_val = True
++    rows, cols = mat.shape
++    for i in range(rows):
++        for j in range(i, cols):
++            cond = fuzzy_bool(Eq(mat[i, j], -conjugate(mat[j, i])))
++            if cond is None:
++                ret_val = None
++            if cond == False:
++                return False
++    return ret_val
++
++
+ # InvertiblePredicate
+ 
+ @InvertiblePredicate.register(MatMul)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/assumptions/handlers/sets.py /app/sympy/assumptions/handlers/sets.py
+--- /opt/pristine/sympy/assumptions/handlers/sets.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/assumptions/handlers/sets.py	2026-11-17 08:12:40.000000000 +0000
+@@ -434,6 +434,8 @@
+ 
+ @HermitianPredicate.register(MatrixBase) # type:ignore
+ def _(mat, assumptions):
++    if not mat.is_square:
++        return False
+     rows, cols = mat.shape
+     ret_val = True
+     for i in range(rows):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/codegen/cfunctions.py /app/sympy/codegen/cfunctions.py
+--- /opt/pristine/sympy/codegen/cfunctions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/codegen/cfunctions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -6,6 +6,7 @@
+ as a SymPy function for symbolic manipulation.
+ 
+ """
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import ArgumentIndexError, Function
+ from sympy.core.numbers import Rational
+ from sympy.core.power import Pow
+@@ -18,7 +19,7 @@
+     return exp(x) - S.One
+ 
+ 
+-class expm1(Function):
++class expm1(DefinedFunction):
+     """
+     Represents the exponential function minus one.
+ 
+@@ -83,7 +84,7 @@
+     return log(x + S.One)
+ 
+ 
+-class log1p(Function):
++class log1p(DefinedFunction):
+     """
+     Represents the natural logarithm of a number plus one.
+ 
+@@ -165,7 +166,7 @@
+ def _exp2(x):
+     return Pow(_Two, x)
+ 
+-class exp2(Function):
++class exp2(DefinedFunction):
+     """
+     Represents the exponential function with base two.
+ 
+@@ -221,7 +222,7 @@
+     return log(x)/log(_Two)
+ 
+ 
+-class log2(Function):
++class log2(DefinedFunction):
+     """
+     Represents the logarithm function with base two.
+ 
+@@ -285,7 +286,7 @@
+     return x*y + z
+ 
+ 
+-class fma(Function):
++class fma(DefinedFunction):
+     """
+     Represents "fused multiply add".
+ 
+@@ -333,7 +334,7 @@
+     return log(x)/log(_Ten)
+ 
+ 
+-class log10(Function):
++class log10(DefinedFunction):
+     """
+     Represents the logarithm function with base ten.
+ 
+@@ -386,7 +387,7 @@
+     return Pow(x, S.Half)
+ 
+ 
+-class Sqrt(Function):  # 'sqrt' already defined in sympy.functions.elementary.miscellaneous
++class Sqrt(DefinedFunction):  # 'sqrt' already defined in sympy.functions.elementary.miscellaneous
+     """
+     Represents the square root function.
+ 
+@@ -436,7 +437,7 @@
+     return Pow(x, Rational(1, 3))
+ 
+ 
+-class Cbrt(Function):  # 'cbrt' already defined in sympy.functions.elementary.miscellaneous
++class Cbrt(DefinedFunction):  # 'cbrt' already defined in sympy.functions.elementary.miscellaneous
+     """
+     Represents the cube root function.
+ 
+@@ -487,7 +488,7 @@
+     return sqrt(Pow(x, 2) + Pow(y, 2))
+ 
+ 
+-class hypot(Function):
++class hypot(DefinedFunction):
+     """
+     Represents the hypotenuse function.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/codegen/fnodes.py /app/sympy/codegen/fnodes.py
+--- /opt/pristine/sympy/codegen/fnodes.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/codegen/fnodes.py	2026-11-17 07:43:31.000000000 +0000
+@@ -12,6 +12,7 @@
+ from sympy.core.basic import Basic
+ from sympy.core.containers import Tuple
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.numbers import Float, Integer
+ from sympy.core.symbol import Str
+@@ -579,7 +580,7 @@
+     _construct_return_value = staticmethod(sympify)
+ 
+ 
+-class FFunction(Function):
++class FFunction(DefinedFunction):
+     _required_standard = 77
+ 
+     def _fcode(self, printer):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/codegen/numpy_nodes.py /app/sympy/codegen/numpy_nodes.py
+--- /opt/pristine/sympy/codegen/numpy_nodes.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/codegen/numpy_nodes.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,3 +1,4 @@
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Add, ArgumentIndexError, Function
+ from sympy.core.power import Pow
+ from sympy.core.singleton import S
+@@ -26,7 +27,7 @@
+                    _exp2(x2, evaluate=evaluate), evaluate=evaluate))
+ 
+ 
+-class logaddexp(Function):
++class logaddexp(DefinedFunction):
+     """ Logarithm of the sum of exponentiations of the inputs.
+ 
+     Helper class for use with e.g. numpy.logaddexp
+@@ -68,7 +69,7 @@
+             return logaddexp(a, b)
+ 
+ 
+-class logaddexp2(Function):
++class logaddexp2(DefinedFunction):
+     """ Logarithm of the sum of exponentiations of the inputs in base-2.
+ 
+     Helper class for use with e.g. numpy.logaddexp2
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/codegen/scipy_nodes.py /app/sympy/codegen/scipy_nodes.py
+--- /opt/pristine/sympy/codegen/scipy_nodes.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/codegen/scipy_nodes.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,3 +1,4 @@
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Add, ArgumentIndexError, Function
+ from sympy.core.power import Pow
+ from sympy.core.singleton import S
+@@ -9,7 +10,7 @@
+     return Add(cos(x, evaluate=evaluate), -S.One, evaluate=evaluate)
+ 
+ 
+-class cosm1(Function):
++class cosm1(DefinedFunction):
+     """ Minus one plus cosine of x, i.e. cos(x) - 1. For use when x is close to zero.
+ 
+     Helper class for use with e.g. scipy.special.cosm1
+@@ -45,7 +46,7 @@
+     return Add(Pow(x, y, evaluate=evaluate), -S.One, evaluate=evaluate)
+ 
+ 
+-class powm1(Function):
++class powm1(DefinedFunction):
+     """ Minus one plus x to the power of y, i.e. x**y - 1. For use when x is close to one or y is close to zero.
+ 
+     Helper class for use with e.g. scipy.special.powm1
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/combinatorics/schur_number.py /app/sympy/combinatorics/schur_number.py
+--- /opt/pristine/sympy/combinatorics/schur_number.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/combinatorics/schur_number.py	2026-11-17 07:43:31.000000000 +0000
+@@ -5,11 +5,12 @@
+ import math
+ from sympy.core import S
+ from sympy.core.basic import Basic
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.numbers import Integer
+ 
+ 
+-class SchurNumber(Function):
++class SchurNumber(DefinedFunction):
+     r"""
+     This function creates a SchurNumber object
+     which is evaluated for `k \le 5` otherwise only
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/basic.py /app/sympy/core/basic.py
+--- /opt/pristine/sympy/core/basic.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/basic.py	2026-11-17 08:39:53.000000000 +0000
+@@ -123,6 +123,45 @@
+     return (i1 > i2) - (i1 < i2)
+ 
+ 
++def _keep_bound_variables(args, newargs, bound):
++    """Helper for ``Basic.replace``: a variable in the limits of e.g. an
++    Integral is only replaced there if it is replaced by a symbol: replacing
++    it by another expression would give an invalid object."""
++    from .containers import Tuple
++    rv = []
++    for a, na in zip(args, newargs):
++        if (isinstance(a, Tuple) and isinstance(na, Tuple) and a and
++                len(a) == len(na) and a[0] in bound and not na[0].is_Symbol):
++            na = Tuple(a[0], *na[1:])
++        rv.append(na)
++    return tuple(rv)
++
++
++def _undo_canonical(value, expr, pattern, canonical):
++    """Helper for ``Basic.match``: replace in ``value`` the canonical forms
++    of the subexpressions of ``expr`` having bound symbols by the
++    subexpressions themselves and the canonical symbols of the bound
++    symbols of ``pattern`` by those bound symbols."""
++    from .symbol import Wild
++    from .traversal import preorder_traversal
++    subs = {}
++    for e in preorder_traversal(expr):
++        if getattr(e, 'bound_symbols', None):
++            subs.setdefault(canonical(e), e)
++    if subs:
++        value = value.xreplace(subs)
++    names = {}
++    for e in preorder_traversal(pattern):
++        if getattr(e, 'bound_symbols', None):
++            for b, c in e.canonical_variables.items():
++                names.setdefault(c, set()).add(b)
++    syms = {c: b.pop() for c, b in names.items()
++            if len(b) == 1 and not isinstance(next(iter(b)), Wild)}
++    if syms:
++        value = value.xreplace(syms)
++    return value
++
++
+ class Basic(Printable):
+     """
+     Base class for all SymPy objects.
+@@ -918,11 +957,11 @@
+         """
+         return S.One, self
+ 
+-    def subs(self, *args, **kwargs):
++    def subs(self, arg1, arg2=None, **kwargs):
+         """
+         Substitutes old for new in an expression after sympifying args.
+ 
+-        `args` is either:
++        The arguments are either:
+           - two arguments, e.g. foo.subs(old, new)
+           - one iterable argument, e.g. foo.subs(iterable). The iterable may be
+              o an iterable container with (old, new) pairs. In this case the
+@@ -1036,9 +1075,9 @@
+         from .numbers import _illegal
+ 
+         unordered = False
+-        if len(args) == 1:
++        if arg2 is None:
+ 
+-            sequence = args[0]
++            sequence = arg1
+             if isinstance(sequence, set):
+                 unordered = True
+             elif isinstance(sequence, (Dict, Mapping)):
+@@ -1049,10 +1088,8 @@
+                    When a single argument is passed to subs
+                    it should be a dictionary of old: new pairs or an iterable
+                    of (old, new) tuples."""))
+-        elif len(args) == 2:
+-            sequence = [args]
+         else:
+-            raise ValueError("subs accepts either 1 or 2 arguments")
++            sequence = [(arg1, arg2)]
+ 
+         def sympify_old(old):
+             if isinstance(old, str):
+@@ -1723,6 +1760,11 @@
+                 if args:
+                     newargs = tuple([walk(a, F) for a in args])
+                     if args != newargs:
++                        limits = getattr(rv, 'limits', None)
++                        if limits and isinstance(limits, tuple):
++                            # e.g. the variables of an Integral or a Sum
++                            variables = {l[0] for l in limits if l}
++                            newargs = _keep_bound_variables(args, newargs, variables)
+                         rv = rv.func(*newargs)
+                         if simultaneous:
+                             # if rv is something that was already
+@@ -1871,9 +1913,21 @@
+         pattern = sympify(pattern)
+         # match non-bound symbols
+         canonical = lambda x: x if x.is_Symbol else x.as_dummy()
+-        m = canonical(pattern).matches(canonical(self), old=old)
++        cpattern, cself = canonical(pattern), canonical(self)
++        bound = cpattern != pattern or cself != self
++        m = None
++        if bound:
++            # Try first to match the expressions as they are so that the
++            # result is expressed with the bound symbols of self (instead
++            # of the canonical symbols used to ignore them).
++            m = pattern.matches(self, old=old)
+         if m is None:
+-            return m
++            m = cpattern.matches(cself, old=old)
++            if m is None:
++                return m
++            if bound:
++                m = {k: _undo_canonical(v, self, pattern, canonical)
++                     for k, v in m.items()}
+         from .symbol import Wild
+         from .function import WildFunction
+         from ..tensor.tensor import WildTensor, WildTensorIndex, WildTensorHead
+@@ -2041,6 +2095,17 @@
+         pattern = args[:-1]
+         rule = args[-1]
+ 
++        # Special case: map Python's builtin ``abs`` to ``Abs``
++        if rule is abs:
++            from sympy.functions.elementary.complexes import Abs
++            rule = Abs
++        if pattern:
++            from sympy.functions.elementary.complexes import Abs
++            if iterable(pattern[0]):
++                pattern = (tuple(Abs if p is abs else p for p in pattern[0]),)
++            else:
++                pattern = tuple(Abs if p is abs else p for p in pattern)
++
+         # support old design by _eval_rewrite_as_[...] method
+         if isinstance(rule, str):
+             method = "_eval_rewrite_as_%s" % rule
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/function.py /app/sympy/core/function.py
+--- /opt/pristine/sympy/core/function.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/function.py	2026-11-17 07:42:47.000000000 +0000
+@@ -444,7 +444,17 @@
+         # Handle calls like Function('f')
+         if cls is Function:
+             return UndefinedFunction(*args, **options)
++        else:
++            return cls._new_(*args, **options)
++
++    @classmethod
++    def _new_(cls, *args, **options):
++        """Construct an application of the function class ``cls``.
+ 
++        This is what calling a subclass of :class:`Function` does once it is
++        known that a function is being applied (rather than an undefined
++        function class being created as in ``Function('f')``).
++        """
+         n = len(args)
+ 
+         if not cls._valid_nargs(n):
+@@ -809,6 +819,51 @@
+             return self
+ 
+ 
++class DefinedFunction(Function):
++    """Base class for defined functions like ``sin``, ``cos``, ...
++
++    Explanation
++    ===========
++
++    :class:`Function` is used both to create undefined functions such as
++    ``f = Function('f')`` and as the base class of functions that are defined
++    explicitly, either by SymPy (``sin``, ``exp``, ``gamma``, ...) or by
++    subclassing. ``DefinedFunction`` is the base class for the latter kind:
++    calling it (or a subclass) always applies the function to its arguments
++    and returns an expression, never a new function class.
++
++    Examples
++    ========
++
++    >>> from sympy import sin, Function
++    >>> from sympy.core.function import DefinedFunction, AppliedUndef
++    >>> issubclass(sin, DefinedFunction)
++    True
++    >>> f = Function('f')
++    >>> isinstance(f(1), DefinedFunction), isinstance(f(1), AppliedUndef)
++    (False, True)
++
++    A new function can be defined by subclassing ``DefinedFunction``:
++
++    >>> class my_func(DefinedFunction):
++    ...     @classmethod
++    ...     def eval(cls, x):
++    ...         if x.is_Number:
++    ...             return x + 1
++    >>> my_func(2)
++    3
++
++    See Also
++    ========
++
++    Function, AppliedUndef
++    """
++
++    @cacheit
++    def __new__(cls, *args, **options):
++        return cls._new_(*args, **options)
++
++
+ class AppliedUndef(Function):
+     """
+     Base class for expressions resulting from the application of an undefined
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/mod.py /app/sympy/core/mod.py
+--- /opt/pristine/sympy/core/mod.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/mod.py	2026-11-17 08:06:52.000000000 +0000
+@@ -1,5 +1,6 @@
+ from .add import Add
+ from .exprtools import gcd_terms
++from .function import DefinedFunction
+ from .function import Function
+ from .kind import NumberKind
+ from .logic import fuzzy_and, fuzzy_not
+@@ -8,7 +9,7 @@
+ from .singleton import S
+ 
+ 
+-class Mod(Function):
++class Mod(DefinedFunction):
+     """Represents a modulo operation on symbolic expressions.
+ 
+     Parameters
+@@ -84,6 +85,10 @@
+             if r.is_integer:
+                 return S.Zero
+             try:
++                # int() of a complex number with a small imaginary part
++                # (e.g. I/10**20) would give 0 instead of raising
++                if not r.is_extended_real:
++                    raise TypeError
+                 d = int(r)
+             except TypeError:
+                 pass
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/mul.py /app/sympy/core/mul.py
+--- /opt/pristine/sympy/core/mul.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/mul.py	2026-11-17 08:03:23.000000000 +0000
+@@ -182,13 +182,19 @@
+         if args[0] is not S.ComplexInfinity:
+             c = -c
+         if c is not S.One:
+-            if args[0].is_Number:
++            first = self.args[0]
++            if args[0].is_Number and first.is_Number and not first.is_Rational:
++                # a non-rational coefficient (e.g. a Float) is not extracted
++                # by as_coeff_mul: change its sign instead of adding -1
+                 args = list(args)
+                 if c is S.NegativeOne:
+                     args[0] = -args[0]
+                 else:
+                     args[0] *= c
+             else:
++                # Only the coefficient is changed: for an unevaluated Mul
++                # like Mul(2, 3, evaluate=False) the remaining numerical
++                # factors are kept as they are, i.e. -Mul(2, 3) -> Mul(-2, 3)
+                 args = (c,) + args
+         return self._from_args(args, self.is_commutative)
+ 
+@@ -1537,9 +1543,17 @@
+         return self._eval_herm_antiherm(False)
+ 
+     def _eval_herm_antiherm(self, herm):
++        # The adjoint of a product is the product of the adjoints in
++        # reversed order: for factors that commute with each other, a
++        # product of hermitian and antihermitian factors is hermitian if the
++        # number of antihermitian factors is even and antihermitian
++        # otherwise. That cannot be concluded if two factors do not commute.
++        noncommutative = 0
+         for t in self.args:
+-            if t.is_hermitian is None or t.is_antihermitian is None:
+-                return
++            if not t.is_commutative:
++                noncommutative += 1
++                if noncommutative > 1:
++                    return
+             if t.is_hermitian:
+                 continue
+             elif t.is_antihermitian:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/numbers.py /app/sympy/core/numbers.py
+--- /opt/pristine/sympy/core/numbers.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/numbers.py	2026-11-17 08:56:13.000000000 +0000
+@@ -390,6 +390,21 @@
+             return NotImplemented
+         return divmod(other, self)
+ 
++    @_sympifyit('other', NotImplemented)
++    def __floordiv__(self, other):
++        # Like for Python numbers, floor division of a number by zero is an
++        # error (rather than floor(zoo) = zoo). This is already the case for
++        # Integers and makes Floats and Rationals consistent with them.
++        if isinstance(other, Number) and other.is_zero and global_parameters.evaluate:
++            raise ZeroDivisionError("division by zero")
++        return AtomicExpr.__floordiv__(self, other)
++
++    @_sympifyit('other', NotImplemented)
++    def __rfloordiv__(self, other):
++        if self.is_zero and isinstance(other, Number) and global_parameters.evaluate:
++            raise ZeroDivisionError("division by zero")
++        return AtomicExpr.__rfloordiv__(self, other)
++
+     def _as_mpf_val(self, prec):
+         """Evaluation of mpf tuple accurate to at least prec bits."""
+         raise NotImplementedError('%s needs ._as_mpf_val() method' %
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/core/power.py /app/sympy/core/power.py
+--- /opt/pristine/sympy/core/power.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/core/power.py	2026-11-17 08:47:36.000000000 +0000
+@@ -617,7 +617,10 @@
+                         return self.base.is_negative
+                     return half
+ 
+-        if self.base.is_extended_real is False:  # we already know it's not imag
++        if self.base.is_extended_real is False and self.exp.is_extended_real:
++            # For real exp the argument of base**exp is arg(base)*exp. For
++            # complex exp, abs(base)**exp is complex too so this cannot be
++            # used (e.g. I**(1 + I) = I*exp(-pi/2) is imaginary).
+             from sympy.functions.elementary.complexes import arg
+             i = arg(self.base)*self.exp/S.Pi
+             isodd = (2*i).is_odd
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/combinatorial/factorials.py /app/sympy/functions/combinatorial/factorials.py
+--- /opt/pristine/sympy/functions/combinatorial/factorials.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/combinatorial/factorials.py	2026-11-17 07:43:31.000000000 +0000
+@@ -3,6 +3,7 @@
+ 
+ from sympy.core import S, sympify, Dummy, Mod
+ from sympy.core.cache import cacheit
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError, PoleError
+ from sympy.core.logic import fuzzy_and
+ from sympy.core.numbers import Integer, pi, I
+@@ -14,7 +15,7 @@
+ 
+ from math import factorial as _factorial, prod, sqrt as _sqrt
+ 
+-class CombinatorialFunction(Function):
++class CombinatorialFunction(DefinedFunction):
+     """Base class for combinatorial functions. """
+ 
+     def _eval_simplify(self, **kwargs):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/combinatorial/numbers.py /app/sympy/functions/combinatorial/numbers.py
+--- /opt/pristine/sympy/functions/combinatorial/numbers.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/combinatorial/numbers.py	2026-11-17 07:43:31.000000000 +0000
+@@ -14,6 +14,7 @@
+ from sympy.core.cache import cacheit
+ from sympy.core.containers import Dict
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import ArgumentIndexError, Function, expand_mul
+ from sympy.core.logic import fuzzy_not
+ from sympy.core.mul import Mul
+@@ -55,7 +56,7 @@
+ #                                                                            #
+ #----------------------------------------------------------------------------#
+ 
+-class carmichael(Function):
++class carmichael(DefinedFunction):
+     r"""
+     Carmichael Numbers:
+ 
+@@ -185,7 +186,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class fibonacci(Function):
++class fibonacci(DefinedFunction):
+     r"""
+     Fibonacci numbers / Fibonacci polynomials
+ 
+@@ -273,7 +274,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class lucas(Function):
++class lucas(DefinedFunction):
+     """
+     Lucas numbers
+ 
+@@ -325,7 +326,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class tribonacci(Function):
++class tribonacci(DefinedFunction):
+     r"""
+     Tribonacci numbers / Tribonacci polynomials
+ 
+@@ -415,7 +416,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class bernoulli(Function):
++class bernoulli(DefinedFunction):
+     r"""
+     Bernoulli numbers / Bernoulli polynomials / Bernoulli function
+ 
+@@ -605,7 +606,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class bell(Function):
++class bell(DefinedFunction):
+     r"""
+     Bell numbers / Bell polynomials
+ 
+@@ -758,7 +759,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class harmonic(Function):
++class harmonic(DefinedFunction):
+     r"""
+     Harmonic numbers
+ 
+@@ -1023,7 +1024,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class euler(Function):
++class euler(DefinedFunction):
+     r"""
+     Euler numbers / Euler polynomials / Euler function
+ 
+@@ -1139,7 +1140,7 @@
+                                                               (k - 2*j)**(2*n + 1)) /
+                   (2**k*S.ImaginaryUnit**k * k), (j, 0, k)), (k, 1, 2*n + 1)))
+             return Em
+-        if x:
++        if x is not None:
+             k = Dummy("k", integer=True)
+             return Sum(binomial(n, k)*euler(k)/2**k*(x - S.Half)**(n - k), (k, 0, n))
+ 
+@@ -1180,7 +1181,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class catalan(Function):
++class catalan(DefinedFunction):
+     r"""
+     Catalan numbers
+ 
+@@ -1326,7 +1327,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class genocchi(Function):
++class genocchi(DefinedFunction):
+     r"""
+     Genocchi numbers / Genocchi polynomials / Genocchi function
+ 
+@@ -1466,7 +1467,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class andre(Function):
++class andre(DefinedFunction):
+     r"""
+     Andre numbers / Andre function
+ 
+@@ -1581,7 +1582,7 @@
+ #----------------------------------------------------------------------------#
+ 
+ 
+-class partition(Function):
++class partition(DefinedFunction):
+     r"""
+     Partition numbers
+ 
+@@ -1632,7 +1633,7 @@
+             return True
+ 
+ 
+-class divisor_sigma(Function):
++class divisor_sigma(DefinedFunction):
+     r"""
+     Calculate the divisor function `\sigma_k(n)` for positive integer n
+ 
+@@ -1699,7 +1700,7 @@
+                 return Mul(*[cancel((p**(k*(e + 1)) - 1) / (p**k - 1)) for p, e in factorint(n).items()])
+ 
+ 
+-class udivisor_sigma(Function):
++class udivisor_sigma(DefinedFunction):
+     r"""
+     Calculate the unitary divisor function `\sigma_k^*(n)` for positive integer n
+ 
+@@ -1771,7 +1772,7 @@
+             return Mul(*[1+p**(k*e) for p, e in factorint(n).items()])
+ 
+ 
+-class legendre_symbol(Function):
++class legendre_symbol(DefinedFunction):
+     r"""
+     Returns the Legendre symbol `(a / p)`.
+ 
+@@ -1819,7 +1820,7 @@
+             return S(legendre(as_int(a), as_int(p)))
+ 
+ 
+-class jacobi_symbol(Function):
++class jacobi_symbol(DefinedFunction):
+     r"""
+     Returns the Jacobi symbol `(m / n)`.
+ 
+@@ -1890,7 +1891,7 @@
+             return S(jacobi(as_int(m), as_int(n)))
+ 
+ 
+-class kronecker_symbol(Function):
++class kronecker_symbol(DefinedFunction):
+     r"""
+     Returns the Kronecker symbol `(a / n)`.
+ 
+@@ -1929,7 +1930,7 @@
+             return S(kronecker(as_int(a), as_int(n)))
+ 
+ 
+-class mobius(Function):
++class mobius(DefinedFunction):
+     """
+     Mobius function maps natural number to {-1, 0, 1}
+ 
+@@ -2009,7 +2010,7 @@
+         return result
+ 
+ 
+-class primenu(Function):
++class primenu(DefinedFunction):
+     r"""
+     Calculate the number of distinct prime factors for a positive integer n.
+ 
+@@ -2061,7 +2062,7 @@
+             return S(len(factorint(n)))
+ 
+ 
+-class primeomega(Function):
++class primeomega(DefinedFunction):
+     r"""
+     Calculate the number of prime factors counting multiplicities for a
+     positive integer n.
+@@ -2114,7 +2115,7 @@
+             return S(sum(factorint(n).values()))
+ 
+ 
+-class totient(Function):
++class totient(DefinedFunction):
+     r"""
+     Calculate the Euler totient function phi(n)
+ 
+@@ -2164,7 +2165,7 @@
+             return S(prod(p**(k-1)*(p-1) for p, k in factorint(n).items()))
+ 
+ 
+-class reduced_totient(Function):
++class reduced_totient(DefinedFunction):
+     r"""
+     Calculate the Carmichael reduced totient function lambda(n)
+ 
+@@ -2222,7 +2223,7 @@
+             return S(lcm(t, *((p-1)*p**(k-1) for p, k in factorint(n).items())))
+ 
+ 
+-class primepi(Function):
++class primepi(DefinedFunction):
+     r""" Represents the prime counting function pi(n) = the number
+     of prime numbers less than or equal to n.
+ 
+@@ -2925,7 +2926,7 @@
+ #-----------------------------------------------------------------------------#
+ 
+ 
+-class motzkin(Function):
++class motzkin(DefinedFunction):
+     """
+     The nth Motzkin number is the number
+     of ways of drawing non-intersecting chords
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/complexes.py /app/sympy/functions/elementary/complexes.py
+--- /opt/pristine/sympy/functions/elementary/complexes.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/complexes.py	2026-11-17 07:43:31.000000000 +0000
+@@ -3,6 +3,7 @@
+ from sympy.core import S, Add, Mul, sympify, Symbol, Dummy, Basic
+ from sympy.core.expr import Expr
+ from sympy.core.exprtools import factor_terms
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import (Function, Derivative, ArgumentIndexError,
+     AppliedUndef, expand_mul, PoleError)
+ from sympy.core.logic import fuzzy_not, fuzzy_or
+@@ -17,7 +18,7 @@
+ ###############################################################################
+ 
+ 
+-class re(Function):
++class re(DefinedFunction):
+     """
+     Returns real part of expression. This function performs only
+     elementary analysis and so it will fail to decompose properly
+@@ -139,7 +140,7 @@
+             return True
+ 
+ 
+-class im(Function):
++class im(DefinedFunction):
+     """
+     Returns imaginary part of expression. This function performs only
+     elementary analysis and so it will fail to decompose properly more
+@@ -262,7 +263,7 @@
+ ############### SIGN, ABSOLUTE VALUE, ARGUMENT and CONJUGATION ################
+ ###############################################################################
+ 
+-class sign(Function):
++class sign(DefinedFunction):
+     """
+     Returns the complex sign of an expression:
+ 
+@@ -443,7 +444,7 @@
+         return self.func(factor_terms(self.args[0]))  # XXX include doit?
+ 
+ 
+-class Abs(Function):
++class Abs(DefinedFunction):
+     """
+     Return the absolute value of the argument.
+ 
+@@ -693,7 +694,7 @@
+         return sqrt(arg*conjugate(arg))
+ 
+ 
+-class arg(Function):
++class arg(DefinedFunction):
+     r"""
+     Returns the argument (in radians) of a complex number. The argument is
+     evaluated in consistent convention with ``atan2`` where the branch-cut is
+@@ -817,7 +818,7 @@
+         return self._eval_as_leading_term(x, logx=logx, cdir=cdir)
+ 
+ 
+-class conjugate(Function):
++class conjugate(DefinedFunction):
+     """
+     Returns the *complex conjugate* [1]_ of an argument.
+     In mathematics, the complex conjugate of a complex number
+@@ -894,7 +895,7 @@
+         return self.args[0].is_algebraic
+ 
+ 
+-class transpose(Function):
++class transpose(DefinedFunction):
+     """
+     Linear map transposition.
+ 
+@@ -951,7 +952,7 @@
+         return self.args[0]
+ 
+ 
+-class adjoint(Function):
++class adjoint(DefinedFunction):
+     """
+     Conjugate transpose or Hermite conjugation.
+ 
+@@ -1017,7 +1018,7 @@
+ ###############################################################################
+ 
+ 
+-class polar_lift(Function):
++class polar_lift(DefinedFunction):
+     """
+     Lift argument to the Riemann surface of the logarithm, using the
+     standard branch.
+@@ -1102,7 +1103,7 @@
+         return Abs(self.args[0], evaluate=True)
+ 
+ 
+-class periodic_argument(Function):
++class periodic_argument(DefinedFunction):
+     r"""
+     Represent the argument on a quotient of the Riemann surface of the
+     logarithm. That is, given a period $P$, always return a value in
+@@ -1230,7 +1231,7 @@
+     return periodic_argument(arg, oo)
+ 
+ 
+-class principal_branch(Function):
++class principal_branch(DefinedFunction):
+     """
+     Represent a polar number reduced to its principal branch on a quotient
+     of the Riemann surface of the logarithm.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/exponential.py /app/sympy/functions/elementary/exponential.py
+--- /opt/pristine/sympy/functions/elementary/exponential.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/exponential.py	2026-11-17 07:43:31.000000000 +0000
+@@ -4,6 +4,7 @@
+ from sympy.core.add import Add
+ from sympy.core.cache import cacheit
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import (Function, ArgumentIndexError, expand_log,
+     expand_mul, FunctionClass, PoleError, expand_multinomial, expand_complex)
+ from sympy.core.logic import fuzzy_and, fuzzy_not, fuzzy_or
+@@ -32,7 +33,7 @@
+ # p.is_positive.]
+ 
+ 
+-class ExpBase(Function):
++class ExpBase(DefinedFunction):
+ 
+     unbranched = True
+     _singularities = (S.ComplexInfinity,)
+@@ -604,7 +605,7 @@
+         return (None, None) # simpler to check for than None
+ 
+ 
+-class log(Function):
++class log(DefinedFunction):
+     r"""
+     The natural logarithm function `\ln(x)` or `\log(x)`.
+ 
+@@ -1105,7 +1106,7 @@
+         return res
+ 
+ 
+-class LambertW(Function):
++class LambertW(DefinedFunction):
+     r"""
+     The Lambert W function $W(z)$ is defined as the inverse
+     function of $w \exp(w)$ [1]_.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/hyperbolic.py /app/sympy/functions/elementary/hyperbolic.py
+--- /opt/pristine/sympy/functions/elementary/hyperbolic.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/hyperbolic.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,5 +1,6 @@
+ from sympy.core import S, sympify, cacheit
+ from sympy.core.add import Add
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.logic import fuzzy_or, fuzzy_and, fuzzy_not, FuzzyBool
+ from sympy.core.numbers import I, pi, Rational
+@@ -103,7 +104,7 @@
+ ###############################################################################
+ 
+ 
+-class HyperbolicFunction(Function):
++class HyperbolicFunction(DefinedFunction):
+     """
+     Base class for hyperbolic functions.
+ 
+@@ -1197,7 +1198,7 @@
+ ############################# HYPERBOLIC INVERSES #############################
+ ###############################################################################
+ 
+-class InverseHyperbolicFunction(Function):
++class InverseHyperbolicFunction(DefinedFunction):
+     """Base class for inverse hyperbolic functions."""
+ 
+     pass
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/integers.py /app/sympy/functions/elementary/integers.py
+--- /opt/pristine/sympy/functions/elementary/integers.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/integers.py	2026-11-17 08:43:09.000000000 +0000
+@@ -5,6 +5,7 @@
+ 
+ from sympy.core import Add, S
+ from sympy.core.evalf import get_integer_part, PrecisionExhausted
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.logic import fuzzy_or
+ from sympy.core.numbers import Integer, int_valued
+@@ -18,7 +19,7 @@
+ ###############################################################################
+ 
+ 
+-class RoundFunction(Function):
++class RoundFunction(DefinedFunction):
+     """Abstract base class for rounding functions."""
+ 
+     args: tTuple[Expr]
+@@ -48,6 +49,10 @@
+                 ipart += i*S.ImaginaryUnit
+             elif (i := intof(t)) is not None:
+                 ipart += i
++            elif ((c := t.as_coefficient(S.ImaginaryUnit)) is not None and
++                    (i := intof(c)) is not None):
++                # e.g. I*n with n an integer (which might be zero)
++                ipart += i*S.ImaginaryUnit
+             elif t.is_number:
+                 npart += t
+             else:
+@@ -73,7 +78,7 @@
+         if not spart:
+             return ipart
+         elif spart.is_imaginary or (S.ImaginaryUnit*spart).is_real:
+-            return ipart + cls(im(spart), evaluate=False)*S.ImaginaryUnit
++            return ipart + cls(im(spart))*S.ImaginaryUnit
+         elif isinstance(spart, (floor, ceiling)):
+             return ipart + spart
+         else:
+@@ -428,7 +433,7 @@
+     return is_eq(lhs.rewrite(floor), rhs) or is_eq(lhs.rewrite(frac),rhs)
+ 
+ 
+-class frac(Function):
++class frac(DefinedFunction):
+     r"""Represents the fractional part of x
+ 
+     For real numbers it is defined [1]_ as
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/miscellaneous.py /app/sympy/functions/elementary/miscellaneous.py
+--- /opt/pristine/sympy/functions/elementary/miscellaneous.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/miscellaneous.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,3 +1,4 @@
++from sympy.core.function import DefinedFunction
+ from sympy.core import Function, S, sympify, NumberKind
+ from sympy.utilities.iterables import sift
+ from sympy.core.add import Add
+@@ -861,7 +862,7 @@
+         return fuzzy_or(a.is_negative for a in self.args)
+ 
+ 
+-class Rem(Function):
++class Rem(DefinedFunction):
+     """Returns the remainder when ``p`` is divided by ``q`` where ``p`` is finite
+     and ``q`` is not equal to zero. The result, ``p - int(p/q)*q``, has the same sign
+     as the divisor.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/piecewise.py /app/sympy/functions/elementary/piecewise.py
+--- /opt/pristine/sympy/functions/elementary/piecewise.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/piecewise.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,3 +1,4 @@
++from sympy.core.function import DefinedFunction
+ from sympy.core import S, Function, diff, Tuple, Dummy, Mul
+ from sympy.core.basic import Basic, as_Basic
+ from sympy.core.numbers import Rational, NumberSymbol, _illegal
+@@ -61,7 +62,7 @@
+         return self.func(*[a.simplify(**kwargs) for a in self.args])
+ 
+ 
+-class Piecewise(Function):
++class Piecewise(DefinedFunction):
+     """
+     Represents a piecewise function.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/elementary/trigonometric.py /app/sympy/functions/elementary/trigonometric.py
+--- /opt/pristine/sympy/functions/elementary/trigonometric.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/elementary/trigonometric.py	2026-11-17 07:43:31.000000000 +0000
+@@ -2,6 +2,7 @@
+ from sympy.core.add import Add
+ from sympy.core.cache import cacheit
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError, PoleError, expand_mul
+ from sympy.core.logic import fuzzy_not, fuzzy_or, FuzzyBool, fuzzy_and
+ from sympy.core.mod import Mod
+@@ -42,7 +43,7 @@
+ ###############################################################################
+ 
+ 
+-class TrigonometricFunction(Function):
++class TrigonometricFunction(DefinedFunction):
+     """Base class for trigonometric functions. """
+ 
+     unbranched = True
+@@ -1902,7 +1903,7 @@
+         return self.func(x0) if x0.is_finite else self
+ 
+ 
+-class sinc(Function):
++class sinc(DefinedFunction):
+     r"""
+     Represents an unnormalized sinc function:
+ 
+@@ -2026,7 +2027,7 @@
+ ###############################################################################
+ 
+ 
+-class InverseTrigonometricFunction(Function):
++class InverseTrigonometricFunction(DefinedFunction):
+     """Base class for inverse trigonometric functions."""
+     _singularities = (S.One, S.NegativeOne, S.Zero, S.ComplexInfinity)  # type: tTuple[Expr, ...]
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/bessel.py /app/sympy/functions/special/bessel.py
+--- /opt/pristine/sympy/functions/special/bessel.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/bessel.py	2026-11-17 07:43:31.000000000 +0000
+@@ -4,6 +4,7 @@
+ from sympy.core.add import Add
+ from sympy.core.cache import cacheit
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError, _mexpand
+ from sympy.core.logic import fuzzy_or, fuzzy_not
+ from sympy.core.numbers import Rational, pi, I
+@@ -33,7 +34,7 @@
+ # o Add solvers to ode.py (or rather add solvers for the hypergeometric equation).
+ 
+ 
+-class BesselBase(Function):
++class BesselBase(DefinedFunction):
+     """
+     Abstract base class for Bessel-type functions.
+ 
+@@ -1344,7 +1345,7 @@
+     return roots
+ 
+ 
+-class AiryBase(Function):
++class AiryBase(DefinedFunction):
+     """
+     Abstract base class for Airy functions.
+ 
+@@ -2041,7 +2042,7 @@
+                     return S.Half * (sqrt(3)*(pf - S.One)*airyaiprime(newarg) + (pf + S.One)*airybiprime(newarg))
+ 
+ 
+-class marcumq(Function):
++class marcumq(DefinedFunction):
+     r"""
+     The Marcum Q-function.
+ 
+@@ -2146,7 +2147,7 @@
+         if all(arg.is_zero for arg in self.args):
+             return True
+ 
+-class _besseli(Function):
++class _besseli(DefinedFunction):
+     """
+     Helper function to make the $\\mathrm{besseli}(nu, z)$
+     function tractable for the Gruntz algorithm.
+@@ -2177,7 +2178,7 @@
+         return super()._eval_nseries(x, n, logx)
+ 
+ 
+-class _besselk(Function):
++class _besselk(DefinedFunction):
+     """
+     Helper function to make the $\\mathrm{besselk}(nu, z)$
+     function tractable for the Gruntz algorithm.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/beta_functions.py /app/sympy/functions/special/beta_functions.py
+--- /opt/pristine/sympy/functions/special/beta_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/beta_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,4 +1,5 @@
+ from sympy.core import S
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.symbol import Dummy, uniquely_named_symbol
+ from sympy.functions.special.gamma_functions import gamma, digamma
+@@ -17,7 +18,7 @@
+ ############################ COMPLETE BETA  FUNCTION ##########################
+ ###############################################################################
+ 
+-class beta(Function):
++class beta(DefinedFunction):
+     r"""
+     The beta integral is called the Eulerian integral of the first kind by
+     Legendre:
+@@ -170,7 +171,7 @@
+ ########################## INCOMPLETE BETA FUNCTION ###########################
+ ###############################################################################
+ 
+-class betainc(Function):
++class betainc(DefinedFunction):
+     r"""
+     The Generalized Incomplete Beta function is defined as
+ 
+@@ -279,7 +280,7 @@
+ #################### REGULARIZED INCOMPLETE BETA FUNCTION #####################
+ ###############################################################################
+ 
+-class betainc_regularized(Function):
++class betainc_regularized(DefinedFunction):
+     r"""
+     The Generalized Regularized Incomplete Beta function is given by
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/delta_functions.py /app/sympy/functions/special/delta_functions.py
+--- /opt/pristine/sympy/functions/special/delta_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/delta_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,4 +1,5 @@
+ from sympy.core import S, diff
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.logic import fuzzy_not
+ from sympy.core.relational import Eq, Ne
+@@ -14,7 +15,7 @@
+ ###############################################################################
+ 
+ 
+-class DiracDelta(Function):
++class DiracDelta(DefinedFunction):
+     r"""
+     The DiracDelta function and its derivatives.
+ 
+@@ -390,7 +391,7 @@
+ ###############################################################################
+ 
+ 
+-class Heaviside(Function):
++class Heaviside(DefinedFunction):
+     r"""
+     Heaviside step function.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/elliptic_integrals.py /app/sympy/functions/special/elliptic_integrals.py
+--- /opt/pristine/sympy/functions/special/elliptic_integrals.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/elliptic_integrals.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,6 +1,7 @@
+ """ Elliptic Integrals. """
+ 
+ from sympy.core import S, pi, I, Rational
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.symbol import Dummy,uniquely_named_symbol
+ from sympy.functions.elementary.complexes import sign
+@@ -10,7 +11,7 @@
+ from sympy.functions.special.gamma_functions import gamma
+ from sympy.functions.special.hyper import hyper, meijerg
+ 
+-class elliptic_k(Function):
++class elliptic_k(DefinedFunction):
+     r"""
+     The complete elliptic integral of the first kind, defined by
+ 
+@@ -100,7 +101,7 @@
+         return Integral(1/sqrt(1 - m*sin(t)**2), (t, 0, pi/2))
+ 
+ 
+-class elliptic_f(Function):
++class elliptic_f(DefinedFunction):
+     r"""
+     The Legendre incomplete elliptic integral of the first
+     kind, defined by
+@@ -185,7 +186,7 @@
+             return True
+ 
+ 
+-class elliptic_e(Function):
++class elliptic_e(DefinedFunction):
+     r"""
+     Called with two arguments $z$ and $m$, evaluates the
+     incomplete elliptic integral of the second kind, defined by
+@@ -307,7 +308,7 @@
+         return Integral(sqrt(1 - m*sin(t)**2), (t, 0, z))
+ 
+ 
+-class elliptic_pi(Function):
++class elliptic_pi(DefinedFunction):
+     r"""
+     Called with three arguments $n$, $z$ and $m$, evaluates the
+     Legendre incomplete elliptic integral of the third kind, defined by
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/error_functions.py /app/sympy/functions/special/error_functions.py
+--- /opt/pristine/sympy/functions/special/error_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/error_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -4,6 +4,7 @@
+ from sympy.core import EulerGamma # Must be imported from core, not core.numbers
+ from sympy.core.add import Add
+ from sympy.core.cache import cacheit
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError, expand_mul
+ from sympy.core.logic import fuzzy_or
+ from sympy.core.numbers import I, pi, Rational, Integer
+@@ -46,7 +47,7 @@
+ ###############################################################################
+ 
+ 
+-class erf(Function):
++class erf(DefinedFunction):
+     r"""
+     The Gauss error function.
+ 
+@@ -285,7 +286,7 @@
+     as_real_imag = real_to_real_as_real_imag
+ 
+ 
+-class erfc(Function):
++class erfc(DefinedFunction):
+     r"""
+     Complementary Error Function.
+ 
+@@ -479,7 +480,7 @@
+         return S.One - erf(*self.args)._eval_aseries(n, args0, x, logx)
+ 
+ 
+-class erfi(Function):
++class erfi(DefinedFunction):
+     r"""
+     Imaginary error function.
+ 
+@@ -671,7 +672,7 @@
+         return super(erfi, self)._eval_aseries(n, args0, x, logx)
+ 
+ 
+-class erf2(Function):
++class erf2(DefinedFunction):
+     r"""
+     Two-argument error function.
+ 
+@@ -816,7 +817,7 @@
+     def _eval_is_zero(self):
+         return is_eq(*self.args)
+ 
+-class erfinv(Function):
++class erfinv(DefinedFunction):
+     r"""
+     Inverse Error Function. The erfinv function is defined as:
+ 
+@@ -992,7 +993,7 @@
+         return fuzzy_or([z.is_zero, is_eq(z, Integer(2))])
+ 
+ 
+-class erf2inv(Function):
++class erf2inv(DefinedFunction):
+     r"""
+     Two-argument Inverse error function. The erf2inv function is defined as:
+ 
+@@ -1089,7 +1090,7 @@
+ #################### EXPONENTIAL INTEGRALS ####################################
+ ###############################################################################
+ 
+-class Ei(Function):
++class Ei(DefinedFunction):
+     r"""
+     The classical exponential integral.
+ 
+@@ -1272,7 +1273,7 @@
+         return super(Ei, self)._eval_aseries(n, args0, x, logx)
+ 
+ 
+-class expint(Function):
++class expint(DefinedFunction):
+     r"""
+     Generalized exponential integral.
+ 
+@@ -1499,7 +1500,7 @@
+     return expint(1, z)
+ 
+ 
+-class li(Function):
++class li(DefinedFunction):
+     r"""
+     The classical logarithmic integral.
+ 
+@@ -1666,7 +1667,7 @@
+         if z.is_zero:
+             return True
+ 
+-class Li(Function):
++class Li(DefinedFunction):
+     r"""
+     The offset logarithmic integral.
+ 
+@@ -1762,7 +1763,7 @@
+ #################### TRIGONOMETRIC INTEGRALS ##################################
+ ###############################################################################
+ 
+-class TrigonometricIntegral(Function):
++class TrigonometricIntegral(DefinedFunction):
+     """ Base class for trigonometric integrals. """
+ 
+ 
+@@ -2324,7 +2325,7 @@
+ #################### FRESNEL INTEGRALS ########################################
+ ###############################################################################
+ 
+-class FresnelIntegral(Function):
++class FresnelIntegral(DefinedFunction):
+     """ Base class for the Fresnel integrals."""
+ 
+     unbranched = True
+@@ -2707,7 +2708,7 @@
+ ###############################################################################
+ 
+ 
+-class _erfs(Function):
++class _erfs(DefinedFunction):
+     """
+     Helper function to make the $\\mathrm{erf}(z)$ function
+     tractable for the Gruntz algorithm.
+@@ -2756,7 +2757,7 @@
+         return (S.One - erf(z))*exp(z**2)
+ 
+ 
+-class _eis(Function):
++class _eis(DefinedFunction):
+     """
+     Helper function to make the $\\mathrm{Ei}(z)$ and $\\mathrm{li}(z)$
+     functions tractable for the Gruntz algorithm.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/gamma_functions.py /app/sympy/functions/special/gamma_functions.py
+--- /opt/pristine/sympy/functions/special/gamma_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/gamma_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -2,6 +2,7 @@
+ 
+ from sympy.core import Add, S, Dummy, expand_func
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError, PoleError
+ from sympy.core.logic import fuzzy_and, fuzzy_not
+ from sympy.core.numbers import Rational, pi, oo, I
+@@ -31,7 +32,7 @@
+ ############################ COMPLETE GAMMA FUNCTION ##########################
+ ###############################################################################
+ 
+-class gamma(Function):
++class gamma(DefinedFunction):
+     r"""
+     The gamma function
+ 
+@@ -219,7 +220,7 @@
+ ################## LOWER and UPPER INCOMPLETE GAMMA FUNCTIONS #################
+ ###############################################################################
+ 
+-class lowergamma(Function):
++class lowergamma(DefinedFunction):
+     r"""
+     The lower incomplete gamma function.
+ 
+@@ -395,7 +396,7 @@
+             return True
+ 
+ 
+-class uppergamma(Function):
++class uppergamma(DefinedFunction):
+     r"""
+     The upper incomplete gamma function.
+ 
+@@ -561,7 +562,7 @@
+ ###################### POLYGAMMA and LOGGAMMA FUNCTIONS #######################
+ ###############################################################################
+ 
+-class polygamma(Function):
++class polygamma(DefinedFunction):
+     r"""
+     The function ``polygamma(n, z)`` returns ``log(gamma(z)).diff(n + 1)``.
+ 
+@@ -862,7 +863,7 @@
+         return Expr._from_mpmath(res, prec)
+ 
+ 
+-class loggamma(Function):
++class loggamma(DefinedFunction):
+     r"""
+     The ``loggamma`` function implements the logarithm of the
+     gamma function (i.e., $\log\Gamma(x)$).
+@@ -1057,7 +1058,7 @@
+             raise ArgumentIndexError(self, argindex)
+ 
+ 
+-class digamma(Function):
++class digamma(DefinedFunction):
+     r"""
+     The ``digamma`` function is the first derivative of the ``loggamma``
+     function
+@@ -1151,7 +1152,7 @@
+ 
+ 
+ 
+-class trigamma(Function):
++class trigamma(DefinedFunction):
+     r"""
+     The ``trigamma`` function is the second derivative of the ``loggamma``
+     function
+@@ -1252,7 +1253,7 @@
+ ###############################################################################
+ 
+ 
+-class multigamma(Function):
++class multigamma(DefinedFunction):
+     r"""
+     The multivariate gamma function is a generalization of the gamma function
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/hyper.py /app/sympy/functions/special/hyper.py
+--- /opt/pristine/sympy/functions/special/hyper.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/hyper.py	2026-11-17 07:43:31.000000000 +0000
+@@ -4,6 +4,7 @@
+ from sympy.core import S, Mod
+ from sympy.core.add import Add
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, Derivative, ArgumentIndexError
+ 
+ from sympy.core.containers import Tuple
+@@ -68,7 +69,7 @@
+     return TupleArg(*[unpolarify(x) for x in v])
+ 
+ 
+-class TupleParametersBase(Function):
++class TupleParametersBase(DefinedFunction):
+     """ Base class that takes care of differentiation, when some of
+         the arguments are actually tuples. """
+     # This is not deduced automatically since there are Tuples as arguments.
+@@ -793,7 +794,7 @@
+         return not self.free_symbols
+ 
+ 
+-class HyperRep(Function):
++class HyperRep(DefinedFunction):
+     """
+     A base class for "hyper representation functions".
+ 
+@@ -1126,7 +1127,7 @@
+     def _expr_big_minus(cls, a, z, n):
+         return -1/sqrt(1 + 1/z)*sinh(2*a*asinh(sqrt(z)) + 2*a*pi*I*n)
+ 
+-class appellf1(Function):
++class appellf1(DefinedFunction):
+     r"""
+     This is the Appell hypergeometric function of two variables as:
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/mathieu_functions.py /app/sympy/functions/special/mathieu_functions.py
+--- /opt/pristine/sympy/functions/special/mathieu_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/mathieu_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,12 +1,13 @@
+ """ This module contains the Mathieu functions.
+ """
+ 
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.functions.elementary.miscellaneous import sqrt
+ from sympy.functions.elementary.trigonometric import sin, cos
+ 
+ 
+-class MathieuBase(Function):
++class MathieuBase(DefinedFunction):
+     """
+     Abstract base class for Mathieu functions.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/polynomials.py /app/sympy/functions/special/polynomials.py
+--- /opt/pristine/sympy/functions/special/polynomials.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/polynomials.py	2026-11-17 07:43:31.000000000 +0000
+@@ -7,6 +7,7 @@
+ """
+ 
+ from sympy.core import Rational
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.singleton import S
+ from sympy.core.symbol import Dummy
+@@ -25,7 +26,7 @@
+ _x = Dummy('x')
+ 
+ 
+-class OrthogonalPolynomial(Function):
++class OrthogonalPolynomial(DefinedFunction):
+     """Base class for orthogonal polynomials.
+     """
+ 
+@@ -684,7 +685,7 @@
+         return self._eval_rewrite_as_Sum(n, x, **kwargs)
+ 
+ 
+-class chebyshevt_root(Function):
++class chebyshevt_root(DefinedFunction):
+     r"""
+     ``chebyshev_root(n, k)`` returns the $k$th root (indexed from zero) of
+     the $n$th Chebyshev polynomial of the first kind; that is, if
+@@ -725,7 +726,7 @@
+         return cos(S.Pi*(2*k + 1)/(2*n))
+ 
+ 
+-class chebyshevu_root(Function):
++class chebyshevu_root(DefinedFunction):
+     r"""
+     ``chebyshevu_root(n, k)`` returns the $k$th root (indexed from zero) of the
+     $n$th Chebyshev polynomial of the second kind; that is, if $0 \le k < n$,
+@@ -886,7 +887,7 @@
+         return self._eval_rewrite_as_Sum(n, x, **kwargs)
+ 
+ 
+-class assoc_legendre(Function):
++class assoc_legendre(DefinedFunction):
+     r"""
+     ``assoc_legendre(n, m, x)`` gives $P_n^m(x)$, where $n$ and $m$ are
+     the degree and order or an expression which is related to the nth
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/singularity_functions.py /app/sympy/functions/special/singularity_functions.py
+--- /opt/pristine/sympy/functions/special/singularity_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/singularity_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,4 +1,5 @@
+ from sympy.core import S, oo, diff
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.logic import fuzzy_not
+ from sympy.core.relational import Eq
+@@ -11,7 +12,7 @@
+ ###############################################################################
+ 
+ 
+-class SingularityFunction(Function):
++class SingularityFunction(DefinedFunction):
+     r"""
+     Singularity functions are a class of discontinuous functions.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/spherical_harmonics.py /app/sympy/functions/special/spherical_harmonics.py
+--- /opt/pristine/sympy/functions/special/spherical_harmonics.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/spherical_harmonics.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,4 +1,5 @@
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function, ArgumentIndexError
+ from sympy.core.numbers import I, pi
+ from sympy.core.singleton import S
+@@ -12,7 +13,7 @@
+ 
+ _x = Dummy("x")
+ 
+-class Ynm(Function):
++class Ynm(DefinedFunction):
+     r"""
+     Spherical harmonics defined as
+ 
+@@ -264,7 +265,7 @@
+     return conjugate(Ynm(n, m, theta, phi))
+ 
+ 
+-class Znm(Function):
++class Znm(DefinedFunction):
+     r"""
+     Real spherical harmonics defined as
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/tensor_functions.py /app/sympy/functions/special/tensor_functions.py
+--- /opt/pristine/sympy/functions/special/tensor_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/tensor_functions.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,6 +1,7 @@
+ from math import prod
+ 
+ from sympy.core import S, Integer
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.logic import fuzzy_not
+ from sympy.core.relational import Ne
+@@ -39,7 +40,7 @@
+     # converting factorial(i) to int is slightly faster
+ 
+ 
+-class LeviCivita(Function):
++class LeviCivita(DefinedFunction):
+     """
+     Represent the Levi-Civita symbol.
+ 
+@@ -87,7 +88,7 @@
+         return eval_levicivita(*self.args)
+ 
+ 
+-class KroneckerDelta(Function):
++class KroneckerDelta(DefinedFunction):
+     """
+     The discrete, or Kronecker, delta function.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/functions/special/zeta_functions.py /app/sympy/functions/special/zeta_functions.py
+--- /opt/pristine/sympy/functions/special/zeta_functions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/functions/special/zeta_functions.py	2026-11-17 08:53:47.000000000 +0000
+@@ -2,6 +2,7 @@
+ 
+ from sympy.core.add import Add
+ from sympy.core.cache import cacheit
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import ArgumentIndexError, expand_mul, Function
+ from sympy.core.numbers import pi, I, Integer
+ from sympy.core.relational import Eq
+@@ -21,7 +22,7 @@
+ ###############################################################################
+ 
+ 
+-class lerchphi(Function):
++class lerchphi(DefinedFunction):
+     r"""
+     Lerch transcendent (Lerch phi function).
+ 
+@@ -219,7 +220,7 @@
+ ###############################################################################
+ 
+ 
+-class polylog(Function):
++class polylog(DefinedFunction):
+     r"""
+     Polylogarithm function.
+ 
+@@ -391,7 +392,7 @@
+ ###############################################################################
+ 
+ 
+-class zeta(Function):
++class zeta(DefinedFunction):
+     r"""
+     Hurwitz zeta function (or Riemann zeta function).
+ 
+@@ -571,6 +572,10 @@
+         else:
+             s, a = self.args + (S.One,)
+ 
++        if not a.has(x) and (s - 1).subs(x, 0) == 0:
++            # simple pole at s = 1 with residue 1
++            return (1/(s - 1)).as_leading_term(x, logx=logx, cdir=cdir)
++
+         try:
+             c, e = a.leadterm(x)
+         except NotImplementedError:
+@@ -581,8 +586,24 @@
+ 
+         return super(zeta, self)._eval_as_leading_term(x, logx=logx, cdir=cdir)
+ 
++    def _eval_nseries(self, x, n, logx, cdir=0):
++        if len(self.args) == 2:
++            s, a = self.args
++        else:
++            s, a = self.args + (S.One,)
++        if not a.has(x) and (s - 1).subs(x, 0) == 0:
++            # Laurent series at the pole s = 1:
++            # zeta(s, a) = 1/(s - 1) + Sum((-1)**k/k!*stieltjes(k, a)*(s - 1)**k)
++            from sympy.series.order import Order
++            t = s - 1
++            st = (lambda k: stieltjes(k)) if a == 1 else (lambda k: stieltjes(k, a))
++            terms = [1/t] + [S.NegativeOne**k/factorial(k)*st(k)*t**k
++                             for k in range(n)]
++            return Add(*terms).nseries(x, n=n, logx=logx, cdir=cdir) + Order(t**n, x)
++        return super()._eval_nseries(x, n, logx, cdir)
++
+ 
+-class dirichlet_eta(Function):
++class dirichlet_eta(DefinedFunction):
+     r"""
+     Dirichlet eta function.
+ 
+@@ -665,7 +686,7 @@
+             return self.rewrite(zeta)._eval_evalf(prec)
+ 
+ 
+-class riemann_xi(Function):
++class riemann_xi(DefinedFunction):
+     r"""
+     Riemann Xi function.
+ 
+@@ -704,7 +725,7 @@
+         return s*(s - 1)*gamma(s/2)*zeta(s)/(2*pi**(s/2))
+ 
+ 
+-class stieltjes(Function):
++class stieltjes(DefinedFunction):
+     r"""
+     Represents Stieltjes constants, $\gamma_{k}$ that occur in
+     Laurent Series expansion of the Riemann zeta function.
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/integrals/transforms.py /app/sympy/integrals/transforms.py
+--- /opt/pristine/sympy/integrals/transforms.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/integrals/transforms.py	2026-11-17 07:43:31.000000000 +0000
+@@ -3,6 +3,7 @@
+ from itertools import repeat
+ from sympy.core import S, pi
+ from sympy.core.add import Add
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import (
+     AppliedUndef, count_ops, expand, expand_mul, Function)
+ from sympy.core.mul import Mul
+@@ -57,7 +58,7 @@
+         self.function = function
+ 
+ 
+-class IntegralTransform(Function):
++class IntegralTransform(DefinedFunction):
+     """
+     Base class for integral transforms.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/expressions/hadamard.py /app/sympy/matrices/expressions/hadamard.py
+--- /opt/pristine/sympy/matrices/expressions/hadamard.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/expressions/hadamard.py	2026-11-17 08:13:20.000000000 +0000
+@@ -96,6 +96,14 @@
+         from sympy.matrices.expressions.transpose import transpose
+         return HadamardProduct(*list(map(transpose, self.args)))
+ 
++    def _eval_adjoint(self):
++        from sympy.functions.elementary.complexes import adjoint
++        return HadamardProduct(*list(map(adjoint, self.args)))
++
++    def _eval_conjugate(self):
++        from sympy.functions.elementary.complexes import conjugate
++        return HadamardProduct(*list(map(conjugate, self.args)))
++
+     def doit(self, **hints):
+         expr = self.func(*(i.doit(**hints) for i in self.args))
+         # Check for explicit matrices:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/expressions/matadd.py /app/sympy/matrices/expressions/matadd.py
+--- /opt/pristine/sympy/matrices/expressions/matadd.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/expressions/matadd.py	2026-11-17 08:13:25.000000000 +0000
+@@ -4,7 +4,7 @@
+ from sympy.core import Basic, sympify
+ from sympy.core.add import add, Add, _could_extract_minus_sign
+ from sympy.core.sorting import default_sort_key
+-from sympy.functions import adjoint
++from sympy.functions import adjoint, conjugate
+ from sympy.matrices.matrixbase import MatrixBase
+ from sympy.matrices.expressions.transpose import transpose
+ from sympy.strategies import (rm_id, unpack, flatten, sort, condition,
+@@ -88,6 +88,9 @@
+     def _eval_adjoint(self):
+         return MatAdd(*[adjoint(arg) for arg in self.args]).doit()
+ 
++    def _eval_conjugate(self):
++        return MatAdd(*[conjugate(arg) for arg in self.args]).doit()
++
+     def _eval_trace(self):
+         from .trace import trace
+         return Add(*[trace(arg) for arg in self.args]).doit()
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/expressions/matexpr.py /app/sympy/matrices/expressions/matexpr.py
+--- /opt/pristine/sympy/matrices/expressions/matexpr.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/expressions/matexpr.py	2026-11-17 08:13:20.000000000 +0000
+@@ -181,8 +181,9 @@
+         return None
+ 
+     def _eval_conjugate(self):
++        # conjugate(X) is represented as Adjoint(X.T)
+         from sympy.matrices.expressions.adjoint import Adjoint
+-        return Adjoint(Transpose(self))
++        return Adjoint(self.transpose())
+ 
+     def as_real_imag(self, deep=True, **hints):
+         return self._eval_as_real_imag()
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/expressions/matmul.py /app/sympy/matrices/expressions/matmul.py
+--- /opt/pristine/sympy/matrices/expressions/matmul.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/expressions/matmul.py	2026-11-17 08:13:20.000000000 +0000
+@@ -4,7 +4,7 @@
+ from sympy.core.mul import mul, Mul
+ from sympy.core.numbers import Number, Integer
+ from sympy.core.symbol import Dummy
+-from sympy.functions import adjoint
++from sympy.functions import adjoint, conjugate
+ from sympy.strategies import (rm_id, unpack, typed, flatten, exhaust,
+         do_one, new)
+ from sympy.matrices.exceptions import NonInvertibleMatrixError
+@@ -165,6 +165,10 @@
+     def _eval_adjoint(self):
+         return MatMul(*[adjoint(arg) for arg in self.args[::-1]]).doit()
+ 
++    def _eval_conjugate(self):
++        # unlike transpose and adjoint, conjugate keeps the order
++        return MatMul(*[conjugate(arg) for arg in self.args]).doit()
++
+     def _eval_trace(self):
+         factor, mmul = self.as_coeff_mmul()
+         if factor != 1:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/inverse.py /app/sympy/matrices/inverse.py
+--- /opt/pristine/sympy/matrices/inverse.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/inverse.py	2026-11-17 08:18:18.000000000 +0000
+@@ -1,5 +1,6 @@
+ from sympy.polys.matrices.exceptions import DMNonInvertibleMatrixError
+ from sympy.polys.domains import EX
++from sympy.polys.polyerrors import PolynomialError
+ 
+ from .exceptions import MatrixError, NonSquareMatrixError, NonInvertibleMatrixError
+ from .utilities import _iszero
+@@ -486,7 +487,11 @@
+     # Default: Use DomainMatrix if the domain is not EX.
+     # If DM is requested explicitly then use it even if the domain is EX.
+     if method is None and iszerofunc is _iszero:
+-        dM = _try_DM(M, use_EX=False)
++        try:
++            dM = _try_DM(M, use_EX=False)
++        except PolynomialError:
++            # e.g. noncommutative entries: no domain can be used
++            dM = None
+         if dM is not None:
+             method = 'DM'
+     elif method in ("DM", "DMNC"):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/reductions.py /app/sympy/matrices/reductions.py
+--- /opt/pristine/sympy/matrices/reductions.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/reductions.py	2026-11-17 08:17:48.000000000 +0000
+@@ -1,5 +1,7 @@
+ from types import FunctionType
+ 
++from sympy.core.singleton import S
++
+ from sympy.polys.polyerrors import CoercionFailed
+ from sympy.polys.domains import ZZ, QQ
+ 
+@@ -62,6 +64,12 @@
+     pivot_cols = []
+     swaps = []
+ 
++    # The fraction free elimination row[i] = a*row[i] - b*row[j] only works
++    # if the entries commute. Otherwise rows are multiplied from the left by
++    # inverses of the pivots.
++    noncommutative = any(getattr(x, 'is_commutative', True) is False
++                         for x in mat)
++
+     # use a fraction free method to zero above and below each pivot
+     while piv_col < cols and piv_row < rows:
+         pivot_offset, pivot_val, \
+@@ -83,6 +91,32 @@
+             row_swap(piv_row, pivot_offset + piv_row)
+             swaps.append((piv_row, pivot_offset + piv_row))
+ 
++        if noncommutative:
++            i, j = piv_row, piv_col
++            if normalize:
++                # row[i] = pivot**-1*row[i]
++                inv = pivot_val**-1
++                mat[i*cols + j] = one
++                for p in range(i*cols + j + 1, (i + 1)*cols):
++                    mat[p] = isimp(inv*mat[p])
++                pivot_val = one
++            for row in range(rows):
++                if row == piv_row:
++                    continue
++                if zero_above is False and row < piv_row:
++                    continue
++                val = mat[row*cols + piv_col]
++                if iszerofunc(val):
++                    continue
++                # row[row] = row[row] - val*pivot**-1*row[i]
++                factor = val if pivot_val == one else val*pivot_val**-1
++                q = (i - row)*cols
++                for p in range(row*cols, (row + 1)*cols):
++                    mat[p] = isimp(mat[p] - factor*mat[p + q])
++                mat[row*cols + piv_col] = S.Zero
++            piv_row += 1
++            continue
++
+         # if we aren't normalizing last, we normalize
+         # before we zero the other rows
+         if normalize_last is False:
+@@ -110,7 +144,7 @@
+         piv_row += 1
+ 
+     # normalize each row
+-    if normalize_last is True and normalize is True:
++    if normalize_last is True and normalize is True and not noncommutative:
+         for piv_i, piv_j in enumerate(pivot_cols):
+             pivot_val = mat[piv_i*cols + piv_j]
+             mat[piv_i*cols + piv_j] = one
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/matrices/solvers.py /app/sympy/matrices/solvers.py
+--- /opt/pristine/sympy/matrices/solvers.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/matrices/solvers.py	2026-11-17 08:16:55.000000000 +0000
+@@ -354,10 +354,12 @@
+     b   = rhs.permute_rows(perm).as_mutable()
+ 
+     # forward substitution, all diag entries are scaled to 1
++    # (the factors of the products are kept in the right order in case the
++    # entries do not commute)
+     for i in range(m):
+         for j in range(min(i, n)):
+             scale = A[i, j]
+-            b.zip_row_op(i, j, lambda x, y: dps(x - y * scale))
++            b.zip_row_op(i, j, lambda x, y: dps(x - scale * y))
+ 
+     # consistency check for overdetermined systems
+     if m > n:
+@@ -372,10 +374,10 @@
+     for i in range(n - 1, -1, -1):
+         for j in range(i + 1, n):
+             scale = A[i, j]
+-            b.zip_row_op(i, j, lambda x, y: dps(x - y * scale))
++            b.zip_row_op(i, j, lambda x, y: dps(x - scale * y))
+ 
+         scale = A[i, i]
+-        b.row_op(i, lambda x, _: dps(x / scale))
++        b.row_op(i, lambda x, _: dps(scale**-1 * x))
+ 
+     return rhs.__class__(b)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/ntheory/__init__.py /app/sympy/ntheory/__init__.py
+--- /opt/pristine/sympy/ntheory/__init__.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/ntheory/__init__.py	2026-11-17 08:00:25.000000000 +0000
+@@ -11,7 +11,7 @@
+     divisor_count, proper_divisor_count, divisor_sigma, factorrat, \
+     reduced_totient, primenu, primeomega, mersenne_prime_exponent, \
+     is_perfect, is_abundant, is_deficient, is_amicable, is_carmichael, \
+-    abundance, dra, drm
++    abundance, dra, drm, factor_cache
+ 
+ from .partitions_ import npartitions
+ from .residue_ntheory import is_primitive_root, is_quad_residue, \
+@@ -26,7 +26,7 @@
+ from .digits import count_digits, digits, is_palindromic
+ from .egyptian_fraction import egyptian_fraction
+ from .ecm import ecm
+-from .qs import qs
++from .qs import qs, qs_factor
+ __all__ = [
+     'nextprime', 'prevprime', 'prime', 'primepi', 'primerange', 'randprime',
+     'Sieve', 'sieve', 'primorial', 'cycle_length', 'composite', 'compositepi',
+@@ -40,6 +40,7 @@
+     'reduced_totient', 'primenu', 'primeomega', 'mersenne_prime_exponent',
+     'is_perfect', 'is_abundant', 'is_deficient', 'is_amicable',
+     'is_carmichael', 'abundance', 'dra', 'drm', 'multiplicity_in_factorial',
++    'factor_cache',
+ 
+     'npartitions',
+ 
+@@ -63,5 +64,5 @@
+ 
+     'ecm',
+ 
+-    'qs',
++    'qs', 'qs_factor',
+ ]
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/ntheory/factor_.py /app/sympy/ntheory/factor_.py
+--- /opt/pristine/sympy/ntheory/factor_.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/ntheory/factor_.py	2026-11-17 08:57:21.000000000 +0000
+@@ -2,7 +2,9 @@
+ Integer factorization
+ """
+ 
+-from collections import defaultdict
++from __future__ import annotations
++
++from collections import defaultdict, OrderedDict
+ import math
+ 
+ from sympy.core.containers import Dict
+@@ -23,6 +25,171 @@
+ from .ecm import _ecm_one_factor
+ 
+ 
++class FactorCache:
++    """ Provides a cache for prime factors.
++
++    ``factor_cache`` is pre-prepared as an instance of ``FactorCache``,
++    and ``factorint`` internally references it to speed up
++    the factorization of prime factors.
++
++    The cache maps an integer ``n`` to a prime factor of ``n``. While the
++    cache is automatically added to during the execution of ``factorint``,
++    users can also manually add prime factors independently.
++
++    >>> from sympy.ntheory.factor_ import factor_cache
++    >>> factor_cache[15] = 5
++    >>> factor_cache[15]
++    5
++    >>> del factor_cache[15]
++
++    The number of cached integers is limited by ``maxsize`` (``None`` means
++    no limit). When the cache is full the least recently used entry is
++    discarded.
++
++    Furthermore, by customizing ``get_external``,
++    it is also possible to use external databases.
++    The following is an example using http://factordb.com .
++
++    .. code-block:: python
++
++        import requests
++        from sympy.ntheory.factor_ import factor_cache
++
++        def get_external(self, n: int) -> list[int] | None:
++            res = requests.get("http://factordb.com/api", params={"query": str(n)})
++            if res.status_code != requests.codes.ok:
++                return None
++            j = res.json()
++            if j.get("status") in ["FF", "P"]:
++                return list(int(p) for p, _ in j.get("factors"))
++
++        factor_cache.get_external = get_external.__get__(factor_cache)
++
++    Be aware that writing this code will trigger internet access
++    to factordb.com when calling ``factorint``.
++
++    """
++    def __init__(self, maxsize: int | None = None):
++        self._cache: OrderedDict[int, int] = OrderedDict()
++        self.maxsize = maxsize
++
++    def __len__(self) -> int:
++        return len(self._cache)
++
++    def __contains__(self, n) -> bool:
++        return n in self._cache
++
++    def __iter__(self):
++        return iter(self._cache)
++
++    def __getitem__(self, n: int) -> int:
++        factor = self.get(n)
++        if factor is None:
++            raise KeyError(f"{n} does not exist.")
++        return factor
++
++    def __setitem__(self, n: int, factor: int) -> None:
++        n, factor = as_int(n), as_int(factor)
++        if not (1 < factor <= n and n % factor == 0 and isprime(factor)):
++            raise ValueError(f"{factor} is not a prime factor of {n}")
++        # keep the largest known prime factor
++        self._cache[n] = max(self._cache.get(n, 0), factor)
++        self._cache.move_to_end(n)
++        if self.maxsize is not None and len(self._cache) > self.maxsize:
++            self._cache.popitem(False)
++
++    def __delitem__(self, n: int) -> None:
++        if n not in self._cache:
++            raise KeyError(f"{n} does not exist.")
++        del self._cache[n]
++
++    def __str__(self) -> str:
++        return str(dict(self._cache))
++
++    def __repr__(self) -> str:
++        return f"{type(self).__name__}(maxsize={self.maxsize})"
++
++    @property
++    def maxsize(self) -> int | None:
++        """ Returns the maximum cache size; if ``None``, it is unlimited. """
++        return self._maxsize
++
++    @maxsize.setter
++    def maxsize(self, value: int | None) -> None:
++        if value is not None and value <= 0:
++            raise ValueError("maxsize must be None or a positive integer.")
++        self._maxsize = value
++        if value is not None:
++            while len(self._cache) > value:
++                self._cache.popitem(False)
++
++    def cache_clear(self) -> None:
++        """ Clear the cache """
++        self._cache = OrderedDict()
++
++    clear = cache_clear
++
++    def get(self, n: int, default=None):
++        """ Return the prime factor of ``n``.
++        If it does not exist in the cache, return the value of ``default``.
++
++        Examples
++        ========
++
++        >>> from sympy.ntheory.factor_ import FactorCache
++        >>> cache = FactorCache()
++        >>> cache[15] = 5
++        >>> cache.get(15)
++        5
++        >>> cache.get(21) is None
++        True
++        """
++        if n in self._cache:
++            self._cache.move_to_end(n)
++            return self._cache[n]
++        if (factors := self.get_external(n)):
++            self.add(n, factors)
++            if n in self._cache:
++                return self._cache[n]
++        return default
++
++    def add(self, n: int, factors: list[int]) -> None:
++        """ Cache the prime factors of ``n``.
++
++        ``n`` is stored with its largest prime factor ``p``, then the part
++        of ``n`` which is not divisible by ``p`` is stored with the next
++        largest prime factor and so on.
++
++        Examples
++        ========
++
++        >>> from sympy.ntheory.factor_ import FactorCache
++        >>> cache = FactorCache()
++        >>> cache.add(2**3 * 3 * 5**2, [2, 3, 5])
++        >>> cache[600], cache[24], cache[8]
++        (5, 3, 2)
++        """
++        n = as_int(n)
++        for p in sorted(set(factors), reverse=True):
++            if n == 1:
++                break
++            self[n] = p
++            n, _ = remove(n, p)
++
++    def get_external(self, n: int) -> list[int] | None:
++        """ Methods for retrieving prime factors from an external database.
++
++        This is intended to be overridden by the user (see the docstring
++        of the class): it should return a list of the prime factors of
++        ``n`` (or None if they are unknown).
++        """
++        return None
++
++
++# Global cache of prime factors used by factorint
++factor_cache = FactorCache(maxsize=1000)
++
++
+ def smoothness(n):
+     """
+     Return the B-smooth and B-power smooth values of n.
+@@ -503,29 +670,56 @@
+     sympy.ntheory.primetest.is_square
+     """
+     if isinstance(n, Rational) and not n.is_Integer:
+-        p, q = n.as_numer_denom()
+-        if p is S.One:
+-            pp = perfect_power(q)
+-            if pp:
+-                pp = (n.func(1, pp[0]), pp[1])
+-        else:
+-            pp = perfect_power(p)
+-            if pp:
+-                num, e = pp
+-                pq = perfect_power(q, [e])
+-                if pq:
+-                    den, _ = pq
+-                    pp = n.func(num, den), e
+-        return pp
++        p, q = int(n.p), int(n.q)
++        # the exponent must be an exponent of both |p| and q; the
++        # largest such exponent is the gcd of the largest exponents
++        pq = perfect_power(q, factor=factor)
++        if not pq:
++            return False
++        e = pq[1]
++        if abs(p) != 1:
++            pp = perfect_power(abs(p), factor=factor)
++            if not pp:
++                return False
++            e = gcd(e, pp[1])
++        if p < 0:
++            # only odd exponents are possible for negative numbers
++            e >>= bit_scan1(e)
++        if candidates is not None:
++            candidates = [i for i in candidates if i > 1 and e % i == 0]
++            if not candidates:
++                return False
++            e = max(candidates) if big else min(candidates)
++        elif not big and e > 1:
++            e = min(primefactors(e))
++        if e < 2:
++            return False
++        num = iroot(abs(p), e)[0]
++        den = iroot(q, e)[0]
++        return n.func(num if p > 0 else -num, den), e
+ 
+     n = as_int(n)
+     if n < 0:
+-        pp = perfect_power(-n)
+-        if pp:
+-            b, e = pp
+-            if e % 2:
+-                return -b, e
+-        return False
++        # (-b)**e == -b**e only for odd e
++        if candidates is not None:
++            candidates = [i for i in candidates if i % 2]
++            if not candidates:
++                return False
++            pp = perfect_power(-n, candidates, big=big, factor=factor)
++            if pp:
++                return -pp[0], pp[1]
++            return False
++        pp = perfect_power(-n, factor=factor)
++        if not pp:
++            return False
++        b, e = pp
++        # largest odd divisor of the largest exponent
++        e0 = e >> bit_scan1(e)
++        if e0 == 1:
++            return False
++        if not big:
++            e0 = min(primefactors(e0))
++        return -b**(e//e0), e0
+ 
+     if candidates is None and big:
+         return _perfect_power(n)
+@@ -897,6 +1091,21 @@
+     return int(n), len(factors) != nfactors
+ 
+ 
++def _factorint_from_cache(factors, n):
++    """
++    Helper function for integer factorization. Removes from ``n`` the
++    prime factors which are known by ``factor_cache`` and updates the
++    dict ``factors`` in place. Returns the reduced value of ``n``.
++    """
++    while n > 1:
++        p = factor_cache.get(n)
++        if p is None:
++            break
++        n, e = remove(n, p)
++        factors[p] = factors.get(p, 0) + e
++    return n
++
++
+ def _check_termination(factors, n, limit, use_trial, use_rho, use_pm1,
+                        verbose, next_p):
+     """
+@@ -1336,6 +1545,26 @@
+         if n > 1:
+             factors[int(n)] = 1
+         return factors
++    # n has no prime factor smaller than next_p: use the cache of prime
++    # factors before trying more expensive methods (unless only a partial
++    # factorization was requested)
++    n0 = n
++    if not limit:
++        n = _factorint_from_cache(factors, n)
++    _factorint_large(factors, n, next_p, limit, use_trial, use_rho,
++                     use_pm1, use_ecm, verbose)
++    if not limit and n0 > 1:
++        primes = [p for p in factors if p >= next_p]
++        if len(primes) > 1 or factors[primes[0]] > 1:
++            # remember the factorization of n0 (and of its cofactors)
++            factor_cache.add(n0, primes)
++    return factors
++
++
++def _factorint_large(factors, n, next_p, limit, use_trial, use_rho, use_pm1,
++                     use_ecm, verbose):
++    """Helper for ``factorint``: factor ``n`` which has no prime factor
++    smaller than ``next_p`` and update ``factors`` in place."""
+     if _check_termination(factors, n, limit, use_trial,
+                           use_rho, use_pm1, verbose, next_p):
+         return factors
+@@ -1476,6 +1705,7 @@
+         num_curves *= 4
+ 
+ 
++
+ def factorrat(rat, limit=None, use_trial=True, use_rho=True, use_pm1=True,
+               verbose=False, visual=None, multiple=False):
+     r"""
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/ntheory/qs.py /app/sympy/ntheory/qs.py
+--- /opt/pristine/sympy/ntheory/qs.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/ntheory/qs.py	2026-11-17 07:58:00.000000000 +0000
+@@ -1,32 +1,44 @@
++from math import exp, log
+ from sympy.core.random import _randint
+-from sympy.external.gmpy import gcd, invert, sqrt as isqrt
++from sympy.external.gmpy import bit_scan1, gcd, invert, sqrt as isqrt
++from sympy.ntheory.factor_ import _perfect_power
++from sympy.ntheory.primetest import isprime
+ from sympy.ntheory.residue_ntheory import _sqrt_mod_prime_power
+-from sympy.ntheory import isprime
+-from math import log, sqrt
+ 
+ 
+ class SievePolynomial:
+-    def __init__(self, modified_coeff=(), a=None, b=None):
+-        """This class denotes the seive polynomial.
+-        If ``g(x) = (a*x + b)**2 - N``. `g(x)` can be expanded
+-        to ``a*x**2 + 2*a*b*x + b**2 - N``, so the coefficient
+-        is stored in the form `[a**2, 2*a*b, b**2 - N]`. This
+-        ensures faster `eval` method because we dont have to
+-        perform `a**2, 2*a*b, b**2` every time we call the
+-        `eval` method. As multiplication is more expensive
+-        than addition, by using modified_coefficient we get
+-        a faster seiving process.
++    def __init__(self, a, b, N):
++        """This class denotes the sieve polynomial.
++        Provide methods to compute `(a*x + b)**2 - N` and
++        `a*x + b` when given `x`.
+ 
+         Parameters
+         ==========
+ 
+-        modified_coeff : modified_coefficient of sieve polynomial
+         a : parameter of the sieve polynomial
+         b : parameter of the sieve polynomial
++        N : number to be factored
++
+         """
+-        self.modified_coeff = modified_coeff
++        if isinstance(a, (list, tuple)):
++            # Old style construction: SievePolynomial(modified_coeff, a, b)
++            # where modified_coeff = [a**2, 2*a*b, b**2 - N].
++            self.modified_coeff = list(a)
++            self.a, self.b = b, N
++            self.a2, self.ab, self.b2 = self.modified_coeff
++            return
+         self.a = a
+         self.b = b
++        self.a2 = a**2
++        self.ab = 2*a*b
++        self.b2 = b**2 - N
++        self.modified_coeff = [self.a2, self.ab, self.b2]
++
++    def eval_u(self, x):
++        return self.a*x + self.b
++
++    def eval_v(self, x):
++        return (self.a2*x + self.ab)*x + self.b2
+ 
+     def eval(self, x):
+         """
+@@ -37,11 +49,7 @@
+ 
+         x : Integer parameter for sieve polynomial
+         """
+-        ans = 0
+-        for coeff in self.modified_coeff:
+-            ans *= x
+-            ans += coeff
+-        return ans
++        return self.eval_v(x)
+ 
+ 
+ class FactorBaseElem:
+@@ -61,6 +69,8 @@
+         self.prime = prime
+         self.tmem_p = tmem_p
+         self.log_p = log_p
++        # `soln1` and `soln2` are solutions to `(a*x + b)**2 - N = 0 (mod p)`.
++        # They are None if the prime divides `a`.
+         self.soln1 = None
+         self.soln2 = None
+         self.a_inv = None
+@@ -96,17 +106,25 @@
+     return idx_1000, idx_5000, factor_base
+ 
+ 
+-def _initialize_first_polynomial(N, M, factor_base, idx_1000, idx_5000, seed=None):
+-    """This step is the initialization of the 1st sieve polynomial.
+-    Here `a` is selected as a product of several primes of the factor_base
+-    such that `a` is about to ``sqrt(2*N) / M``. Other initial values of
+-    factor_base elem are also initialized which includes a_inv, b_ainv, soln1,
+-    soln2 which are used when the sieve polynomial is changed. The b_ainv
++def _generate_polynomial(N, M, factor_base, idx_1000, idx_5000, randint):
++    """ Generate sieve polynomials indefinitely.
++    Information such as `soln1` in the `factor_base` associated with
++    the polynomial is modified in place.
++
++    First a polynomial ``(a*x + b)**2 - N`` is made, where `a` is
++    selected as a product of several primes of the factor_base such that
++    `a` is about to ``sqrt(2*N) / M``. Other initial values of factor_base
++    elem are also initialized which includes a_inv, b_ainv, soln1, soln2
++    which are used when the sieve polynomial is changed. The b_ainv
+     is required for fast polynomial change as we do not have to calculate
+     `2*b*invert(a, prime)` every time.
+     We also ensure that the `factor_base` primes which make `a` are between
+     1000 and 5000.
+ 
++    Then the next ``2**(j - 1) - 1`` polynomials, where `j` is the number of
++    prime factors of `a`, are generated by changing only `b` (this is the
++    "self initialization" of SIQS), after which a new `a` is chosen.
++
+     Parameters
+     ==========
+ 
+@@ -115,49 +133,123 @@
+     factor_base : factor_base primes
+     idx_1000 : index of prime number in the factor_base near 1000
+     idx_5000 : index of prime number in the factor_base near to 5000
+-    seed : Generate pseudoprime numbers
++    randint : A function that accepts two integers a and b and returns an
++        integer `n` such that `a <= n <= b`. A seed (an integer or None)
++        can be given instead of a function.
+     """
+-    randint = _randint(seed)
+-    approx_val = sqrt(2*N) / M
+-    # `a` is a parameter of the sieve polynomial and `q` is the prime factors of `a`
+-    # randomly search for a combination of primes whose multiplication is close to approx_val
+-    # This multiplication of primes will be `a` and the primes will be `q`
+-    # `best_a` denotes that `a` is close to approx_val in the random search of combination
++    if not callable(randint):
++        randint = _randint(randint)
++    # `a` should be close to `sqrt(2*N) / M`; logarithms are compared so
++    # that no float overflow happens for large N
++    approx_val = log(2*N)/2 - log(M)
++    start = 0 if idx_1000 is None else idx_1000
++    end = len(factor_base) - 1 if idx_5000 is None else idx_5000
++    while True:
++        # `a` is a parameter of the sieve polynomial and `q` is the prime
++        # factors of `a`: randomly search for a combination of primes whose
++        # multiplication is close to approx_val. `best_a` denotes the `a`
++        # closest to approx_val in the random search of combination.
++        best_a, best_q, best_ratio = None, None, None
++        for _ in range(50):
++            a = 1
++            q = []
++            while not q or log(a) < approx_val:
++                rand_p = 0
++                while(rand_p == 0 or rand_p in q):
++                    rand_p = randint(start, end)
++                p = factor_base[rand_p].prime
++                a *= p
++                q.append(rand_p)
++            ratio = exp(log(a) - approx_val)
++            if best_ratio is None or abs(ratio - 1) < abs(best_ratio - 1):
++                best_q = q
++                best_a = a
++                best_ratio = ratio
++
++        # Make polynomial
++        a = best_a
++        q = best_q
++        B = []
++        for val in q:
++            q_l = factor_base[val].prime
++            gamma = factor_base[val].tmem_p * invert(a // q_l, q_l) % q_l
++            if 2*gamma > q_l:
++                gamma = q_l - gamma
++            B.append(a//q_l*gamma)
++
++        b = sum(B)
++        g = SievePolynomial(a, b, N)
++        for fb in factor_base:
++            if a % fb.prime == 0:
++                fb.soln1 = fb.soln2 = None
++                fb.a_inv = fb.b_ainv = None
++                continue
++            a_inv = invert(a, fb.prime)
++            fb.a_inv = a_inv
++            fb.b_ainv = [2*b_elem*a_inv % fb.prime for b_elem in B]
++            fb.soln1 = (a_inv*(fb.tmem_p - b)) % fb.prime
++            fb.soln2 = (a_inv*(-fb.tmem_p - b)) % fb.prime
++        yield g
++
++        # Update polynomial: the (i + 1)-th polynomial is obtained from
++        # the i-th one by changing `b` to `b + 2*(-1)**k*B[v]` where `v` is
++        # the 2-adic valuation of 2*i and `k` is the ceiling of i/2**v.
++        for i in range(1, 2**(len(B) - 1)):
++            v = bit_scan1(i)
++            neg_pow = 2*((i >> (v + 1)) % 2) - 1
++            b = g.b + 2*neg_pow*B[v]
++            a = g.a
++            g = SievePolynomial(a, b, N)
++            for fb in factor_base:
++                if fb.soln1 is None:
++                    continue
++                fb.soln1 = (fb.soln1 - neg_pow*fb.b_ainv[v]) % fb.prime
++                fb.soln2 = (fb.soln2 - neg_pow*fb.b_ainv[v]) % fb.prime
++            yield g
++
++
++def _initialize_first_polynomial(N, M, factor_base, idx_1000, idx_5000, seed=None):
++    """Initialization of the first sieve polynomial (kept for backwards
++    compatibility, see ``_generate_polynomial``).
++
++    Returns the polynomial and the list ``B`` used to obtain the next
++    polynomials with ``_initialize_ith_poly``.
++    """
++    randint = seed if callable(seed) else _randint(seed)
++    approx_val = log(2*N)/2 - log(M)
+     best_a, best_q, best_ratio = None, None, None
+     start = 0 if idx_1000 is None else idx_1000
+     end = len(factor_base) - 1 if idx_5000 is None else idx_5000
+     for _ in range(50):
+         a = 1
+         q = []
+-        while(a < approx_val):
++        while not q or log(a) < approx_val:
+             rand_p = 0
+             while(rand_p == 0 or rand_p in q):
+                 rand_p = randint(start, end)
+             p = factor_base[rand_p].prime
+             a *= p
+             q.append(rand_p)
+-        ratio = a / approx_val
++        ratio = exp(log(a) - approx_val)
+         if best_ratio is None or abs(ratio - 1) < abs(best_ratio - 1):
+             best_q = q
+             best_a = a
+             best_ratio = ratio
+-
+     a = best_a
+     q = best_q
+-
+     B = []
+     for val in q:
+         q_l = factor_base[val].prime
+         gamma = factor_base[val].tmem_p * invert(a // q_l, q_l) % q_l
+-        if gamma > q_l / 2:
++        if 2*gamma > q_l:
+             gamma = q_l - gamma
+         B.append(a//q_l*gamma)
+-
+     b = sum(B)
+-    g = SievePolynomial([a*a, 2*a*b, b*b - N], a, b)
+-
++    g = SievePolynomial(a, b, N)
+     for fb in factor_base:
+         if a % fb.prime == 0:
++            fb.soln1 = fb.soln2 = None
++            fb.a_inv = fb.b_ainv = None
+             continue
+         fb.a_inv = invert(a, fb.prime)
+         fb.b_ainv = [2*b_elem*fb.a_inv % fb.prime for b_elem in B]
+@@ -167,42 +259,18 @@
+ 
+ 
+ def _initialize_ith_poly(N, factor_base, i, g, B):
+-    """Initialization stage of ith poly. After we finish sieving 1`st polynomial
+-    here we quickly change to the next polynomial from which we will again
+-    start sieving. Suppose we generated ith sieve polynomial and now we
+-    want to generate (i + 1)th polynomial, where ``1 <= i <= 2**(j - 1) - 1``
+-    where `j` is the number of prime factors of the coefficient `a`
+-    then this function can be used to go to the next polynomial. If
+-    ``i = 2**(j - 1) - 1`` then go to _initialize_first_polynomial stage.
+-
+-    Parameters
+-    ==========
+-
+-    N : number to be factored
+-    factor_base : factor_base primes
+-    i : integer denoting ith polynomial
+-    g : (i - 1)th polynomial
+-    B : array that stores a//q_l*gamma
+-    """
+-    from sympy.functions.elementary.integers import ceiling
+-    v = 1
+-    j = i
+-    while(j % 2 == 0):
+-        v += 1
+-        j //= 2
+-    if ceiling(i / (2**v)) % 2 == 1:
+-        neg_pow = -1
+-    else:
+-        neg_pow = 1
+-    b = g.b + 2*neg_pow*B[v - 1]
++    """Initialization of the (i + 1)-th sieve polynomial from the i-th one
++    (kept for backwards compatibility, see ``_generate_polynomial``)."""
++    v = bit_scan1(i)
++    neg_pow = 2*((i >> (v + 1)) % 2) - 1
++    b = g.b + 2*neg_pow*B[v]
+     a = g.a
+-    g = SievePolynomial([a*a, 2*a*b, b*b - N], a, b)
++    g = SievePolynomial(a, b, N)
+     for fb in factor_base:
+-        if a % fb.prime == 0:
++        if fb.soln1 is None:
+             continue
+-        fb.soln1 = (fb.soln1 - neg_pow*fb.b_ainv[v - 1]) % fb.prime
+-        fb.soln2 = (fb.soln2 - neg_pow*fb.b_ainv[v - 1]) % fb.prime
+-
++        fb.soln1 = (fb.soln1 - neg_pow*fb.b_ainv[v]) % fb.prime
++        fb.soln2 = (fb.soln2 - neg_pow*fb.b_ainv[v]) % fb.prime
+     return g
+ 
+ 
+@@ -234,41 +302,54 @@
+ 
+ 
+ def _check_smoothness(num, factor_base):
+-    """Here we check that if `num` is a smooth number or not. If `a` is a smooth
+-    number then it returns a vector of prime exponents modulo 2. For example
+-    if a = 2 * 5**2 * 7**3 and the factor base contains {2, 3, 5, 7} then
+-    `a` is a smooth number and this function returns ([1, 0, 0, 1], True). If
+-    `a` is a partial relation which means that `a` a has one prime factor
+-    greater than the `factor_base` then it returns `(a, False)` which denotes `a`
+-    is a partial relation.
++    r""" Check if `num` is smooth with respect to the given `factor_base`
++    and compute its factorization vector.
+ 
+     Parameters
+     ==========
+ 
+-    a : integer whose smootheness is to be checked
++    num : integer whose smootheness is to be checked
+     factor_base : factor_base primes
++
++    Returns
++    =======
++
++    (vec, rest) : ``vec`` is the vector of exponents modulo 2 of the
++        factorization of ``num`` encoded as an integer: bit 0 is set if
++        ``num`` is negative and bit ``i`` (``i >= 1``) is set if the
++        exponent of the ``i``-th prime of the factor base (counting from 1)
++        is odd. ``rest`` is the part of ``abs(num)`` which is not divisible by
++        any prime of the factor base: ``num`` is smooth if ``rest == 1``,
++        and ``num`` is a partial relation if ``rest`` is a (large) prime.
++
++    Examples
++    ========
++
++    >>> from sympy.ntheory.qs import _check_smoothness, _generate_factor_base
++    >>> _, _, factor_base = _generate_factor_base(20, 10009202107)
++    >>> [fb.prime for fb in factor_base]
++    [2, 3, 7, 11, 17, 19]
++    >>> _check_smoothness(-2*3**3*7**2*19, factor_base) # bits 0, 1, 2, 6
++    (71, 1)
++    >>> _check_smoothness(5*17**2*101, factor_base)
++    (0, 505)
+     """
+-    vec = []
+     if num < 0:
+-        vec.append(1)
+         num *= -1
++        vec = 1
+     else:
+-        vec.append(0)
+-     #-1 is not included in factor_base add -1 in vector
+-    for factor in factor_base:
+-        if num % factor.prime != 0:
+-            vec.append(0)
++        vec = 0
++    for i, fb in enumerate(factor_base, 1):
++        if num % fb.prime:
+             continue
+-        factor_exp = 0
+-        while num % factor.prime == 0:
+-            factor_exp += 1
+-            num //= factor.prime
+-        vec.append(factor_exp % 2)
+-    if num == 1:
+-        return vec, True
+-    if isprime(num):
+-        return num, False
+-    return None, None
++        e = 1
++        num //= fb.prime
++        while num % fb.prime == 0:
++            e += 1
++            num //= fb.prime
++        if e % 2:
++            vec += 1 << i
++    return vec, num
+ 
+ 
+ def _trial_division_stage(N, M, factor_base, sieve_array, sieve_poly, partial_relations, ERROR_TERM):
+@@ -293,48 +374,119 @@
+     sieve_poly : polynomial from which we find smooth relations
+     partial_relations : stores partial relations with one large prime
+     ERROR_TERM : error term for accumulated_val
++
++    Returns
++    =======
++
++    (smooth_relations, proper_factor) : ``smooth_relations`` is a list of
++        tuples ``(u, v, vec)`` with ``u**2 = v (mod N)`` where ``vec`` is the
++        factorization vector of ``v`` (see ``_check_smoothness``) and
++        ``proper_factor`` is a set of proper factors of N found incidentally.
++        The values of ``partial_relations`` are tuples ``(u, v, vec)`` too.
+     """
+-    sqrt_n = isqrt(N)
+-    accumulated_val = log(M * sqrt_n)*2**10 - ERROR_TERM
++    accumulated_val = log(M * isqrt(N))*2**10 - ERROR_TERM
+     smooth_relations = []
+     proper_factor = set()
+     partial_relation_upper_bound = 128*factor_base[-1].prime
+-    for idx, val in enumerate(sieve_array):
++    for x, val in enumerate(sieve_array, -M):
+         if val < accumulated_val:
+             continue
+-        x = idx - M
+-        v = sieve_poly.eval(x)
+-        vec, is_smooth = _check_smoothness(v, factor_base)
+-        if is_smooth is None:#Neither smooth nor partial
+-            continue
+-        u = sieve_poly.a*x + sieve_poly.b
+-        # Update the partial relation
+-        # If 2 partial relation with same large prime is found then generate smooth relation
+-        if is_smooth is False:#partial relation found
+-            large_prime = vec
+-            #Consider the large_primes under 128*F
+-            if large_prime > partial_relation_upper_bound:
++        v = sieve_poly.eval_v(x)
++        vec, num = _check_smoothness(v, factor_base)
++        if num == 1:
++            smooth_relations.append((sieve_poly.eval_u(x), v, vec))
++        elif num < partial_relation_upper_bound and isprime(num):
++            # Update the partial relation
++            # If 2 partial relation with same large prime is found then generate smooth relation
++            if num not in partial_relations:
++                partial_relations[num] = (sieve_poly.eval_u(x), v, vec)
+                 continue
+-            if large_prime not in partial_relations:
+-                partial_relations[large_prime] = (u, v)
++            u_prev, v_prev, vec_prev = partial_relations.pop(num)
++            try:
++                large_prime_inv = invert(num, N)
++            except ZeroDivisionError:#if large_prime divides N
++                proper_factor.add(num)
+                 continue
+-            else:
+-                u_prev, v_prev = partial_relations[large_prime]
+-                partial_relations.pop(large_prime)
+-                try:
+-                    large_prime_inv = invert(large_prime, N)
+-                except ZeroDivisionError:#if large_prime divides N
+-                    proper_factor.add(large_prime)
+-                    continue
+-                u = u*u_prev*large_prime_inv
+-                v = v*v_prev // (large_prime*large_prime)
+-                vec, is_smooth = _check_smoothness(v, factor_base)
+-        #assert u*u % N == v % N
+-        smooth_relations.append((u, v, vec))
++            u = sieve_poly.eval_u(x)*u_prev*large_prime_inv
++            v = v*v_prev // (num*num)
++            #assert u*u % N == v % N
++            smooth_relations.append((u, v, vec ^ vec_prev))
+     return smooth_relations, proper_factor
+ 
+ 
+ #LINEAR ALGEBRA STAGE
++def _find_factor(N, smooth_relations, col, *args):
++    """ Finds proper factors of N using fast gaussian reduction for modulo 2
++    matrix.
++
++    The factorization vectors of the smooth relations (bit ``i`` of the
++    integer ``vec`` is the entry of column ``i``) are reduced so that each
++    linearly dependent combination of rows gives a relation of the form
++    ``X**2 = Y**2 modN``, and then a proper factor of N can be obtained by
++    ``gcd(X - Y, N)``.
++
++    Parameters
++    ==========
++
++    N : Number to be factored
++    smooth_relations : Smooth relations, a list of tuples ``(u, v, vec)``
++    col : Number of columns in the matrix (``len(factor_base) + 1``)
++
++    Yields
++    ======
++
++    Proper factors of N (not necessarily prime and possibly repeated).
++
++    Reference
++    ==========
++
++    .. [1] A fast algorithm for gaussian elimination over GF(2) and
++    its implementation on the GAPP. Cetin K.Koc, Sarath N.Arachchige
++    """
++    if args:
++        # old signature:
++        # _find_factor(dependent_rows, mark, gauss_matrix, index, smooth_relations, N)
++        return _find_factor_old(N, smooth_relations, col, *args)
++    return _find_factor_iter(N, smooth_relations, col)
++
++
++def _find_factor_iter(N, smooth_relations, col):
++    matrix = [s_relation[2] for s_relation in smooth_relations]
++    row = len(matrix)
++    mark = [False] * row
++    for pos in range(col):
++        m = 1 << pos
++        for i in range(row):
++            if matrix[i] & m:
++                break
++        else:
++            # no row has a 1 in this column
++            continue
++        mark[i] = True
++        add_col = matrix[i] ^ m
++        if add_col:
++            # add this column to all the other columns that have a 1
++            # in the pivot row
++            for j in range(row):
++                if matrix[j] & m:
++                    matrix[j] ^= add_col
++    # Now each marked row has a single 1 (in its own column) and every
++    # other row is a combination of marked rows.
++    for m, mat, rel in zip(mark, matrix, smooth_relations):
++        if m:
++            continue
++        u, v = rel[0], rel[1]
++        for m1, mat1, rel1 in zip(mark, matrix, smooth_relations):
++            if m1 and mat & mat1:
++                u *= rel1[0]
++                v *= rel1[1]
++        # assert is_square(v)
++        v = isqrt(v)
++        g = gcd(u - v, N)
++        if 1 < g < N:
++            yield g
++
++
+ def _build_matrix(smooth_relations):
+     """Build a 2D matrix from smooth relations.
+ 
+@@ -394,22 +546,7 @@
+     return dependent_row, mark, matrix
+ 
+ 
+-def _find_factor(dependent_rows, mark, gauss_matrix, index, smooth_relations, N):
+-    """Finds proper factor of N. Here, transform the dependent rows as a
+-    combination of independent rows of the gauss_matrix to form the desired
+-    relation of the form ``X**2 = Y**2 modN``. After obtaining the desired relation
+-    we obtain a proper factor of N by `gcd(X - Y, N)`.
+-
+-    Parameters
+-    ==========
+-
+-    dependent_rows : denoted dependent rows in the reduced matrix form
+-    mark : boolean array to denoted dependent and independent rows
+-    gauss_matrix : Reduced form of the smooth relations matrix
+-    index : denoted the index of the dependent_rows
+-    smooth_relations : Smooth relations vectors matrix
+-    N : Number to be factored
+-    """
++def _find_factor_old(dependent_rows, mark, gauss_matrix, index, smooth_relations, N):
+     idx_in_smooth = dependent_rows[index][1]
+     independent_u = [smooth_relations[idx_in_smooth][0]]
+     independent_v = [smooth_relations[idx_in_smooth][1]]
+@@ -434,6 +571,47 @@
+     return gcd(u - v, N)
+ 
+ 
++def _qs_proper_factors(N, prime_bound, M, ERROR_TERM, randint):
++    """ Find proper factors of N with the Self-Initializing Quadratic Sieve.
++
++    N should be odd, composite and not a perfect power. Returns a set of
++    proper factors of N (they are not necessarily prime).
++    """
++    idx_1000, idx_5000, factor_base = _generate_factor_base(prime_bound, N)
++    if not factor_base:
++        raise ValueError("prime_bound is too small")
++    smooth_relations = []
++    partial_relations = {}
++    proper_factor = set()
++    threshold = len(factor_base) * 105 // 100
++    for g in _generate_polynomial(N, M, factor_base, idx_1000, idx_5000, randint):
++        sieve_array = _gen_sieve_array(M, factor_base)
++        s_rel, p_f = _trial_division_stage(N, M, factor_base, sieve_array, g,
++                                           partial_relations, ERROR_TERM*2**10)
++        smooth_relations += s_rel
++        proper_factor |= p_f
++        if threshold <= len(smooth_relations):
++            break
++    for factor in _find_factor(N, smooth_relations, len(factor_base) + 1):
++        proper_factor.add(factor)
++        # A single proper factor is enough to split N. More factors are
++        # collected until N is fully split (or no more are found).
++        if _all_prime(N, proper_factor):
++            break
++    return proper_factor
++
++
++def _all_prime(N, factors):
++    # True if the factors split N into primes
++    for p in sorted(factors):
++        while N % p == 0:
++            N //= p
++    for p in factors:
++        if not isprime(p):
++            return False
++    return N == 1 or isprime(N)
++
++
+ def qs(N, prime_bound, M, ERROR_TERM=25, seed=1234):
+     """Performs factorization using Self-Initializing Quadratic Sieve.
+     In SIQS, let N be a number to be factored, and this N should not be a
+@@ -455,8 +633,13 @@
+     prime_bound : upper bound for primes in the factor base
+     M : Sieve Interval
+     ERROR_TERM : Error term for checking smoothness
+-    threshold : Extra smooth relations for factorization
+-    seed : generate pseudo prime numbers
++    seed : seed of random number generator
++
++    Returns
++    =======
++
++    set(int) : A set of factors of N without considering multiplicity.
++               Returns ``{N}`` if N is prime.
+ 
+     Examples
+     ========
+@@ -467,45 +650,115 @@
+     >>> qs(9804659461513846513, 2000, 10000)
+     {4641991, 2112166839943}
+ 
++    See Also
++    ========
++
++    qs_factor
++
+     References
+     ==========
+ 
+     .. [1] https://pdfs.semanticscholar.org/5c52/8a975c1405bd35c65993abf5a4edb667c1db.pdf
+     .. [2] https://www.rieselprime.de/ziki/Self-initializing_quadratic_sieve
+     """
+-    ERROR_TERM*=2**10
+-    idx_1000, idx_5000, factor_base = _generate_factor_base(prime_bound, N)
+-    smooth_relations = []
+-    ith_poly = 0
+-    partial_relations = {}
+-    proper_factor = set()
+-    threshold = 5*len(factor_base) // 100
+-    while True:
+-        if ith_poly == 0:
+-            ith_sieve_poly, B_array = _initialize_first_polynomial(N, M, factor_base, idx_1000, idx_5000)
+-        else:
+-            ith_sieve_poly = _initialize_ith_poly(N, factor_base, ith_poly, ith_sieve_poly, B_array)
+-        ith_poly += 1
+-        if ith_poly >= 2**(len(B_array) - 1): # time to start with a new sieve polynomial
+-            ith_poly = 0
+-        sieve_array = _gen_sieve_array(M, factor_base)
+-        s_rel, p_f = _trial_division_stage(N, M, factor_base, sieve_array, ith_sieve_poly, partial_relations, ERROR_TERM)
+-        smooth_relations += s_rel
+-        proper_factor |= p_f
+-        if len(smooth_relations) >= len(factor_base) + threshold:
++    return set(qs_factor(N, prime_bound, M, ERROR_TERM, seed))
++
++
++def qs_factor(N, prime_bound, M, ERROR_TERM=25, seed=1234):
++    """ Performs factorization using Self-Initializing Quadratic Sieve.
++
++    Parameters
++    ==========
++
++    N : Number to be Factored
++    prime_bound : upper bound for primes in the factor base
++    M : Sieve Interval
++    ERROR_TERM : Error term for checking smoothness
++    seed : seed of random number generator
++
++    Returns
++    =======
++
++    dict[int, int] : Factors of N.
++        Returns a dictionary in which the keys are the prime factors of N and
++        the values are their multiplicities. If N is prime, ``{N: 1}`` is
++        returned.
++
++    Examples
++    ========
++
++    >>> from sympy.ntheory import qs_factor
++    >>> qs_factor(1009 * 100003, 2000, 10000)
++    {1009: 1, 100003: 1}
++    >>> qs_factor(2**3 * 1009**2 * 100003, 2000, 10000)
++    {2: 3, 1009: 2, 100003: 1}
++
++    See Also
++    ========
++
++    qs
++
++    """
++    N = int(N)
++    if N < 2:
++        raise ValueError("N should be greater than 1")
++    randint = _randint(seed)
++    factors = {}
++
++    def add(p, e):
++        factors[p] = factors.get(p, 0) + e
++
++    # Each item is (n, e) meaning that n**e divides N.
++    stack = [(N, 1)]
++    while stack:
++        n, e = stack.pop()
++        if n == 1:
++            continue
++        # Eliminate the possibility of even numbers,
++        # prime numbers, and perfect powers.
++        if n % 2 == 0:
++            k = bit_scan1(n)
++            add(2, k*e)
++            stack.append((n >> k, e))
++            continue
++        if isprime(n):
++            add(n, e)
++            continue
++        if (result := _perfect_power(n, 3)):
++            b, k = result
++            stack.append((b, e*k))
++            continue
++        # Factors that are smaller than primes in the factor base are
++        # found by trial division (which is also needed for numbers that
++        # are too small for the sieve).
++        small = _small_factor(n, prime_bound)
++        if small:
++            stack.append((small, e))
++            stack.append((n // small, e))
++            continue
++        found = _qs_proper_factors(n, prime_bound, M, ERROR_TERM, randint)
++        rest = n
++        for p in sorted(found):
++            if rest % p:
++                continue
++            k = 0
++            while rest % p == 0:
++                rest //= p
++                k += 1
++            stack.append((p, e*k))
++        if rest == n:
++            raise ValueError("no factor of %s could be found; "
++                             "try different parameters" % n)
++        stack.append((rest, e))
++    return dict(sorted(factors.items()))
++
++
++def _small_factor(n, bound):
++    """Return the smallest prime factor of n below ``bound``, or 0."""
++    from sympy.ntheory.generate import sieve
++    for p in sieve.primerange(3, bound):
++        if n % p == 0:
++            return p
++        if p*p > n:
+             break
+-    matrix = _build_matrix(smooth_relations)
+-    dependent_row, mark, gauss_matrix = _gauss_mod_2(matrix)
+-    N_copy = N
+-    for index in range(len(dependent_row)):
+-        factor = _find_factor(dependent_row, mark, gauss_matrix, index, smooth_relations, N)
+-        if factor > 1 and factor < N:
+-            proper_factor.add(factor)
+-            while(N_copy % factor == 0):
+-                N_copy //= factor
+-            if isprime(N_copy):
+-                proper_factor.add(N_copy)
+-                break
+-            if(N_copy == 1):
+-                break
+-    return proper_factor
++    return 0
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/parsing/sympy_parser.py /app/sympy/parsing/sympy_parser.py
+--- /opt/pristine/sympy/parsing/sympy_parser.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/parsing/sympy_parser.py	2026-11-17 07:28:51.000000000 +0000
+@@ -6,6 +6,7 @@
+ from keyword import iskeyword
+ 
+ import ast
++from functools import reduce
+ import unicodedata
+ from io import StringIO
+ import builtins
+@@ -1108,7 +1109,7 @@
+         ast.Div: 'Mul',
+         ast.BitOr: 'Or',
+         ast.BitAnd: 'And',
+-        ast.BitXor: 'Not',
++        ast.BitXor: 'Xor',
+     }
+     functions = (
+         'Abs', 'im', 're', 'sign', 'arg', 'conjugate',
+@@ -1128,17 +1129,33 @@
+         ast.Eq: 'Eq'
+     }
+     def visit_Compare(self, node):
+-        if node.ops[0].__class__ in self.relational_operators:
+-            sympy_class = self.relational_operators[node.ops[0].__class__]
+-            right = self.visit(node.comparators[0])
+-            left = self.visit(node.left)
+-            new_node = ast.Call(
+-                func=ast.Name(id=sympy_class, ctx=ast.Load()),
+-                args=[left, right],
+-                keywords=[ast.keyword(arg='evaluate', value=ast.Constant(value=False))]
++        def reducer(acc, op_right):
++            result, left = acc
++            op, right = op_right
++            if op.__class__ not in self.relational_operators:
++                raise ValueError("Only equation or inequality operators are supported")
++            new = ast.Call(
++                func=ast.Name(
++                    id=self.relational_operators[op.__class__], ctx=ast.Load()
++                ),
++                args=[self.visit(left), self.visit(right)],
++                keywords=[ast.keyword(arg="evaluate", value=ast.Constant(value=False))],
+             )
+-            return new_node
+-        return node
++            return result + [new], right
++
++        # A chained comparison like ``a < b <= c`` is equivalent to
++        # ``(a < b) & (b <= c)`` in Python, so build each relational
++        # separately and combine them with an unevaluated ``And``.
++        args, _ = reduce(
++            reducer, zip(node.ops, node.comparators), ([], node.left)
++        )
++        if len(args) == 1:
++            return args[0]
++        return ast.Call(
++            func=ast.Name(id=self.operators[ast.BitAnd], ctx=ast.Load()),
++            args=args,
++            keywords=[ast.keyword(arg="evaluate", value=ast.Constant(value=False))],
++        )
+ 
+     def flatten(self, args, func):
+         result = []
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/physics/biomechanics/curve.py /app/sympy/physics/biomechanics/curve.py
+--- /opt/pristine/sympy/physics/biomechanics/curve.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/physics/biomechanics/curve.py	2026-11-17 07:43:31.000000000 +0000
+@@ -3,6 +3,7 @@
+ from dataclasses import dataclass
+ 
+ from sympy.core.expr import UnevaluatedExpr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import ArgumentIndexError, Function
+ from sympy.core.numbers import Float, Integer
+ from sympy.functions.elementary.exponential import exp, log
+@@ -24,7 +25,7 @@
+ ]
+ 
+ 
+-class CharacteristicCurveFunction(Function):
++class CharacteristicCurveFunction(DefinedFunction):
+     """Base class for all musculotendon characteristic curve functions."""
+ 
+     @classmethod
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/physics/quantum/state.py /app/sympy/physics/quantum/state.py
+--- /opt/pristine/sympy/physics/quantum/state.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/physics/quantum/state.py	2026-11-17 07:43:31.000000000 +0000
+@@ -3,6 +3,7 @@
+ from sympy.core.cache import cacheit
+ from sympy.core.containers import Tuple
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.numbers import oo, equal_valued
+ from sympy.core.singleton import S
+@@ -679,7 +680,7 @@
+         return OrthogonalKet
+ 
+ 
+-class Wavefunction(Function):
++class Wavefunction(DefinedFunction):
+     """Class for representations in continuous bases
+ 
+     This class takes an expression and coordinates in its constructor. It can
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/physics/secondquant.py /app/sympy/physics/secondquant.py
+--- /opt/pristine/sympy/physics/secondquant.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/physics/secondquant.py	2026-11-17 07:43:31.000000000 +0000
+@@ -11,6 +11,7 @@
+ from sympy.core.cache import cacheit
+ from sympy.core.containers import Tuple
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.mul import Mul
+ from sympy.core.numbers import I
+@@ -1642,7 +1643,7 @@
+         return repr(self.basis)
+ 
+ 
+-class Commutator(Function):
++class Commutator(DefinedFunction):
+     """
+     The Commutator:  [A, B] = A*B - B*A
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/physics/wigner.py /app/sympy/physics/wigner.py
+--- /opt/pristine/sympy/physics/wigner.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/physics/wigner.py	2026-11-17 07:43:31.000000000 +0000
+@@ -55,6 +55,7 @@
+ from sympy.concrete.summations import Sum
+ from sympy.core.add import Add
+ from sympy.core.numbers import int_valued
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Function
+ from sympy.core.numbers import (Float, I, Integer, pi, Rational)
+ from sympy.core.singleton import S
+@@ -942,7 +943,7 @@
+     return ugnt
+ 
+ 
+-class Wigner3j(Function):
++class Wigner3j(DefinedFunction):
+ 
+     def doit(self, **hints):
+         if all(obj.is_number for obj in self.args):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/polys/euclidtools.py /app/sympy/polys/euclidtools.py
+--- /opt/pristine/sympy/polys/euclidtools.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/polys/euclidtools.py	2026-11-17 07:37:12.000000000 +0000
+@@ -69,6 +69,10 @@
+     if not K.is_Field:
+         raise DomainError("Cannot compute half extended GCD over %s" % K)
+ 
++    if not f and not g:
++        # gcd(0, 0) = 0
++        return [], []
++
+     a, b = [K.one], []
+ 
+     while g:
+@@ -120,6 +124,10 @@
+     """
+     s, h = dup_half_gcdex(f, g, K)
+ 
++    if not g:
++        # s*f = h already and t can be anything: choose t = 0
++        return s, [], h
++
+     F = dup_sub_mul(h, s, f, K)
+     t = dup_quo(F, g, K)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/polys/matrices/linsolve.py /app/sympy/polys/matrices/linsolve.py
+--- /opt/pristine/sympy/polys/matrices/linsolve.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/polys/matrices/linsolve.py	2026-11-17 08:20:02.000000000 +0000
+@@ -33,6 +33,7 @@
+ from sympy.core.singleton import S
+ 
+ from sympy.polys.constructor import construct_domain
++from sympy.polys.domains import EXRAW
+ from sympy.polys.solvers import PolyNonlinearError
+ 
+ from .sdm import (
+@@ -120,7 +121,12 @@
+ def sympy_dict_to_dm(eqs_coeffs, eqs_rhs, syms):
+     """Convert a system of dict equations to a sparse augmented matrix"""
+     elems = set(eqs_rhs).union(*(e.values() for e in eqs_coeffs))
+-    K, elems_K = construct_domain(elems, field=True, extension=True)
++    if any(not e.is_commutative for e in elems):
++        # Non-commutative expressions cannot be represented by any of the
++        # polynomial domains so use plain expressions.
++        K, elems_K = EXRAW, list(elems)
++    else:
++        K, elems_K = construct_domain(elems, field=True, extension=True)
+     elem_map = dict(zip(elems, elems_K))
+     neqs = len(eqs_coeffs)
+     nsyms = len(syms)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/polys/matrices/sdm.py /app/sympy/polys/matrices/sdm.py
+--- /opt/pristine/sympy/polys/matrices/sdm.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/polys/matrices/sdm.py	2026-11-17 08:19:51.000000000 +0000
+@@ -1708,7 +1708,8 @@
+         # better for e.g. QQ(x) with division delayed to the final steps.
+         Aijinv = Aij**-1
+         for l in Ai:
+-            Ai[l] *= Aijinv
++            # multiply from the left in case the elements do not commute
++            Ai[l] = Aijinv * Ai[l]
+ 
+         # Use Aij to cancel column j from all previously seen rows
+         for k in nonzero_columns.pop(j, ()):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/c.py /app/sympy/printing/c.py
+--- /opt/pristine/sympy/printing/c.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/c.py	2026-11-17 07:30:36.000000000 +0000
+@@ -300,7 +300,13 @@
+                 return f"{snum} % {sden}"
+             return f"(({snum} % {sden}) + {sden}) % {sden}"
+         # Not guaranteed integer
+-        return self._print_math_func(expr, known='fmod')
++        return self._print_fmod(expr)
++
++    @requires(headers={'math.h'}, libraries={'m'})
++    def _print_fmod(self, expr):
++        # fmod is available in C89's math.h (only for doubles)
++        num, den = expr.args
++        return '{}fmod({}, {})'.format(self._ns, self._print(num), self._print(den))
+ 
+     def _print_Rational(self, expr):
+         p, q = int(expr.p), int(expr.q)
+@@ -706,6 +712,9 @@
+             args=args
+         )
+ 
++    def _print_fmod(self, expr):
++        return self._print_math_func(expr, known='fmod')
++
+     def _print_Max(self, expr):
+         return self._print_math_func(expr, nest=True)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/julia.py /app/sympy/printing/julia.py
+--- /opt/pristine/sympy/printing/julia.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/julia.py	2026-11-17 08:33:56.000000000 +0000
+@@ -25,7 +25,7 @@
+                    "asin", "acos", "atan", "acot", "asec", "acsc",
+                    "sinh", "cosh", "tanh", "coth", "sech", "csch",
+                    "asinh", "acosh", "atanh", "acoth", "asech", "acsch",
+-                   "sinc", "atan2", "sign", "floor", "log", "exp",
++                   "atan2", "sign", "floor", "log", "exp",
+                    "cbrt", "sqrt", "erf", "erfc", "erfi",
+                    "factorial", "gamma", "digamma", "trigamma",
+                    "polygamma", "beta",
+@@ -404,6 +404,10 @@
+         return "%s // %s" % (expr.p, expr.q)
+ 
+     # Note: as of 2022, Julia doesn't have spherical Bessel functions
++    def _print_sinc(self, expr):
++        # Julia's sinc(x) is the normalized sinc function sin(pi*x)/(pi*x)
++        return "sinc(%s)" % self._print(expr.args[0]/S.Pi)
++
+     def _print_jn(self, expr):
+         from sympy.functions import sqrt, besselj
+         x = expr.argument
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/latex.py /app/sympy/printing/latex.py
+--- /opt/pristine/sympy/printing/latex.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/latex.py	2026-11-17 07:29:55.000000000 +0000
+@@ -168,6 +168,7 @@
+         "max": None,
+         "diff_operator": "d",
+         "adjoint_style": "dagger",
++        "disable_split_super_sub": False,
+     }
+ 
+     def __init__(self, settings=None):
+@@ -903,8 +904,12 @@
+             mindful of undercores in the name
+         '''
+         func = self._deal_with_super_sub(func)
+-        superscriptidx = func.find("^")
+-        subscriptidx = func.find("_")
++        if self._settings['disable_split_super_sub']:
++            # any ``_`` or ``^`` left in the name has been escaped
++            superscriptidx = subscriptidx = -1
++        else:
++            superscriptidx = func.find("^")
++            subscriptidx = func.find("_")
+         if func in accepted_latex_functions:
+             name = r"\%s" % func
+         elif len(func) == 1 or func.startswith('\\') or subscriptidx == 1 or superscriptidx == 1:
+@@ -1633,6 +1638,11 @@
+     def _deal_with_super_sub(self, string: str, style='plain') -> str:
+         if '{' in string:
+             name, supers, subs = string, [], []
++        elif self._settings['disable_split_super_sub']:
++            # Keep the name as a whole: underscores and carets are printed
++            # literally instead of being turned into sub- and superscripts.
++            name = string.replace('_', '\\_').replace('^', '\\^')
++            supers, subs = [], []
+         else:
+             name, supers, subs = split_super_sub(string)
+ 
+@@ -1839,6 +1849,11 @@
+         return r' \otimes '.join(
+             (parens(arg, prec, strict=True) for arg in args))
+ 
++    def _print_DotProduct(self, expr):
++        left, right = expr.args
++        return r"%s \cdot %s" % (self.parenthesize(left, PRECEDENCE['Mul']),
++                                 self.parenthesize(right, PRECEDENCE['Mul']))
++
+     def _print_MatPow(self, expr):
+         base, exp = expr.base, expr.exp
+         from sympy.matrices import MatrixSymbol
+@@ -3056,6 +3071,10 @@
+     adjoint_style: string, optional
+         String to use for the adjoint symbol. Defined options are ``'dagger'``
+         (default),``'star'``, and ``'hermitian'``.
++    disable_split_super_sub: boolean, optional
++        If set to ``True``, symbol names are not split into super- and
++        subscripts: underscores and carets in the name are printed literally
++        (escaped). Default is ``False``.
+ 
+     Notes
+     =====
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/mathematica.py /app/sympy/printing/mathematica.py
+--- /opt/pristine/sympy/printing/mathematica.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/mathematica.py	2026-11-17 07:32:45.000000000 +0000
+@@ -88,7 +88,7 @@
+     "mathieusprime": [(lambda *x: True, "MathieuSPrime")],
+     "stieltjes": [(lambda x: True, "StieltjesGamma")],
+     "elliptic_e": [(lambda *x: True, "EllipticE")],
+-    "elliptic_f": [(lambda *x: True, "EllipticE")],
++    "elliptic_f": [(lambda *x: True, "EllipticF")],
+     "elliptic_k": [(lambda x: True, "EllipticK")],
+     "elliptic_pi": [(lambda *x: True, "EllipticPi")],
+     "zeta": [(lambda *x: True, "Zeta")],
+@@ -114,9 +114,17 @@
+     "meijerg": [(lambda *x: True, "MeijerG")],
+     "appellf1": [(lambda *x: True, "AppellF1")],
+     "DiracDelta": [(lambda x: True, "DiracDelta")],
+-    "Heaviside": [(lambda x: True, "HeavisideTheta")],
+     "KroneckerDelta": [(lambda *x: True, "KroneckerDelta")],
+     "sqrt": [(lambda x: True, "Sqrt")],  # For automatic rewrites
++    "sign": [(lambda x: True, "Sign")],
++    "floor": [(lambda x: True, "Floor")],
++    "ceiling": [(lambda x: True, "Ceiling")],
++    "frac": [(lambda x: True, "FractionalPart")],
++    "re": [(lambda x: True, "Re")],
++    "im": [(lambda x: True, "Im")],
++    "arg": [(lambda x: True, "Arg")],
++    "binomial": [(lambda *x: True, "Binomial")],
++    "fibonacci": [(lambda x: True, "Fibonacci")],
+ }
+ 
+ 
+@@ -310,6 +318,37 @@
+ 
+     _print_MinMaxBase = _print_Function
+ 
++    def _print_Heaviside(self, expr):
++        # Mathematica's HeavisideTheta takes a single argument; the value
++        # at zero (second argument of Heaviside) has no counterpart there.
++        return "HeavisideTheta[%s]" % self._print(expr.args[0])
++
++    def _print_DiracDelta(self, expr):
++        if len(expr.args) == 1 or expr.args[1] == 0:
++            return "DiracDelta[%s]" % self._print(expr.args[0])
++        # derivative of the delta function
++        return "Derivative[%s][DiracDelta][%s]" % (
++            self._print(expr.args[1]), self._print(expr.args[0]))
++
++    def _print_Piecewise(self, expr):
++        pieces = []
++        default = None
++        for e, c in expr.args:
++            if c == True and default is None and (e, c) == expr.args[-1]:
++                default = e
++            else:
++                pieces.append('{%s, %s}' % (self._print(e), self._print(c)))
++        res = 'Piecewise[{%s}' % ', '.join(pieces)
++        if default is not None:
++            res += ', %s' % self._print(default)
++        return res + ']'
++
++    def _print_Float(self, expr):
++        res = super()._print_Float(expr)
++        # Mathematica uses *^ for the exponent of a number in scientific
++        # notation, e.g. 1.5*^-10
++        return res.replace('e+', '*^').replace('e', '*^')
++
+     def _print_LambertW(self, expr):
+         if len(expr.args) == 1:
+             return "ProductLog[{}]".format(self._print(expr.args[0]))
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/numpy.py /app/sympy/printing/numpy.py
+--- /opt/pristine/sympy/printing/numpy.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/numpy.py	2026-11-17 07:35:14.000000000 +0000
+@@ -260,8 +260,12 @@
+             return self._module + '.array(' + self._print(expr.args[0]) + ')'
+         if len(expr.shape) == 2:
+             return self._print(expr.tomatrix())
+-        # Should be possible to extend to more dimensions
+-        return super()._print_not_supported(self, expr)
++        if len(expr.shape) == 0:
++            return '{}({})'.format(self._module_format(self._module + '.array'),
++                                   self._print(expr[()]))
++        # higher rank arrays are printed from their nested-list form
++        return '{}({})'.format(self._module_format(self._module + '.array'),
++                               self._print(expr.tolist()))
+ 
+     _add = "add"
+     _einsum = "einsum"
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/precedence.py /app/sympy/printing/precedence.py
+--- /opt/pristine/sympy/printing/precedence.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/precedence.py	2026-11-17 07:36:44.000000000 +0000
+@@ -123,7 +123,12 @@
+     if hasattr(item, "precedence"):
+         return item.precedence
+     if not isinstance(item, type):
++        from sympy.core.function import UndefinedFunction
+         for i in type(item).mro():
++            if isinstance(i, UndefinedFunction):
++                # An undefined function like Function('Mul') is a function
++                # whatever its name is: do not match it to e.g. Mul by name.
++                continue
+             n = i.__name__
+             if n in PRECEDENCE_FUNCTIONS:
+                 return PRECEDENCE_FUNCTIONS[n](item)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/pycode.py /app/sympy/printing/pycode.py
+--- /opt/pristine/sympy/printing/pycode.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/pycode.py	2026-11-17 08:51:02.000000000 +0000
+@@ -7,7 +7,7 @@
+ from itertools import chain
+ from sympy.core import S
+ from sympy.core.mod import Mod
+-from .precedence import precedence
++from .precedence import precedence, PRECEDENCE
+ from .codeprinter import CodePrinter
+ 
+ _kw = {
+@@ -121,6 +121,10 @@
+     def _declare_number_const(self, name, value):
+         return "%s = %s" % (name, value)
+ 
++    def _traverse_matrix_indices(self, mat):
++        rows, cols = mat.shape
++        return ((i, j) for i in range(rows) for j in range(cols))
++
+     def _module_format(self, fqn, register=True):
+         parts = fqn.split('.')
+         if register and len(parts) > 1:
+@@ -198,7 +202,10 @@
+         return "float('-inf')"
+ 
+     def _print_ComplexInfinity(self, expr):
+-        return self._print_NaN(expr)
++        # Printed as NaN of the target module. Note that ``expr`` itself
++        # cannot be passed on: printers that look up known constants by
++        # class name would not find ``ComplexInfinity``.
++        return self._print(S.NaN)
+ 
+     def _print_Mod(self, expr):
+         PREC = precedence(expr)
+@@ -248,16 +255,38 @@
+         return self._print(expr.rewrite(Piecewise))
+ 
+     def _print_Sum(self, expr):
++        # The first limit of a Sum is the innermost summation, so it has to
++        # be the last ``for`` clause of the generator expression: the bounds
++        # of an inner limit may depend on the variables of the outer ones.
+         loops = (
+             'for {i} in range({a}, {b}+1)'.format(
+                 i=self._print(i),
+                 a=self._print(a),
+                 b=self._print(b))
+-            for i, a, b in expr.limits)
++            for i, a, b in reversed(expr.limits))
+         return '(builtins.sum({function} {loops}))'.format(
+             function=self._print(expr.function),
+             loops=' '.join(loops))
+ 
++    def _print_Product(self, expr):
++        # Like Sum: the first limit is the innermost loop
++        loops = (
++            'for {i} in range({a}, {b}+1)'.format(
++                i=self._print(i),
++                a=self._print(a),
++                b=self._print(b))
++            for i, a, b in reversed(expr.limits))
++        return '({prod}({function} {loops}))'.format(
++            prod=self._module_format('math.prod'),
++            function=self._print(expr.function),
++            loops=' '.join(loops))
++
++    def _print_Lambda(self, expr):
++        variables, body = expr.args
++        return '(lambda {}: {})'.format(
++            ', '.join(self._print(v) for v in variables),
++            self._print(body))
++
+     def _print_ImaginaryUnit(self, expr):
+         return '1j'
+ 
+@@ -604,6 +633,10 @@
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_func)
+ 
+ for k in _known_constants_math:
++    if k == 'ComplexInfinity':
++        # keep AbstractPythonCodePrinter._print_ComplexInfinity so that
++        # subclasses with other known constants (NumPy, mpmath, ...) work
++        continue
+     setattr(PythonCodePrinter, '_print_%s' % k, _print_known_const)
+ 
+ 
+@@ -764,6 +797,100 @@
+     setattr(MpmathPrinter, '_print_%s' % k, _print_known_const)
+ 
+ 
++_known_functions_cmath = {
++    'exp': 'exp',
++    'log': 'log',
++    'ln': 'log',
++    'log10': 'log10',
++    'sqrt': 'sqrt',
++    'Sqrt': 'sqrt',
++    'sin': 'sin',
++    'cos': 'cos',
++    'tan': 'tan',
++    'asin': 'asin',
++    'acos': 'acos',
++    'atan': 'atan',
++    'sinh': 'sinh',
++    'cosh': 'cosh',
++    'tanh': 'tanh',
++    'asinh': 'asinh',
++    'acosh': 'acosh',
++    'atanh': 'atanh',
++    'arg': 'phase',
++    'isinf': 'isinf',
++    'isnan': 'isnan',
++}
++
++_known_constants_cmath = {
++    'Exp1': 'e',
++    'E': 'e',
++    'Pi': 'pi',
++    'Infinity': 'inf',
++    'NaN': 'nan',
++}
++
++
++class CmathPrinter(PythonCodePrinter):
++    """
++    Printer for Python's ``cmath`` module.
++
++    ``cmath`` provides the mathematical functions of the C math library for
++    complex numbers, e.g. ``cmath.sqrt(-1)`` returns ``1j`` where
++    ``math.sqrt(-1)`` raises an error. Functions that have no counterpart in
++    ``cmath`` are printed in the same way as by :class:`PythonCodePrinter`.
++
++    Examples
++    ========
++
++    >>> from sympy import sqrt, log, exp, pi, I
++    >>> from sympy.abc import x
++    >>> from sympy.printing.pycode import CmathPrinter
++    >>> p = CmathPrinter()
++    >>> p.doprint(sqrt(x))
++    'cmath.sqrt(x)'
++    >>> p.doprint(log(x) + exp(I*pi*x))
++    'cmath.exp(1j*cmath.pi*x) + cmath.log(x)'
++    """
++    printmethod = "_cmathcode"
++    language = "Python with cmath"
++
++    _kf = dict(chain(
++        PythonCodePrinter._kf.items(),
++        [(k, 'cmath.' + v) for k, v in _known_functions_cmath.items()]
++    ))
++    _kc = dict(chain(
++        PythonCodePrinter._kc.items(),
++        [(k, 'cmath.' + v) for k, v in _known_constants_cmath.items()]
++    ))
++
++    def _print_Pow(self, expr, rational=False):
++        return self._hprint_Pow(expr, rational=rational, sqrt='cmath.sqrt')
++
++    def _print_NegativeInfinity(self, expr):
++        return '-' + self._print(S.Infinity)
++
++    def _print_re(self, expr):
++        return '{}.real'.format(self.parenthesize(expr.args[0], PRECEDENCE["Atom"], strict=True))
++
++    def _print_im(self, expr):
++        return '{}.imag'.format(self.parenthesize(expr.args[0], PRECEDENCE["Atom"], strict=True))
++
++    def _print_conjugate(self, expr):
++        return '{}.conjugate()'.format(self.parenthesize(expr.args[0], PRECEDENCE["Atom"], strict=True))
++
++    def _print_sign(self, e):
++        # sign(z) = z/|z| for complex z
++        return '(0.0 if {e} == 0 else {e}/abs({e}))'.format(
++            e=self.parenthesize(e.args[0], PRECEDENCE["Atom"], strict=True))
++
++
++for k in _known_functions_cmath:
++    setattr(CmathPrinter, '_print_%s' % k, _print_known_func)
++
++for k in _known_constants_cmath:
++    setattr(CmathPrinter, '_print_%s' % k, _print_known_const)
++
++
+ class SymPyPrinter(AbstractPythonCodePrinter):
+ 
+     language = "Python with SymPy"
+@@ -780,3 +907,8 @@
+ 
+     def _print_Pow(self, expr, rational=False):
+         return self._hprint_Pow(expr, rational=rational, sqrt='sympy.sqrt')
++
++    def _print_Lambda(self, expr):
++        variables, body = expr.args
++        return '{}({}, {})'.format(self._module_format('sympy.Lambda'),
++                                   self._print(variables), self._print(body))
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/pytorch.py /app/sympy/printing/pytorch.py
+--- /opt/pristine/sympy/printing/pytorch.py	1970-01-01 00:00:00.000000000 +0000
++++ /app/sympy/printing/pytorch.py	2026-11-17 09:11:02.000000000 +0000
+@@ -0,0 +1,336 @@
++"""
++PyTorch code printer
++
++The :class:`TorchPrinter` converts SymPy expressions into code that evaluates
++them with `PyTorch <https://pytorch.org>`_ tensors. It is used by ``lambdify``
++when ``modules='torch'`` is given.
++"""
++from collections.abc import Iterable
++
++import sympy
++from sympy.codegen.cfunctions import Sqrt
++from sympy.core.mul import Mul
++from sympy.core.numbers import Integer
++from sympy.core.singleton import S
++from sympy.external import import_module
++from sympy.matrices.expressions import MatrixExpr
++from sympy.printing.precedence import PRECEDENCE
++from sympy.printing.pycode import AbstractPythonCodePrinter, ArrayPrinter
++
++
++class TorchPrinter(ArrayPrinter, AbstractPythonCodePrinter):
++    """
++    PyTorch printer which handles vectorized piecewise functions,
++    logical operators, max/min, matrix operations and derivatives
++    (through ``torch.autograd``).
++
++    Settings
++    ========
++
++    requires_grad : bool
++        Whether explicit matrices are created as tensors which require
++        gradients. Default is ``False``.
++    dtype : str
++        The ``dtype`` of tensors created from explicit matrices. Default is
++        ``"torch.float64"``.
++    torch_version : str
++        The version of PyTorch to generate code for. By default the
++        installed version is used, if any.
++
++    Examples
++    ========
++
++    >>> from sympy import sin, sqrt, Matrix
++    >>> from sympy.abc import x
++    >>> from sympy.printing.pytorch import torch_code
++    >>> torch_code(sin(x) + sqrt(x))
++    'torch.sqrt(x) + torch.sin(x)'
++    >>> torch_code(Matrix([[1, 2], [3, 4]]))
++    'torch.tensor([[1, 2], [3, 4]], dtype=torch.float64)'
++    >>> torch_code(Matrix([[1, 2], [3, 4]]), requires_grad=True, dtype="torch.float32")
++    'torch.tensor([[1, 2], [3, 4]], dtype=torch.float32, requires_grad=True)'
++    """
++
++    printmethod = "_torchcode"
++    language = "Python with PyTorch"
++
++    mapping = {
++        sympy.Abs: "torch.abs",
++        sympy.sign: "torch.sign",
++
++        # XXX May raise error for ints.
++        sympy.ceiling: "torch.ceil",
++        sympy.floor: "torch.floor",
++        sympy.log: "torch.log",
++        sympy.exp: "torch.exp",
++        Sqrt: "torch.sqrt",
++        sympy.cos: "torch.cos",
++        sympy.acos: "torch.acos",
++        sympy.sin: "torch.sin",
++        sympy.asin: "torch.asin",
++        sympy.tan: "torch.tan",
++        sympy.atan: "torch.atan",
++        sympy.atan2: "torch.atan2",
++        # XXX Also may give NaN for complex results.
++        sympy.cosh: "torch.cosh",
++        sympy.acosh: "torch.acosh",
++        sympy.sinh: "torch.sinh",
++        sympy.asinh: "torch.asinh",
++        sympy.tanh: "torch.tanh",
++        sympy.atanh: "torch.atanh",
++
++        sympy.re: "torch.real",
++        sympy.im: "torch.imag",
++        sympy.arg: "torch.angle",
++
++        # XXX May raise error for ints and complexes
++        sympy.erf: "torch.erf",
++        sympy.loggamma: "torch.lgamma",
++
++        sympy.Eq: "torch.eq",
++        sympy.Ne: "torch.ne",
++        sympy.StrictGreaterThan: "torch.gt",
++        sympy.StrictLessThan: "torch.lt",
++        sympy.LessThan: "torch.le",
++        sympy.GreaterThan: "torch.ge",
++
++        sympy.And: "torch.logical_and",
++        sympy.Or: "torch.logical_or",
++        sympy.Not: "torch.logical_not",
++        sympy.Max: "torch.maximum",
++        sympy.Min: "torch.minimum",
++
++        # Matrices
++        sympy.MatAdd: "torch.add",
++        sympy.HadamardProduct: "torch.mul",
++        sympy.Trace: "torch.trace",
++
++        # XXX May raise error for integer matrices.
++        sympy.Determinant: "torch.det",
++    }
++
++    _default_settings = dict(
++        AbstractPythonCodePrinter._default_settings,
++        torch_version=None,
++        requires_grad=False,
++        dtype="torch.float64",
++    )
++
++    def __init__(self, settings=None):
++        super().__init__(settings)
++
++        version = self._settings['torch_version']
++        if version is None:
++            # imported here so that importing this module does not import torch
++            torch = import_module('torch')
++            if torch:
++                version = torch.__version__
++        self.torch_version = version
++        self.requires_grad = self._settings['requires_grad']
++        self.dtype = self._settings['dtype']
++
++    def _print_Function(self, expr):
++        op = self.mapping.get(type(expr), None)
++        if op is None:
++            return super()._print_Basic(expr)
++        children = [self._print(arg) for arg in expr.args]
++        if len(children) == 1:
++            return "%s(%s)" % (
++                self._module_format(op),
++                children[0]
++            )
++        else:
++            return self._expand_fold_binary_op(op, children)
++
++    # mirrors the tensorflow printer
++    _print_Expr = _print_Function
++    _print_Application = _print_Function
++    _print_MatrixExpr = _print_Function
++    _print_Relational = _print_Function
++    _print_Not = _print_Function
++    _print_And = _print_Function
++    _print_Or = _print_Function
++    _print_HadamardProduct = _print_Function
++    _print_Trace = _print_Function
++    _print_Determinant = _print_Function
++
++    def _print_Inverse(self, expr):
++        return "{}({})".format(self._module_format("torch.linalg.inv"),
++                               self._print(expr.args[0]))
++
++    def _print_Transpose(self, expr):
++        # swap the last two dimensions, i.e. transpose the matrices
++        return "{}({}, -2, -1)".format(self._module_format("torch.transpose"),
++                                       self._print(expr.arg))
++
++    def _print_PermuteDims(self, expr):
++        return "%s.permute(%s)" % (
++            self.parenthesize(expr.expr, PRECEDENCE["Atom"], strict=True),
++            ", ".join(str(i) for i in expr.permutation.array_form)
++        )
++
++    def _print_Derivative(self, expr):
++        # Derivatives are computed with automatic differentiation: the
++        # variables have to be tensors created with requires_grad=True.
++        result = self._print(expr.expr)
++        for var, order in expr.variable_count:
++            if isinstance(var, Iterable) or not isinstance(order, (int, Integer)):
++                raise NotImplementedError(
++                    "only derivatives with respect to scalars of integer order are supported")
++            for _ in range(int(order)):
++                result = "{}({}, {}, create_graph=True)[0]".format(
++                    self._module_format("torch.autograd.grad"),
++                    result, self._print(var))
++        return result
++
++    def _print_Piecewise(self, expr):
++        from sympy.functions.elementary.piecewise import Piecewise
++        e, cond = expr.args[0].args
++        if len(expr.args) == 1:
++            return '{}({}, {}, {})'.format(
++                self._module_format("torch.where"),
++                self._print(cond),
++                self._print(e),
++                0)
++
++        return '{}({}, {}, {})'.format(
++            self._module_format("torch.where"),
++            self._print(cond),
++            self._print(e),
++            self._print(Piecewise(*expr.args[1:])))
++
++    def _print_Pow(self, expr):
++        # XXX May raise error for
++        # int**float or int**complex or float**complex
++        base, exp = expr.args
++        if expr.exp == S.Half:
++            return "{}({})".format(
++                self._module_format("torch.sqrt"), self._print(base))
++        return "{}({}, {})".format(
++            self._module_format("torch.pow"),
++            self._print(base), self._print(exp))
++
++    def _print_MatMul(self, expr):
++        # Separate matrix and scalar arguments
++        mat_args = [arg for arg in expr.args if isinstance(arg, MatrixExpr)]
++        args = [arg for arg in expr.args if arg not in mat_args]
++        if args:
++            return "%s*%s" % (
++                self.parenthesize(Mul.fromiter(args), PRECEDENCE["Mul"]),
++                self._expand_fold_binary_op("torch.matmul", mat_args)
++            )
++        else:
++            return self._expand_fold_binary_op("torch.matmul", mat_args)
++
++    def _print_MatPow(self, expr):
++        if not expr.exp.is_Integer:
++            raise NotImplementedError(
++                "only integer powers of matrices are supported")
++        # matrix_power also handles negative powers (through the inverse)
++        return "{}({}, {})".format(
++            self._module_format("torch.linalg.matrix_power"),
++            self._print(expr.base), self._print(expr.exp))
++
++    def _print_MatrixBase(self, expr):
++        data = "[" + ", ".join(["[" + ", ".join([self._print(j) for j in i]) + "]"
++                                for i in expr.tolist()]) + "]"
++        params = [data, "dtype={}".format(self.dtype)]
++        if self.requires_grad:
++            params.append("requires_grad=True")
++        return "{}({})".format(self._module_format("torch.tensor"),
++                               ", ".join(params))
++
++    def _print_isnan(self, expr):
++        return "{}({})".format(self._module_format("torch.isnan"),
++                               self._print(expr.args[0]))
++
++    def _print_isinf(self, expr):
++        return "{}({})".format(self._module_format("torch.isinf"),
++                               self._print(expr.args[0]))
++
++    def _print_Identity(self, expr):
++        rows, cols = expr.shape
++        if rows == cols:
++            return "{}({})".format(self._module_format("torch.eye"),
++                                   self._print(rows))
++        return "{}({}, {})".format(self._module_format("torch.eye"),
++                                   self._print(rows), self._print(cols))
++
++    def _print_ZeroMatrix(self, expr):
++        return "{}({})".format(self._module_format("torch.zeros"),
++                               self._print(expr.shape))
++
++    def _print_OneMatrix(self, expr):
++        return "{}({})".format(self._module_format("torch.ones"),
++                               self._print(expr.shape))
++
++    def _print_conjugate(self, expr):
++        return "{}({})".format(self._module_format("torch.conj"),
++                               self._print(expr.args[0]))
++
++    def _print_ImaginaryUnit(self, expr):
++        return "1j"
++
++    def _print_Heaviside(self, expr):
++        # SymPy's default value at zero is 1/2
++        H0 = expr.args[1] if len(expr.args) > 1 else S.Half
++        return "{}({}, {}({}))".format(
++            self._module_format("torch.heaviside"),
++            self._print(expr.args[0]),
++            self._module_format("torch.tensor"),
++            self._print(H0))
++
++    def _print_gamma(self, expr):
++        # torch has no gamma function, but exp(lgamma(x)) is |gamma(x)|
++        # which agrees with gamma(x) for positive x
++        return "{}({}({}))".format(self._module_format("torch.exp"),
++                                   self._module_format("torch.lgamma"),
++                                   self._print(expr.args[0]))
++
++    def _print_polygamma(self, expr):
++        return "{}({}, {})".format(self._module_format("torch.special.polygamma"),
++                                   self._print(expr.args[0]),
++                                   self._print(expr.args[1]))
++
++    def _print_CodeBlock(self, expr):
++        return "\n".join(self._print(subexpr) for subexpr in expr.args)
++
++    _module = "torch"
++    _einsum = "einsum"
++    _add = "add"
++    _transpose = "t"
++    _ones = "ones"
++    _zeros = "zeros"
++
++
++def torch_code(expr, requires_grad=False, dtype=None):
++    """Convert ``expr`` to a string of PyTorch code.
++
++    Parameters
++    ==========
++
++    expr : Expr
++        The expression to convert.
++    requires_grad : bool, optional
++        Whether tensors created from explicit matrices require gradients.
++        Default is ``False``.
++    dtype : str, optional
++        The ``dtype`` of tensors created from explicit matrices, e.g.
++        ``"torch.float32"``. Default is ``"torch.float64"``.
++
++    Examples
++    ========
++
++    >>> from sympy import exp, Piecewise
++    >>> from sympy.abc import x
++    >>> from sympy.printing.pytorch import torch_code
++    >>> torch_code(exp(-x**2))
++    'torch.exp(-torch.pow(x, 2))'
++    >>> torch_code(Piecewise((x, x < 0), (x**2, True)))
++    'torch.where(torch.lt(x, 0), x, torch.pow(x, 2))'
++    """
++    settings = {'requires_grad': requires_grad}
++    if dtype is not None:
++        settings['dtype'] = dtype
++    printer = TorchPrinter(settings)
++    return printer.doprint(expr)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/printing/rust.py /app/sympy/printing/rust.py
+--- /opt/pristine/sympy/printing/rust.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/printing/rust.py	2026-11-17 07:36:26.000000000 +0000
+@@ -45,7 +45,7 @@
+ from sympy.core.numbers import equal_valued
+ from sympy.functions.elementary.integers import ceiling, floor
+ from sympy.printing.codeprinter import CodePrinter
+-from sympy.printing.precedence import PRECEDENCE
++from sympy.printing.precedence import PRECEDENCE, precedence
+ 
+ # Rust's methods for integer and float can be found at here :
+ #
+@@ -256,6 +256,10 @@
+         self._assumptions = expr._assumptions
+         if self.explicit:
+             setattr(self, 'precedence', PRECEDENCE["Func"] + 10)
++        else:
++            # An implicit cast prints just the expression, so it must be
++            # parenthesized like that expression, e.g. an Add in a Mul.
++            setattr(self, 'precedence', precedence(expr))
+ 
+     @property
+     def expr(self):
+@@ -335,13 +339,19 @@
+             close_lines.append("}")
+         return open_lines, close_lines
+ 
+-    def _print_caller_var(self, expr):
++    def _print_caller_var(self, expr, float_method=False):
+         if len(expr.args) > 1:
+             # for something like `sin(x + y + z)`,
+             # make sure we can get '(x + y + z).sin()'
+             # instead of 'x + y + z.sin()'
+             return '(' + self._print(expr) + ')'
+-        elif expr.is_number:
++        elif expr.is_Integer and float_method:
++            # e.g. `2_f64.ln()`: methods like `ln` do not exist for integers
++            return '%d_%s' % (int(expr), self.type_mappings[self.type_aliases[real]])
++        elif expr.is_Rational and not expr.is_Integer:
++            # `1_f64/2.0` must be parenthesized to call a method on it
++            return '(' + self._print(expr) + ')'
++        elif expr.is_Integer or expr.is_Float or expr.is_NumberSymbol:
+             return self._print(expr, _type=True)
+         else:
+             return self._print(expr)
+@@ -369,20 +379,22 @@
+                     if cond(*expr.args):
+                         break
+             if func is not None:
++                # methods which are defined for the integer types as well
++                float_method = expr.func.__name__ not in ('Abs', 'sign', 'Max', 'Min')
+                 if style == 1:
+                     ret = "%(var)s.%(method)s(%(args)s)" % {
+-                        'var': self._print_caller_var(expr.args[0]),
++                        'var': self._print_caller_var(expr.args[0], float_method),
+                         'method': func,
+                         'args': self.stringify(expr.args[1:], ", ") if len(expr.args) > 1 else ''
+                     }
+                 elif style == 2:
+                     ret = "%(var)s.%(method)s()" % {
+-                        'var': self._print_caller_var(expr.args[0]),
++                        'var': self._print_caller_var(expr.args[0], float_method),
+                         'method': func,
+                     }
+                 elif style == 3:
+                     ret = "%(var)s.%(method)s()" % {
+-                        'var': self._print_caller_var(expr.args[1]),
++                        'var': self._print_caller_var(expr.args[1], float_method),
+                         'method': func,
+                     }
+                 else:
+@@ -413,8 +425,12 @@
+ 
+     def _print_Pow(self, expr):
+         if expr.base.is_integer and not expr.exp.is_integer:
+-            expr = type(expr)(Float(expr.base), expr.exp)
+-            return self._print(expr)
++            if expr.base.is_number:
++                expr = type(expr)(Float(expr.base), expr.exp)
++                return self._print(expr)
++            # e.g. sqrt(n) for an integer symbol n: (n as f64).sqrt()
++            expr = type(expr)(self._cast_to_float(expr.base), expr.exp,
++                              evaluate=False)
+         return self._print_Function(expr)
+ 
+     def _print_TypeCast(self, expr):
+@@ -437,7 +453,7 @@
+         else:
+             return ret
+ 
+-    def _print_Rational(self, expr):
++    def _print_Rational(self, expr, _type=False):
+         p, q = int(expr.p), int(expr.q)
+         float_suffix = self.type_mappings[self.type_aliases[real]]
+         return '%d_%s/%d.0' % (p, float_suffix, q)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/series/formal.py /app/sympy/series/formal.py
+--- /opt/pristine/sympy/series/formal.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/series/formal.py	2026-11-17 07:43:31.000000000 +0000
+@@ -5,6 +5,7 @@
+ from sympy.core.numbers import (nan, oo, zoo)
+ from sympy.core.add import Add
+ from sympy.core.expr import Expr
++from sympy.core.function import DefinedFunction
+ from sympy.core.function import Derivative, Function, expand
+ from sympy.core.mul import Mul
+ from sympy.core.numbers import Rational
+@@ -955,7 +956,7 @@
+     return _compute_fps(f, x, x0, dir, hyper, order, rational, full)
+ 
+ 
+-class Coeff(Function):
++class Coeff(DefinedFunction):
+     """
+     Coeff(p, x, n) represents the nth coefficient of the polynomial p in x
+     """
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/simplify/gammasimp.py /app/sympy/simplify/gammasimp.py
+--- /opt/pristine/sympy/simplify/gammasimp.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/simplify/gammasimp.py	2026-11-17 07:43:31.000000000 +0000
+@@ -1,3 +1,4 @@
++from sympy.core.function import DefinedFunction
+ from sympy.core import Function, S, Mul, Pow, Add
+ from sympy.core.sorting import ordered, default_sort_key
+ from sympy.core.function import expand_func
+@@ -460,7 +461,7 @@
+     return expr
+ 
+ 
+-class _rf(Function):
++class _rf(DefinedFunction):
+     @classmethod
+     def eval(cls, a, b):
+         if b.is_Integer:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/solvers/diophantine/diophantine.py /app/sympy/solvers/diophantine/diophantine.py
+--- /opt/pristine/sympy/solvers/diophantine/diophantine.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/solvers/diophantine/diophantine.py	2026-11-17 08:02:44.000000000 +0000
+@@ -37,6 +37,11 @@
+ __all__ = ['diophantine', 'classify_diop']
+ 
+ 
++class _SubsArgumentError(ValueError, TypeError):
++    """Raised by DiophantineSolutionSet.subs for invalid arguments."""
++    pass
++
++
+ class DiophantineSolutionSet(set):
+     """
+     Container for a set of solutions to a particular diophantine equation.
+@@ -133,7 +138,12 @@
+     def subs(self, *args, **kwargs):
+         result = DiophantineSolutionSet(self.symbols, self.parameters)
+         for solution in self:
+-            result.add(solution.subs(*args, **kwargs))
++            try:
++                new = solution.subs(*args, **kwargs)
++            except TypeError as exc:
++                # invalid arguments for subs
++                raise _SubsArgumentError(str(exc)) from exc
++            result.add(new)
+         return result
+ 
+     def __call__(self, *args):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/solvers/solvers.py /app/sympy/solvers/solvers.py
+--- /opt/pristine/sympy/solvers/solvers.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/solvers/solvers.py	2026-11-17 08:23:18.000000000 +0000
+@@ -1243,7 +1243,12 @@
+         for sol in solution:
+             a_None = False
+             for symb, val in sol.items():
+-                test = check_assumptions(val, **symb.assumptions0)
++                # commutativity is not checked: e.g. a commutative unknown
++                # can be equal to an expression of noncommutative symbols
++                # in an equation like 2*x - A = 0
++                assumptions = {k: v for k, v in symb.assumptions0.items()
++                               if k != 'commutative'}
++                test = check_assumptions(val, **assumptions)
+                 if test:
+                     continue
+                 if test is False:
+@@ -2351,8 +2356,13 @@
+ 
+     # This is just a wrapper for solve_lin_sys
+     eqs = list(system * Matrix(symbols + (-1,)))
+-    eqs, ring = sympy_eqs_to_ring(eqs, symbols)
+-    sol = solve_lin_sys(eqs, ring, _raw=False)
++    if all(e.is_commutative for e in eqs):
++        eqs, ring = sympy_eqs_to_ring(eqs, symbols)
++        sol = solve_lin_sys(eqs, ring, _raw=False)
++    else:
++        # polynomial rings cannot represent non-commutative expressions
++        from sympy.polys.matrices.linsolve import _linsolve
++        sol = _linsolve(eqs, symbols)
+     if sol is not None:
+         sol = {sym:val for sym, val in sol.items() if sym != val}
+     return sol
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/solvers/solveset.py /app/sympy/solvers/solveset.py
+--- /opt/pristine/sympy/solvers/solveset.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/solvers/solveset.py	2026-11-17 08:22:11.000000000 +0000
+@@ -3146,8 +3146,15 @@
+         terms.append(-bi)
+         eqs.append(Add(*terms))
+ 
+-    eqs, ring = sympy_eqs_to_ring(eqs, symbols)
+-    sol = solve_lin_sys(eqs, ring, _raw=False)
++    if all(e.is_commutative for e in eqs):
++        eqs, ring = sympy_eqs_to_ring(eqs, symbols)
++        sol = solve_lin_sys(eqs, ring, _raw=False)
++    else:
++        # polynomial rings cannot represent non-commutative expressions
++        try:
++            sol = _linsolve(eqs, symbols)
++        except PolyNonlinearError as exc:
++            raise NonlinearError(str(exc))
+     if sol is None:
+         return S.EmptySet
+     #sol = {sym:val for sym, val in sol.items() if sym != val}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/sympy/utilities/lambdify.py /app/sympy/utilities/lambdify.py
+--- /opt/pristine/sympy/utilities/lambdify.py	2026-11-17 09:34:21.000000000 +0000
++++ /app/sympy/utilities/lambdify.py	2026-11-17 07:48:35.000000000 +0000
+@@ -27,12 +27,14 @@
+ # Default namespaces, letting us define translations that can't be defined
+ # by simple variable maps, like I => 1j
+ MATH_DEFAULT: dict[str, Any] = {}
++CMATH_DEFAULT: dict[str, Any] = {}
+ MPMATH_DEFAULT: dict[str, Any] = {}
+ NUMPY_DEFAULT: dict[str, Any] = {"I": 1j}
+ SCIPY_DEFAULT: dict[str, Any] = {"I": 1j}
+ CUPY_DEFAULT: dict[str, Any] = {"I": 1j}
+ JAX_DEFAULT: dict[str, Any] = {"I": 1j}
+ TENSORFLOW_DEFAULT: dict[str, Any] = {}
++TORCH_DEFAULT: dict[str, Any] = {"I": 1j}
+ SYMPY_DEFAULT: dict[str, Any] = {}
+ NUMEXPR_DEFAULT: dict[str, Any] = {}
+ 
+@@ -41,12 +43,14 @@
+ # throughout this file, whereas the defaults should remain unmodified.
+ 
+ MATH = MATH_DEFAULT.copy()
++CMATH = CMATH_DEFAULT.copy()
+ MPMATH = MPMATH_DEFAULT.copy()
+ NUMPY = NUMPY_DEFAULT.copy()
+ SCIPY = SCIPY_DEFAULT.copy()
+ CUPY = CUPY_DEFAULT.copy()
+ JAX = JAX_DEFAULT.copy()
+ TENSORFLOW = TENSORFLOW_DEFAULT.copy()
++TORCH = TORCH_DEFAULT.copy()
+ SYMPY = SYMPY_DEFAULT.copy()
+ NUMEXPR = NUMEXPR_DEFAULT.copy()
+ 
+@@ -58,6 +62,12 @@
+     "ln": "log",
+ }
+ 
++CMATH_TRANSLATIONS = {
++    "E": "e",
++    "ln": "log",
++    "arg": "phase",
++}
++
+ # NOTE: This dictionary is reused in Function._eval_evalf to allow subclasses
+ # of Function to automatically evalf.
+ MPMATH_TRANSLATIONS = {
+@@ -102,18 +112,21 @@
+ JAX_TRANSLATIONS: dict[str, str] = {}
+ 
+ TENSORFLOW_TRANSLATIONS: dict[str, str] = {}
++TORCH_TRANSLATIONS: dict[str, str] = {}
+ 
+ NUMEXPR_TRANSLATIONS: dict[str, str] = {}
+ 
+ # Available modules:
+ MODULES = {
+     "math": (MATH, MATH_DEFAULT, MATH_TRANSLATIONS, ("from math import *",)),
++    "cmath": (CMATH, CMATH_DEFAULT, CMATH_TRANSLATIONS, ("import cmath; from cmath import *",)),
+     "mpmath": (MPMATH, MPMATH_DEFAULT, MPMATH_TRANSLATIONS, ("from mpmath import *",)),
+     "numpy": (NUMPY, NUMPY_DEFAULT, NUMPY_TRANSLATIONS, ("import numpy; from numpy import *; from numpy.linalg import *",)),
+     "scipy": (SCIPY, SCIPY_DEFAULT, SCIPY_TRANSLATIONS, ("import scipy; import numpy; from scipy.special import *",)),
+     "cupy": (CUPY, CUPY_DEFAULT, CUPY_TRANSLATIONS, ("import cupy",)),
+     "jax": (JAX, JAX_DEFAULT, JAX_TRANSLATIONS, ("import jax",)),
+     "tensorflow": (TENSORFLOW, TENSORFLOW_DEFAULT, TENSORFLOW_TRANSLATIONS, ("import tensorflow",)),
++    "torch": (TORCH, TORCH_DEFAULT, TORCH_TRANSLATIONS, ("import torch",)),
+     "sympy": (SYMPY, SYMPY_DEFAULT, {}, (
+         "from sympy.functions import *",
+         "from sympy.matrices import *",
+@@ -128,7 +141,7 @@
+     Creates a global translation dictionary for module.
+ 
+     The argument module has to be one of the following strings: "math",
+-    "mpmath", "numpy", "sympy", "tensorflow", "jax".
++    "cmath", "mpmath", "numpy", "sympy", "tensorflow", "jax", "torch".
+     These dictionaries map names of Python functions to their equivalent in
+     other modules.
+     """
+@@ -319,9 +332,10 @@
+ 
+         *modules* can be one of the following types:
+ 
+-        - The strings ``"math"``, ``"mpmath"``, ``"numpy"``, ``"numexpr"``,
+-          ``"scipy"``, ``"sympy"``, or ``"tensorflow"`` or ``"jax"``. This uses the
+-          corresponding printer and namespace mapping for that module.
++        - The strings ``"math"``, ``"cmath"``, ``"mpmath"``, ``"numpy"``,
++          ``"numexpr"``, ``"scipy"``, ``"sympy"``, ``"tensorflow"``, ``"jax"``
++          or ``"torch"``. This uses the corresponding printer and namespace
++          mapping for that module.
+         - A module (e.g., ``math``). This uses the global namespace of the
+           module. If the module is one of the above known modules, it will
+           also use the corresponding printer and namespace mapping
+@@ -820,6 +834,10 @@
+             from sympy.printing.lambdarepr import NumExprPrinter as Printer # type: ignore
+         elif _module_present('tensorflow', namespaces):
+             from sympy.printing.tensorflow import TensorflowPrinter as Printer # type: ignore
++        elif _module_present('torch', namespaces):
++            from sympy.printing.pytorch import TorchPrinter as Printer # type: ignore
++        elif _module_present('cmath', namespaces):
++            from sympy.printing.pycode import CmathPrinter as Printer # type: ignore
+         elif _module_present('sympy', namespaces):
+             from sympy.printing.pycode import SymPyPrinter as Printer # type: ignore
+         else:

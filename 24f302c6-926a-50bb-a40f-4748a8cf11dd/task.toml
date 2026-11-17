@@ -1,0 +1,135 @@
+schema_version = "1.4"
+reward_type = "bounded_continuous"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent environment
+# before teardown. [verifier].environment_mode is "separate", so these are also the only bytes that
+# reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/networkx  the package tree the solver evolves; the graded deliverable.
+#
+# This repository keeps its tests INSIDE the package, so the graded tree and the test tree are one
+# tree. tests/test.sh therefore restores every networkx/**/tests/ subtree from the target revision
+# before any test runs, which both supplies the required tests and overwrites any test the solver
+# edited.
+artifacts = [
+  "/app/networkx",
+]
+
+[task]
+name = "scout/24f302c6-926a-50bb-a40f-4748a8cf11dd"
+version = "1.0.0"
+description = "Evolve a pinned graph-library source tree across a feature release boundary in maximum flow, connectivity cuts and centrality, from the release specification alone."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+summary = """
+Evolve networkx from a pinned revision so that the maximum-flow stack, the connectivity
+cut routines and three centrality measures gain the behaviour a later release describes.
+Unlike the sibling community-and-bipartite bundle, almost none of this work adds public
+API: it changes behaviour behind interfaces that already exist, which removes the option
+of reading a signature and implementing to it.
+"""
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:890377"
+task_lane = "sample"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# The unmodified base tree resolves nothing in the required set: the base revision was run twice
+# against its own suite at 6955 passed and 0 failed, and every required node comes from the later
+# revision's tests.
+null_floor = 0.0
+# tests/group_map.json carries ten equally weighted groups over the 98 required nodes, cut at
+# file::class. No group holds a single node, so the costliest single-node loss is one of the two in
+# the smallest group, at (1/10)/2.
+discrimination_weight = 0.05
+selection_note = """
+Selected by measurement. The required set was derived by running the later revision's
+tests against this base revision's source and measuring the per-file distribution. The
+cluster carries 98 required nodes over 7 test files with no file above 29.6 percent and no
+file::class group above 25.5 percent, against a one-third ceiling.
+
+The minimal implementation surface was found by subtraction rather than assumed: the full
+flow, connectivity and centrality diff is 22 files, and 14 of them resolve all 98 required
+nodes with zero regressions, so the other 8 are excluded as unrelated to the objectives.
+"""
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "no-network"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 7200.0
+network_mode = "no-network"
+user = "10001:10001"
+
+[verifier]
+timeout_sec = 5400.0
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+environment_mode = "separate"
+user = "10002:10002"
+
+[verifier.env]
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+LITELLM_LOCAL_MODEL_COST_MAP = "True"
+
+[verifier.environment]
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-11-01"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/networkx/networkx"
+base_commit = "bb9a6ded1889f182d7a5b76831c389c335d52910"
+event_timestamp = "2025-11-24T02:57:00Z"
+
+[span_provenance]
+enumerated_objective_count = 6
+pr_count = 0
+pr_count_note = """
+Pull request numbers, tags and diffs are withheld. The release prose is read by the author
+and the objectives are restated positionally, because a tag, a pull request number or a
+diff is each a retrieval handle to the published answer.
+"""
+
+[interface_spec]
+bound = true
+bound_note = """
+One symbol, its signature read from the target revision rather than asserted. The set is
+deliberately small because this task is mostly behaviour change behind existing interfaces:
+a solver cannot shortcut it by implementing to a disclosed signature, and most objectives
+require deriving the interface from the repository and from what the tests assert.
+
+The one entry is disclosed because it is PRIVATE and the suite imports it by name, so it is
+underivable from prose. Everything else in this task is reached through public callables the
+pinned revision already exports.
+"""
+
+[[interface_spec.symbol]]
+objective = "a shared capacity accessor for the flow algorithms"
+module = "networkx.algorithms.flow.utils"
+symbol = "_capacity_function"
+parameters = "G, capacity"
+returns = "a callable resolving an edge's capacity. PRIVATE but graded: the suite imports it by name. When `capacity` is already callable it is returned unchanged, and such a callable must accept exactly three positional arguments (u, v, edge_attrs) and return either None to hide the edge or a number. When `capacity` is a string it names an edge attribute and a new callable is built around it. MultiGraph and MultiDiGraph are not supported."

@@ -1,0 +1,228 @@
+schema_version = "1.4"
+reward_type = "bounded_continuous"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent environment
+# before teardown. [verifier].environment_mode is "separate", so this is also the only bytes that
+# reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/sympy  the package tree the solver evolves; the graded deliverable.
+#
+# This library keeps its tests INSIDE the package, under sympy/**/tests/, so the graded tree and the
+# test tree are one tree. tests/test.sh restores all 65 of those subtrees from the target revision
+# before anything runs, which both supplies the required tests and overwrites any the solver edited.
+artifacts = [
+  "/app/sympy",
+]
+
+[task]
+name = "scout/b8fff9ab-67b1-5e09-8c9c-679b571afc25"
+version = "1.0.0"
+description = "Evolve a pinned computer-algebra source tree across a feature release boundary spanning the expression core, the function hierarchy, the number-theory module and the code printers."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+summary = """
+Evolve sympy from a pinned revision so that the expression core, the elementary and special
+functions, the series machinery, the matrices, the number-theory module, the parsers and the
+code printers gain the behaviour a later release describes.
+
+This is the most broadly distributed bundle of the family. 52 required nodes spread over 31
+test files and 31 behavioural groups, with no file and no group holding more than 9.6 percent,
+against 4946 nodes that must keep passing. Sixteen of the thirty-one groups hold a single
+node, so sixteen individual tests carry about three percent each: there is no insight that
+unlocks a large fraction, and partial credit accrues one small piece of work at a time.
+"""
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:sympy/sympy"
+task_lane = "sample"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# Measured, not argued. The no-op here is base-revision source under the TARGET test tree, since
+# tests/test.sh restores every sympy/**/tests/ subtree, and that tree was run at 103 failed / 5000
+# passed with 0 of the 52 required nodes passing and 0 must-keep damage. A third invariant holds with
+# those two: 0 required nodes pass under the stub probe described in selection_note.
+null_floor = 0.0
+# tests/group_map.json carries 31 equally weighted groups over the 52 required nodes, cut at
+# file::class. SIXTEEN groups hold a single node, so the costliest single-node loss is a whole group
+# at 1/31, which is what discrimination_weight below records.
+discrimination_weight = 0.0161
+selection_note = """
+Selected by measurement, and the third repository family in the batch. The first candidate for
+this slot, pylint, was screened and REJECTED on evidence rather than taste, and the reasons
+are worth recording because they are properties of a project's test surface rather than of
+its code. Every pylint feature boundary moves the pin of astroid, the inference engine every
+checker reads through, by three minor versions; a task partly resolvable by a dependency bump
+fails the same screen that rejects a moved compiled pin. Its 1007 functional fixtures all
+collect through ONE parametrised function, so they land in a single file and a single
+file::class group and no scope containing them can distribute. And the one span that holds the
+astroid pin steady changes three non-functional test modules against eighty-eight functional
+fixtures, so the scope with the source changes has no distributable test surface.
+
+sympy passes every gate pylint failed. The span 1.13.3 to 1.14.0 is linear over 1170 commits,
+which had to be checked rather than assumed: this project carries two tag spellings for every
+release and only the unprefixed series is linear. The repository holds no pyx, cargo, c or
+meson surface. Its single runtime dependency is mpmath and the span moves no library pin, only
+python_requires from 3.8 to 3.9.
+
+Runtime was a screen gate here, not an afterthought. The full suite did not finish in sixty
+minutes, so no scope containing all of it can be graded inside the verifier budget. Per-package
+timing found the usable subset and excluded simplify, solvers and polys, each over three
+minutes. The chosen cluster runs in five and a half.
+
+Two scope decisions are recorded because they remove genuine release work. First,
+printing/tests/test_mathml.py is excluded entirely: the release reworks that printer so heavily
+that its 55 nodes alone would be 47.4 percent of the required set, making one objective worth
+half the score and destroying the breadth this bundle exists to measure. Second, 8 nodes are
+excluded because no in-scope source change can reach them; they need edits in codegen, physics,
+tensor and polys. Requiring them would make the deterministic channel demand work the judged
+scope criterion forbids, and an attempt to satisfy them by widening the surface into
+physics/quantum broke 134 must-keep nodes, because that package's eighteen changed files are
+mutually dependent and a partial surface there is worse than none.
+
+Widening was also tried for a better reason and rejected on measurement. Adding polys to dilute
+the sixteen single-node groups made concentration WORSE rather than better: polys carries its
+own dominating file, test_fflu.py, holding 83 of the resulting 190 required nodes at 43.7
+percent, and the single-node fraction did not move.
+
+The minimal implementation surface is 59 of the 96 files the cluster's packages change, found by
+subtraction and then corrected twice. A batch removal of the 48 smallest diffs cost 13 required
+nodes and one regression; the project's test_X.py to X.py naming recovered seven of them
+directly, and the rest named a package __init__, a core integer-function module and the
+relational module. The result was then validated on the FULL cluster rather than on the 31
+required-test files alone, which is what caught four regressions in printing/tests/test_repr.py
+that the fast subtraction runs could not see. A dangling-reference audit over the whole tree
+reports zero names that vanished and are still referenced, so the surface is minimal SUBJECT TO
+internal consistency rather than minimal by test outcome alone.
+"""
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "no-network"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 10800.0
+network_mode = "no-network"
+user = "10001:10001"
+
+[verifier]
+# The graded cluster runs in five and a half minutes and the suite emits over a million warnings,
+# so the budget is generous relative to the other bundles in this family.
+timeout_sec = 7200.0
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+environment_mode = "separate"
+user = "10002:10002"
+
+[verifier.env]
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+LITELLM_LOCAL_MODEL_COST_MAP = "True"
+
+[verifier.environment]
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-11-01"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/sympy/sympy"
+base_commit = "c870d17c2638f5061800e344b72ff80086a0b41d"
+event_timestamp = "2025-04-27T11:39:45Z"
+
+[span_provenance]
+enumerated_objective_count = 14
+pr_count = 0
+pr_count_note = """
+Pull request numbers, tags and diffs are withheld. The release prose is read by the author and
+the objectives are restated positionally, because a tag, a pull request number or a diff is
+each a retrieval handle to the published answer. Several of this release's tests are named for
+the issue they close; those numbers appear in the test names the solver will see when the
+suite runs, and nothing further is disclosed about them.
+"""
+
+[interface_spec]
+bound = true
+bound_note = """
+Five test modules in this cluster cannot be IMPORTED at the base revision, because each
+imports a name the release introduces. Until those names exist the modules contribute nothing
+but a collection error, so the names are disclosed here: a task that withheld them would be
+measuring whether a solver can guess an identifier, not whether it can implement behaviour.
+
+The graded sets were then built so that merely creating the names earns nothing. A probe tree
+restores collection using five deliberately non-functional stubs; every node that passes under
+that probe is excluded, and zero of the 52 required nodes pass under it. Disclosing the names
+therefore costs the task nothing, which is why it is safe to do.
+
+Everything else must be derived from the repository and from what the tests assert. This
+release's behavioural work is overwhelmingly in conduct behind interfaces the pinned revision
+already exports, and only the seven entries below are new or changed surface.
+"""
+
+[[interface_spec.symbol]]
+objective = "a base class for functions the library defines"
+module = "sympy.core.function"
+symbol = "DefinedFunction"
+parameters = "class, subclass of Function"
+returns = "the base class that library-defined functions derive from, separating them from user-defined ones. The core's class-registration test asserts it is constructible and registered, and the elementary and special function hierarchies are expected to sit under it."
+
+[[interface_spec.symbol]]
+objective = "a cache for integer factorisation"
+module = "sympy.ntheory.factor_"
+symbol = "FactorCache"
+parameters = "class"
+returns = "the cache type backing repeated factorisation. A module-level instance named `factor_cache` is also expected: the release's own test imports that exact lowercase name from this module, so both the class and the instance are part of the surface."
+
+[[interface_spec.symbol]]
+objective = "factoring by quadratic sieve"
+module = "sympy.ntheory.qs"
+symbol = "qs_factor"
+parameters = "N, prime_bound, M, ERROR_TERM=25, seed=1234"
+returns = "the factorisation of N as a mapping of prime to multiplicity, where the existing `qs` returns a set of factors. Note the five positional parameters and the two defaults. It must also be re-exported from the `sympy.ntheory` package namespace, because the test imports it from there rather than from this module."
+
+[[interface_spec.symbol]]
+objective = "factoring by quadratic sieve"
+module = "sympy.ntheory.qs"
+symbol = "_generate_polynomial"
+parameters = "(private, imported by name)"
+returns = "a private helper the release's own test module imports by exact name alongside the public entry points. It is disclosed for that reason only; its contract is whatever the tests that exercise it require."
+
+[[interface_spec.symbol]]
+objective = "printing C that targets the C math library"
+module = "sympy.printing.pycode"
+symbol = "CmathPrinter"
+parameters = "class, a code printer"
+returns = "a printer emitting expressions against the C math library's complex functions. It lives in the Python-code printing module rather than the C one, which is where the test imports it from."
+
+[[interface_spec.symbol]]
+objective = "printing for an array framework"
+module = "sympy.printing.pytorch"
+symbol = "TorchPrinter, torch_code"
+parameters = "TorchPrinter is a class; torch_code(expr, requires_grad=False, dtype=None)"
+returns = "a printer and a convenience entry point for a tensor framework, in a NEW module. The tests for this module are EXCLUDED from grading because the framework is not installed in this environment, so no required node depends on it; it is disclosed because the module is part of the release's surface and the package namespace references it."
+
+[[interface_spec.symbol]]
+objective = "substitution accepting an explicit pair"
+module = "sympy.core.basic"
+symbol = "Basic.subs"
+parameters = "self, arg1, arg2=None, **kwargs"
+returns = "the substituted expression. The signature CHANGES: the release names the first two arguments explicitly where the base revision took them from *args. Callers passing a single mapping, a single sequence of pairs, or two separate arguments must all keep working, which is what the core's substitution test checks."

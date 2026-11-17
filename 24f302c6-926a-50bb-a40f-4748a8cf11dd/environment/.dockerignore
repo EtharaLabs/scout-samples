@@ -1,0 +1,5 @@
+# Deny the build context by default, then admit only what the stage copies.
+# An absent or permissive ignore file ships the whole context into the builder, which is how a
+# private byte reaches an image nobody meant to put it in.
+*
+!requirements.lock.txt

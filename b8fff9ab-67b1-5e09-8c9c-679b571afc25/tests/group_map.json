@@ -1,0 +1,246 @@
+{
+  "schema": "scout.group-map/v1",
+  "grouping": "file::class",
+  "group_count": 31,
+  "weight_rule": "equal per group: every group carries 0.03226",
+  "groups": {
+    "test_args": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_args.py::test_sympy__core__function__DefinedFunction"
+      ]
+    },
+    "test_arit": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_arit.py::test_Mod",
+        "sympy/core/tests/test_arit.py::test_Mul_hermitian_antihermitian"
+      ]
+    },
+    "test_assumptions": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_assumptions.py::test_common_assumptions",
+        "sympy/core/tests/test_assumptions.py::test_failing_assumptions"
+      ]
+    },
+    "test_basic": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_basic.py::test_rewrite_abs",
+        "sympy/core/tests/test_basic.py::test_subs"
+      ]
+    },
+    "test_c": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_c.py::test_C89CodePrinter"
+      ]
+    },
+    "test_comb_numbers": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/functions/combinatorial/tests/test_comb_numbers.py::test_euler_polynomials",
+        "sympy/functions/combinatorial/tests/test_comb_numbers.py::test_partition"
+      ]
+    },
+    "test_complexes": {
+      "node_count": 3,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/functions/elementary/tests/test_complexes.py::test_adjoint",
+        "sympy/functions/elementary/tests/test_complexes.py::test_conjugate_transpose",
+        "sympy/functions/elementary/tests/test_complexes.py::test_transpose"
+      ]
+    },
+    "test_expr": {
+      "node_count": 3,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_expr.py::test_Float_zero_division_error",
+        "sympy/core/tests/test_expr.py::test__unevaluated_Mul",
+        "sympy/core/tests/test_expr.py::test_replace_integral"
+      ]
+    },
+    "test_factor_": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/ntheory/tests/test_factor_.py::test_factor_cache",
+        "sympy/ntheory/tests/test_factor_.py::test_perfect_power"
+      ]
+    },
+    "test_function": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_function.py::test_issue_27163"
+      ]
+    },
+    "test_integers": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/functions/elementary/tests/test_integers.py::test_ceiling",
+        "sympy/functions/elementary/tests/test_integers.py::test_floor"
+      ]
+    },
+    "test_interface": {
+      "node_count": 3,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/functions/elementary/tests/test_interface.py::test_function_series1",
+        "sympy/functions/elementary/tests/test_interface.py::test_function_series2",
+        "sympy/functions/elementary/tests/test_interface.py::test_function_series3"
+      ]
+    },
+    "test_jax": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_jax.py::test_jax_array"
+      ]
+    },
+    "test_julia": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_julia.py::test_sinc"
+      ]
+    },
+    "test_lambdarepr": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_lambdarepr.py::test_multiple_sums"
+      ]
+    },
+    "test_latex": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_latex.py::test_DotProduct_printing",
+        "sympy/printing/tests/test_latex.py::test_latex_disable_split_super_sub"
+      ]
+    },
+    "test_match": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_match.py::test_match_bound"
+      ]
+    },
+    "test_mathematica": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_mathematica.py::test_Function"
+      ]
+    },
+    "test_matrices": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/matrices/tests/test_matrices.py::test_adjoint_with_operator",
+        "sympy/matrices/tests/test_matrices.py::test_hermitian"
+      ]
+    },
+    "test_matrixbase": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/matrices/tests/test_matrixbase.py::test_issue_27225"
+      ]
+    },
+    "test_numbers": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_numbers.py::test_igcdex"
+      ]
+    },
+    "test_numpy": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_numpy.py::test_numpy_array",
+        "sympy/printing/tests/test_numpy.py::test_numpy_matrix"
+      ]
+    },
+    "test_piecewise": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/functions/elementary/tests/test_piecewise.py::test_Piecewise_replace_relational_27538"
+      ]
+    },
+    "test_power": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/core/tests/test_power.py::test_issue_2993"
+      ]
+    },
+    "test_precedence": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_precedence.py::test_custom_function_precedence_comparison"
+      ]
+    },
+    "test_pycode": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_pycode.py::test_CmathPrinter",
+        "sympy/printing/tests/test_pycode.py::test_PythonCodePrinter"
+      ]
+    },
+    "test_qs": {
+      "node_count": 5,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/ntheory/tests/test_qs.py::test_issue_27616",
+        "sympy/ntheory/tests/test_qs.py::test_qs_2",
+        "sympy/ntheory/tests/test_qs.py::test_qs_3",
+        "sympy/ntheory/tests/test_qs.py::test_qs_4",
+        "sympy/ntheory/tests/test_qs.py::test_qs_factor"
+      ]
+    },
+    "test_residue": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/ntheory/tests/test_residue.py::test_residue"
+      ]
+    },
+    "test_rust": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/printing/tests/test_rust.py::test_sign"
+      ]
+    },
+    "test_solvers": {
+      "node_count": 1,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/matrices/tests/test_solvers.py::test_LUsolve_noncommutative"
+      ]
+    },
+    "test_sympy_parser": {
+      "node_count": 2,
+      "weight": 0.03226,
+      "nodes": [
+        "sympy/parsing/tests/test_sympy_parser.py::test_issue_24288",
+        "sympy/parsing/tests/test_sympy_parser.py::test_xor_eval_false"
+      ]
+    }
+  }
+}

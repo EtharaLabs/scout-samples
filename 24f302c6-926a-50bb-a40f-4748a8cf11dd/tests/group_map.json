@@ -1,0 +1,131 @@
+{
+  "schema": "scout.group-map/v1",
+  "grouping": "file::class",
+  "group_count": 10,
+  "weight_rule": "equal per group: every group carries 0.1",
+  "groups": {
+    "test_closeness_centrality::TestClosenessCentrality": {
+      "node_count": 24,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_digraph[False-expected0-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_digraph[False-expected0-True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_digraph[True-expected1-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_digraph[True-expected1-True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_directed_cycle[False-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_directed_cycle[False-True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_directed_cycle[True-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_directed_cycle[True-True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_florentine_families_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_florentine_families_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_k5_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_k5_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_krackhardt_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_krackhardt_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_les_miserables_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_les_miserables_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_p3_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_p3_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_weighted_closeness[False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_weighted_closeness[True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_wf_improved[False-expected0-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_wf_improved[False-expected0-True]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_wf_improved[True-expected1-False]",
+        "networkx/algorithms/centrality/tests/test_closeness_centrality.py::TestClosenessCentrality::test_wf_improved[True-expected1-True]"
+      ]
+    },
+    "test_connectivity": {
+      "node_count": 5,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/connectivity/tests/test_connectivity.py::test_directed_node_connectivity_both_orders",
+        "networkx/algorithms/connectivity/tests/test_connectivity.py::test_directed_node_connectivity_both_orders_strongly_connected",
+        "networkx/algorithms/connectivity/tests/test_connectivity.py::test_directed_node_connectivity_not_strongly_connected",
+        "networkx/algorithms/connectivity/tests/test_connectivity.py::test_node_connectivity_multigraphs",
+        "networkx/algorithms/connectivity/tests/test_connectivity.py::test_node_connectivity_self_loops"
+      ]
+    },
+    "test_current_flow_closeness::TestFlowClosenessCentrality": {
+      "node_count": 3,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/centrality/tests/test_current_flow_closeness.py::TestFlowClosenessCentrality::test_current_flow_closeness_centrality_small_graphs[G0-answer0]",
+        "networkx/algorithms/centrality/tests/test_current_flow_closeness.py::TestFlowClosenessCentrality::test_current_flow_closeness_centrality_small_graphs[G1-answer1]",
+        "networkx/algorithms/centrality/tests/test_current_flow_closeness.py::TestFlowClosenessCentrality::test_current_flow_closeness_centrality_small_graphs[G2-answer2]"
+      ]
+    },
+    "test_cuts": {
+      "node_count": 25,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut[boykov_kolmogorov]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut[dinitz]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut[edmonds_karp]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut[preflow_push]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut[shortest_augmenting_path]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_both_orders[boykov_kolmogorov]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_both_orders[dinitz]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_both_orders[edmonds_karp]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_both_orders[preflow_push]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_both_orders[shortest_augmenting_path]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_not_strongly_connected[boykov_kolmogorov]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_not_strongly_connected[dinitz]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_not_strongly_connected[edmonds_karp]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_not_strongly_connected[preflow_push]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_node_cut_not_strongly_connected[shortest_augmenting_path]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_st_node_cut_reverse_edge[boykov_kolmogorov]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_st_node_cut_reverse_edge[dinitz]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_st_node_cut_reverse_edge[edmonds_karp]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_st_node_cut_reverse_edge[preflow_push]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_directed_minimum_st_node_cut_reverse_edge[shortest_augmenting_path]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_minimum_node_cut_self_loops[boykov_kolmogorov]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_minimum_node_cut_self_loops[dinitz]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_minimum_node_cut_self_loops[edmonds_karp]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_minimum_node_cut_self_loops[preflow_push]",
+        "networkx/algorithms/connectivity/tests/test_cuts.py::test_minimum_node_cut_self_loops[shortest_augmenting_path]"
+      ]
+    },
+    "test_group::TestGroupBetweennessCentrality": {
+      "node_count": 9,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_directed_ground_truth",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_disconnected_directed_graph",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_endpoints_normalized[DiGraph]",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_endpoints_normalized[Graph]",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_guard_against_keyerror",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_many_groups_directed_graph",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_no_paths_through_group",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_normalized_connected[DiGraph-7-0.5833333333333334]",
+        "networkx/algorithms/centrality/tests/test_group.py::TestGroupBetweennessCentrality::test_group_betweenness_normalized_disconnected[DiGraph-6-0.2]"
+      ]
+    },
+    "test_kcomponents": {
+      "node_count": 3,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/connectivity/tests/test_kcomponents.py::test_generate_partition_does_not_drop_cutset_nodes",
+        "networkx/algorithms/connectivity/tests/test_kcomponents.py::test_generate_partition_keeps_cut_adjacent_low_degree_nodes",
+        "networkx/algorithms/connectivity/tests/test_kcomponents.py::test_reconstruct_k_components_promotes_spanning_component"
+      ]
+    },
+    "test_maxflow::TestMaxflowMinCutCommon": {
+      "node_count": 12,
+      "weight": 0.14286,
+      "nodes": [
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_capacity_func",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph1",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph2",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph3",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph4",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph5",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_digraph_infcap_edges",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_graph1",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_graph2",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_graph_infcap_edges",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_optional_capacity",
+        "networkx/algorithms/flow/tests/test_maxflow.py::TestMaxflowMinCutCommon::test_wikipedia_dinitz_example"
+      ]
+    }
+  }
+}

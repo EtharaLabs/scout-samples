@@ -1,0 +1,1986 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/approximation/kcomponents.py /app/networkx/algorithms/approximation/kcomponents.py
+--- /opt/pristine/networkx/algorithms/approximation/kcomponents.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/approximation/kcomponents.py	2026-11-17 07:37:52.000000000 +0000
+@@ -7,6 +7,9 @@
+ 
+ import networkx as nx
+ from networkx.algorithms.approximation import local_node_connectivity
++from networkx.algorithms.approximation import (
++    node_connectivity as approximate_node_connectivity,
++)
+ from networkx.exception import NetworkXError
+ from networkx.utils import not_implemented_for
+ 
+@@ -82,6 +85,15 @@
+     complement graph data structure, it behaves as if it were the dense
+     version.
+ 
++    The heuristics above may group nodes that are not `k`-connected
++    together. Each candidate `k`-component is therefore checked before it
++    is reported: first against the lower bound on its node connectivity
++    given by the approximation algorithm [2]_ and, if needed, against its
++    exact node connectivity. A candidate that fails the check is replaced by
++    its exact `k`-components. Thus every component reported at level `k`
++    has node connectivity at least `k`, although it is not guaranteed to be
++    maximal.
++
+     See also
+     --------
+     k_components
+@@ -152,10 +164,23 @@
+                         Gk = nx.k_core(SG.subgraph(k_nodes), k)
+                         if len(Gk) <= k:
+                             continue
+-                        k_components[k].append(set(Gk))
++                        k_components[k].extend(_k_connected_parts(Gk, k))
+     return k_components
+ 
+ 
++def _k_connected_parts(G, k):
++    """Returns the maximal sets of nodes of `G` inducing `k`-connected subgraphs.
++
++    `G` is a candidate `k`-component found by the heuristics. In most cases
++    it is `k`-connected, which the approximate node connectivity, a lower
++    bound of the actual node connectivity, is usually enough to confirm.
++    Otherwise the exact `k`-components of `G` are returned.
++    """
++    if approximate_node_connectivity(G) >= k or nx.node_connectivity(G) >= k:
++        return [set(G)]
++    return nx.k_components(G).get(k, [])
++
++
+ def _cliques_heuristic(G, H, k, min_density):
+     h_cnumber = nx.core_number(H)
+     for i, c_value in enumerate(sorted(set(h_cnumber.values()), reverse=True)):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/centrality/closeness.py /app/networkx/algorithms/centrality/closeness.py
+--- /opt/pristine/networkx/algorithms/centrality/closeness.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/centrality/closeness.py	2026-11-17 07:31:10.000000000 +0000
+@@ -119,24 +119,53 @@
+         nodes = G.nodes
+     else:
+         nodes = [u]
+-    closeness_dict = {}
+-    for n in nodes:
+-        sp = path_length(G, n)
+-        totsp = sum(sp.values())
+-        len_G = len(G)
+-        _closeness_centrality = 0.0
+-        if totsp > 0.0 and len_G > 1:
+-            _closeness_centrality = (len(sp) - 1.0) / totsp
+-            # normalize to number of nodes-1 in connected part
+-            if wf_improved:
+-                s = (len(sp) - 1.0) / (len_G - 1)
+-                _closeness_centrality *= s
+-        closeness_dict[n] = _closeness_centrality
++    len_G = len(G)
++    closeness_dict = {
++        n: _closeness_from_lengths(path_length(G, n), len_G, wf_improved)
++        for n in nodes
++    }
+     if u is not None:
+         return closeness_dict[u]
+     return closeness_dict
+ 
+ 
++def _closeness_from_lengths(lengths, n_nodes, wf_improved):
++    """Returns the closeness centrality of a node from its distances.
++
++    Parameters
++    ----------
++    lengths : dict
++        Maps every node at finite distance from the node (the node itself
++        included, at distance 0) to that distance.
++
++    n_nodes : int
++        Number of nodes in the whole graph.
++
++    wf_improved : bool
++        If True, scale by the fraction of the other nodes of the graph that
++        are at finite distance (Wasserman and Faust).
++
++    Notes
++    -----
++    The plain reciprocal of the distance sum is only meaningful when every
++    other node is at finite distance. The average is therefore taken over
++    the `r` other nodes at finite distance only, giving ``r / sum(lengths)``,
++    and a node at finite distance from no other node (or a graph with a
++    single node) has closeness 0. A distance sum of 0, which only happens
++    with zero edge distances, is also given closeness 0.
++    """
++    # Number of other nodes at finite distance.
++    reachable = len(lengths) - 1
++    total = sum(lengths.values())
++    if reachable <= 0 or n_nodes <= 1 or total <= 0:
++        return 0.0
++    closeness = reachable / total
++    if wf_improved:
++        # normalize to number of nodes-1 in connected part
++        closeness *= reachable / (n_nodes - 1)
++    return closeness
++
++
+ @not_implemented_for("directed")
+ @nx._dispatchable(mutates_input=True)
+ def incremental_closeness_centrality(
+@@ -195,7 +224,10 @@
+       The modified edge (u, v) in the graph.
+ 
+     prev_cc : dictionary
+-      The previous closeness centrality for all nodes in the graph.
++      The previous closeness centrality for all nodes in the graph, that is,
++      the closeness centrality of `G` computed with the same `wf_improved`.
++      If None, the closeness centrality of the modified graph is computed
++      from scratch.
+ 
+     insertion : bool, optional
+       If True (default) the edge was inserted, otherwise it was deleted from the graph.
+@@ -208,7 +240,15 @@
+     Returns
+     -------
+     nodes : dictionary
+-      Dictionary of nodes with closeness centrality as the value.
++      Dictionary of nodes with closeness centrality as the value, for the
++      graph obtained by inserting (or deleting) `edge` in `G`. `G` itself
++      is left unchanged.
++
++    Raises
++    ------
++    NetworkXError
++      If `prev_cc` and `G` do not have the same nodes, or if `insertion` is
++      False and `edge` is not in `G`.
+ 
+     See Also
+     --------
+@@ -239,6 +279,12 @@
+     (u, v) = edge
+     path_length = nx.single_source_shortest_path_length
+ 
++    if insertion and G.has_edge(u, v):
++        # Inserting an edge that is already there does not change the graph.
++        if prev_cc is None:
++            return nx.closeness_centrality(G, wf_improved=wf_improved)
++        return dict(prev_cc)
++
+     if insertion:
+         # For edge insertion, we want shortest paths before the edge is inserted
+         du = path_length(G, u)
+@@ -246,37 +292,46 @@
+ 
+         G.add_edge(u, v)
+     else:
+-        G.remove_edge(u, v)
++        if not G.has_edge(u, v):
++            raise NetworkXError(f"The edge {u}-{v} is not in the graph")
++        # Keep the removed edge, with its data, to restore it as it was.
++        if G.is_multigraph():
++            # Like remove_edge(u, v), remove the most recently added edge.
++            key = list(G[u][v])[-1]
++            removed_edge = (u, v, key, G[u][v][key])
++            G.remove_edge(u, v, key)
++        else:
++            removed_edge = (u, v, G[u][v])
++            G.remove_edge(u, v)
+ 
+         # For edge removal, we want shortest paths after the edge is removed
+         du = path_length(G, u)
+         dv = path_length(G, v)
+ 
+-    if prev_cc is None:
+-        return nx.closeness_centrality(G)
++    try:
++        if prev_cc is None:
++            return nx.closeness_centrality(G, wf_improved=wf_improved)
+ 
+-    nodes = G.nodes()
+-    closeness_dict = {}
+-    for n in nodes:
+-        if n in du and n in dv and abs(du[n] - dv[n]) <= 1:
+-            closeness_dict[n] = prev_cc[n]
++        len_G = len(G)
++        closeness_dict = {}
++        for n in G:
++            if n in du and n in dv:
++                if abs(du[n] - dv[n]) <= 1:
++                    # Theorem 1: the distances from n are unchanged.
++                    closeness_dict[n] = prev_cc[n]
++                    continue
++            elif n not in du and n not in dv:
++                # n is in a connected component containing neither u nor v,
++                # which the change of the edge does not affect.
++                closeness_dict[n] = prev_cc[n]
++                continue
++            closeness_dict[n] = _closeness_from_lengths(
++                path_length(G, n), len_G, wf_improved
++            )
++        return closeness_dict
++    finally:
++        # Leave the graph as we found it
++        if insertion:
++            G.remove_edge(u, v)
+         else:
+-            sp = path_length(G, n)
+-            totsp = sum(sp.values())
+-            len_G = len(G)
+-            _closeness_centrality = 0.0
+-            if totsp > 0.0 and len_G > 1:
+-                _closeness_centrality = (len(sp) - 1.0) / totsp
+-                # normalize to number of nodes-1 in connected part
+-                if wf_improved:
+-                    s = (len(sp) - 1.0) / (len_G - 1)
+-                    _closeness_centrality *= s
+-            closeness_dict[n] = _closeness_centrality
+-
+-    # Leave the graph as we found it
+-    if insertion:
+-        G.remove_edge(u, v)
+-    else:
+-        G.add_edge(u, v)
+-
+-    return closeness_dict
++            G.add_edges_from([removed_edge])
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/centrality/current_flow_closeness.py /app/networkx/algorithms/centrality/current_flow_closeness.py
+--- /opt/pristine/networkx/algorithms/centrality/current_flow_closeness.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/centrality/current_flow_closeness.py	2026-11-17 07:35:15.000000000 +0000
+@@ -14,12 +14,25 @@
+ @not_implemented_for("directed")
+ @nx._dispatchable(edge_attrs="weight")
+ def current_flow_closeness_centrality(G, weight=None, dtype=float, solver="lu"):
+-    """Compute current-flow closeness centrality for nodes.
++    r"""Compute current-flow closeness centrality for nodes.
+ 
+     Current-flow closeness centrality is variant of closeness
+     centrality based on effective resistance between nodes in
+     a network. This metric is also known as information centrality.
+ 
++    The current-flow closeness centrality of a node $v$ is
++
++    .. math::
++
++        c(v) = \frac{1}{\sum_{w \neq v} R(v, w)},
++
++    where $R(v, w)$ is the effective resistance between $v$ and $w$ when
++    every edge is a resistor of conductance equal to its weight. Effective
++    resistances are derived from the Laplacian matrix $L$ of the graph:
++    $R(v, w) = C_{vv} + C_{ww} - 2 C_{vw}$ for a generalized inverse $C$ of
++    $L$. Unlike closeness centrality, all paths between two nodes
++    contribute, not only the shortest ones.
++
+     Parameters
+     ----------
+     G : graph
+@@ -44,6 +57,15 @@
+     -------
+     nodes : dictionary
+        Dictionary of nodes with current flow closeness centrality as the value.
++       The only node of a graph with a single node has centrality 0.
++
++    Raises
++    ------
++    NetworkXError
++        If the graph is not connected.
++
++    NetworkXPointlessConcept
++        If the graph has no nodes.
+ 
+     See Also
+     --------
+@@ -68,29 +90,37 @@
+        Social Networks 11(1):1-37, 1989.
+        https://doi.org/10.1016/0378-8733(89)90016-6
+     """
++    import numpy as np
++
+     if not nx.is_connected(G):
+         raise nx.NetworkXError("Graph not connected.")
++    if len(G) == 1:
++        # There is no other node to be close to.
++        return dict.fromkeys(G, 0.0)
+     solvername = {
+         "full": FullInverseLaplacian,
+         "lu": SuperLUInverseLaplacian,
+         "cg": CGInverseLaplacian,
+     }
+     N = G.number_of_nodes()
++    # Order the rows and columns of the Laplacian with the reverse
++    # Cuthill-McKee ordering to reduce its bandwidth: index i is node ordering[i]
+     ordering = list(reverse_cuthill_mckee_ordering(G))
+-    # make a copy with integer labels according to rcm ordering
+-    # this could be done without a copy if we really wanted to
+-    H = nx.relabel_nodes(G, dict(zip(ordering, range(N))))
+-    betweenness = dict.fromkeys(H, 0.0)  # b[n]=0 for n in H
+-    N = H.number_of_nodes()
+-    L = nx.laplacian_matrix(H, nodelist=range(N), weight=weight).asformat("csc")
++    L = nx.laplacian_matrix(G, nodelist=ordering, weight=weight).asformat("csc")
+     L = L.astype(dtype)
++    # The solver yields the rows of the generalized inverse C of L obtained by
++    # grounding node 0: the inverse of L without row and column 0, padded
++    # with zeros. Then R(v, w) = C[v, v] + C[w, w] - 2 C[v, w], hence
++    # sum_w R(v, w) = N C[v, v] + trace(C) - 2 sum_w C[v, w].
+     C2 = solvername[solver](L, width=1, dtype=dtype)  # initialize solver
+-    for v in H:
+-        col = C2.get_row(v)
+-        for w in H:
+-            betweenness[v] += col.item(v) - 2 * col.item(w)
+-            betweenness[w] += col.item(v)
+-    return {ordering[node]: 1 / value for node, value in betweenness.items()}
++    diagonal = np.zeros(N)
++    row_sums = np.zeros(N)
++    for v in range(N):
++        row = C2.get_row(v)
++        diagonal[v] = row[v]
++        row_sums[v] = row.sum(dtype=float)
++    resistance_sums = N * diagonal + diagonal.sum() - 2 * row_sums
++    return {ordering[v]: float(1 / r) for v, r in enumerate(resistance_sums)}
+ 
+ 
+ information_centrality = current_flow_closeness_centrality
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/centrality/group.py /app/networkx/algorithms/centrality/group.py
+--- /opt/pristine/networkx/algorithms/centrality/group.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/centrality/group.py	2026-11-17 07:45:27.000000000 +0000
+@@ -1,6 +1,9 @@
+ """Group centrality measures."""
+ 
++from collections import deque
+ from copy import deepcopy
++from heapq import heappop, heappush
++from itertools import count
+ 
+ import networkx as nx
+ from networkx.algorithms.centrality.betweenness import (
+@@ -8,6 +11,7 @@
+     _single_source_dijkstra_path_basic,
+     _single_source_shortest_path_basic,
+ )
++from networkx.algorithms.shortest_paths.weighted import _weight_function
+ from networkx.utils.decorators import not_implemented_for
+ 
+ __all__ = [
+@@ -29,13 +33,15 @@
+ 
+     .. math::
+ 
+-       c_B(v) =\sum_{s,t \in V} \frac{\sigma(s, t|v)}{\sigma(s, t)}
++       c_B(C) =\sum_{s,t \in V-C} \frac{\sigma(s, t|C)}{\sigma(s, t)}
+ 
+     where $V$ is the set of nodes, $\sigma(s, t)$ is the number of
+     shortest $(s, t)$-paths, and $\sigma(s, t|C)$ is the number of
+-    those paths passing through some node in group $C$. Note that
++    those paths passing through at least one node in group $C$. Note that
+     $(s, t)$ are not members of the group ($V-C$ is the set of nodes
+-    in $V$ that are not in $C$).
++    in $V$ that are not in $C$). A path is counted once no matter how many
++    nodes of the group it passes through: the measure is taken over the
++    group as a whole, not added up from the betweenness of its members.
+ 
+     Parameters
+     ----------
+@@ -44,11 +50,14 @@
+ 
+     C : list or set or list of lists or list of sets
+       A group or a list of groups containing nodes which belong to G, for which group betweenness
+-      centrality is to be calculated.
++      centrality is to be calculated. Groups in a list may overlap.
+ 
+     normalized : bool, optional (default=True)
+       If True, group betweenness is normalized by `1/((|V|-|C|)(|V|-|C|-1))`
+       where `|V|` is the number of nodes in G and `|C|` is the number of nodes in C.
++      For undirected graphs, this is the number of pairs of nodes not in C,
++      each pair counted once in each direction. If fewer than two nodes of G
++      are not in C, the normalized group betweenness is 0.
+ 
+     weight : None or string, optional (default=None)
+       If None, all edge weights are considered equal.
+@@ -56,7 +65,9 @@
+       The weight of an edge is treated as the length or distance between the two sides.
+ 
+     endpoints : bool, optional (default=False)
+-      If True include the endpoints in the shortest path counts.
++      If True include the endpoints in the shortest path counts: the sum
++      above is taken over all pairs of distinct nodes $s, t \in V$, and a
++      shortest path with an endpoint in $C$ passes through $C$.
+ 
+     Raises
+     ------
+@@ -76,11 +87,17 @@
+     Notes
+     -----
+     Group betweenness centrality is described in [1]_ and its importance discussed in [3]_.
+-    The initial implementation of the algorithm is mentioned in [2]_. This function uses
+-    an improved algorithm presented in [4]_.
++    The initial implementation of the algorithm is mentioned in [2]_.
++    For each source node, this function computes the shortest paths from
++    that source once for all the groups, and then counts the shortest paths
++    that avoid each group, $\sigma(s, t) - \sigma(s, t|C)$, on the shortest
++    path directed acyclic graph rooted at the source. With $n$ nodes and $m$
++    edges, this takes $O(nm)$ time per group, plus the time of $n$ breadth
++    first searches (unweighted graphs) or $n$ runs of Dijkstra's algorithm
++    (weighted graphs). See [4]_ for an algorithm suited to the successive
++    computation of many groups.
+ 
+-    The number of nodes in the group must be a maximum of n - 2 where `n`
+-    is the total number of nodes in the graph.
++    Any group of nodes is accepted, up to all the nodes of the graph.
+ 
+     For weighted graphs the edge weights must be greater than zero.
+     Zero edge weights can produce an infinite number of equal length
+@@ -93,6 +110,21 @@
+     as one path. Said another way, the sum in the expression above is
+     over all ``s != t`` for directed graphs and for ``s < t`` for undirected graphs.
+ 
++    Examples
++    --------
++    In a path graph, every shortest path between the nodes before and the
++    nodes after a group passes through it:
++
++    >>> G = nx.path_graph(5)
++    >>> nx.group_betweenness_centrality(G, [1], normalized=False)
++    3.0
++    >>> nx.group_betweenness_centrality(G, [1, 3], normalized=False)
++    3.0
++
++    Several groups, which may overlap, can be evaluated in one call:
++
++    >>> nx.group_betweenness_centrality(G, [[1, 2], [2, 3]], normalized=False)
++    [2.0, 2.0]
+ 
+     References
+     ----------
+@@ -114,90 +146,136 @@
+        https://journals.aps.org/pre/pdf/10.1103/PhysRevE.76.056709
+ 
+     """
+-    GBC = []  # initialize betweenness
+     list_of_groups = True
+-    #  check weather C contains one or many groups
++    #  check whether C contains one or many groups
+     if any(el in G for el in C):
+         C = [C]
+         list_of_groups = False
+-    set_v = {node for group in C for node in group}
++    groups = [set(group) for group in C]
++    set_v = set().union(*groups)
+     if set_v - G.nodes:  # element(s) of C not in G
+         raise nx.NodeNotFound(f"The node(s) {set_v - G.nodes} are in C but not in G.")
+ 
+-    # pre-processing
+-    PB, sigma, D = _group_preprocessing(G, set_v, weight)
++    directed = G.is_directed()
++    # For undirected graphs, each pair {s, t} is counted once: when the
++    # position of t in the node order is after the position of s.
++    order = None if directed else {node: i for i, node in enumerate(G)}
++
++    GBC = [0.0] * len(groups)
++    if groups:
++        for s in G:
++            # Without endpoints, sources in a group do not count for it.
++            todo = [i for i, group in enumerate(groups) if endpoints or s not in group]
++            if not todo:
++                continue
++            S, P, sigma = _shortest_path_dag(G, s, weight)
++            for i in todo:
++                GBC[i] += _group_dependency(s, S, P, sigma, groups[i], endpoints, order)
+ 
+-    # the algorithm for each group
+-    for group in C:
+-        group = set(group)  # set of nodes in group
+-        # initialize the matrices of the sigma and the PB
+-        GBC_group = 0
+-        sigma_m = deepcopy(sigma)
+-        PB_m = deepcopy(PB)
+-        sigma_m_v = deepcopy(sigma_m)
+-        PB_m_v = deepcopy(PB_m)
+-        for v in group:
+-            GBC_group += PB_m[v][v]
+-            for x in group:
+-                for y in group:
+-                    dxvy = 0
+-                    dxyv = 0
+-                    dvxy = 0
+-                    if not (
+-                        sigma_m[x][y] == 0 or sigma_m[x][v] == 0 or sigma_m[v][y] == 0
+-                    ):
+-                        if D[x][v] == D[x][y] + D[y][v]:
+-                            dxyv = sigma_m[x][y] * sigma_m[y][v] / sigma_m[x][v]
+-                        if D[x][y] == D[x][v] + D[v][y]:
+-                            dxvy = sigma_m[x][v] * sigma_m[v][y] / sigma_m[x][y]
+-                        if D[v][y] == D[v][x] + D[x][y]:
+-                            dvxy = sigma_m[v][x] * sigma[x][y] / sigma[v][y]
+-                    sigma_m_v[x][y] = sigma_m[x][y] * (1 - dxvy)
+-                    PB_m_v[x][y] = PB_m[x][y] - PB_m[x][y] * dxvy
+-                    if y != v:
+-                        PB_m_v[x][y] -= PB_m[x][v] * dxyv
+-                    if x != v:
+-                        PB_m_v[x][y] -= PB_m[v][y] * dvxy
+-            sigma_m, sigma_m_v = sigma_m_v, sigma_m
+-            PB_m, PB_m_v = PB_m_v, PB_m
+-
+-        # endpoints
+-        v, c = len(G), len(group)
+-        if not endpoints:
+-            scale = 0
+-            # if the graph is connected then subtract the endpoints from
+-            # the count for all the nodes in the graph. else count how many
+-            # nodes are connected to the group's nodes and subtract that.
+-            if nx.is_directed(G):
+-                if nx.is_strongly_connected(G):
+-                    scale = c * (2 * v - c - 1)
+-            elif nx.is_connected(G):
+-                scale = c * (2 * v - c - 1)
+-            if scale == 0:
+-                for group_node1 in group:
+-                    for node in D[group_node1]:
+-                        if node != group_node1:
+-                            if node in group:
+-                                scale += 1
+-                            else:
+-                                scale += 2
+-            GBC_group -= scale
+-
+-        # normalized
++    v = len(G)
++    for i, group in enumerate(groups):
+         if normalized:
+-            scale = 1 / ((v - c) * (v - c - 1))
+-            GBC_group *= scale
+-
+-        # If undirected than count only the undirected edges
+-        elif not G.is_directed():
+-            GBC_group /= 2
++            c = len(group)
++            # number of ordered pairs of distinct nodes outside the group
++            pairs = (v - c) * (v - c - 1)
++            ordered_sum = GBC[i] if directed else 2 * GBC[i]
++            GBC[i] = ordered_sum / pairs if pairs > 0 else 0.0
+ 
+-        GBC.append(GBC_group)
+     if list_of_groups:
+         return GBC
+     return GBC[0]
+ 
+ 
++def _shortest_path_dag(G, s, weight):
++    """Shortest paths from `s`, as needed to compute group betweenness.
++
++    Returns
++    -------
++    S : list
++        The nodes reachable from `s`, in order of non-decreasing distance
++        (`s` first).
++    P : dict
++        Maps each node in `S` to the list of its predecessors on shortest
++        paths from `s`.
++    sigma : dict
++        Maps each node in `S` to the number of shortest paths from `s` to
++        it, as an exact integer.
++    """
++    S = []
++    P = {s: []}
++    sigma = {s: 1}
++    if weight is None:  # use BFS
++        D = {s: 0}
++        Q = deque([s])
++        while Q:
++            v = Q.popleft()
++            S.append(v)
++            dist = D[v] + 1
++            for w in G._adj[v]:
++                if w not in D:
++                    D[w] = dist
++                    sigma[w] = 0
++                    P[w] = []
++                    Q.append(w)
++                if D[w] == dist:  # this is a shortest path, count paths
++                    sigma[w] += sigma[v]
++                    P[w].append(v)
++        return S, P, sigma
++
++    # use Dijkstra's algorithm
++    weight = _weight_function(G, weight)
++    D = {}
++    seen = {s: 0}
++    c = count()
++    Q = [(0, next(c), s)]
++    while Q:
++        dist, _, v = heappop(Q)
++        if v in D:
++            continue  # already searched this node.
++        D[v] = dist
++        S.append(v)
++        for w, edgedata in G._adj[v].items():
++            cost = weight(v, w, edgedata)
++            if cost is None or w in D:
++                continue
++            vw_dist = dist + cost
++            if w not in seen or vw_dist < seen[w]:
++                seen[w] = vw_dist
++                heappush(Q, (vw_dist, next(c), w))
++                sigma[w] = sigma[v]
++                P[w] = [v]
++            elif vw_dist == seen[w]:  # handle equal paths
++                sigma[w] += sigma[v]
++                P[w].append(v)
++    return S, P, sigma
++
++
++def _group_dependency(s, S, P, sigma, group, endpoints, order):
++    """Sum over targets `t` of the fraction of shortest (s, t)-paths through `group`.
++
++    The shortest paths from `s` that avoid the group are counted on the
++    shortest path DAG described by `S`, `P` and `sigma`. If `order` is not
++    None, only targets after `s` in `order` are taken into account.
++    """
++    s_order = None if order is None else order[s]
++    # number of shortest paths from s that avoid all the nodes of the group
++    avoiding = {s: 0 if s in group else 1}
++    dependency = 0.0
++    for t in S[1:]:
++        if t in group:
++            avoiding[t] = 0
++            if not endpoints:
++                continue
++        else:
++            avoiding[t] = sum(avoiding[p] for p in P[t])
++        if s_order is not None and order[t] < s_order:
++            continue
++        through = sigma[t] - avoiding[t]
++        if through:
++            dependency += through / sigma[t]
++    return dependency
++
++
+ def _group_preprocessing(G, set_v, weight):
+     sigma = {}
+     delta = {}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/connectivity/connectivity.py /app/networkx/algorithms/connectivity/connectivity.py
+--- /opt/pristine/networkx/algorithms/connectivity/connectivity.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/connectivity/connectivity.py	2026-11-17 07:29:01.000000000 +0000
+@@ -309,21 +309,24 @@
+         return local_node_connectivity(G, s, t, flow_func=flow_func)
+ 
+     # Global node connectivity
+-    if G.is_directed():
++    directed = G.is_directed()
++    if directed:
+         if not nx.is_weakly_connected(G):
+             return 0
+         iter_func = itertools.permutations
+         # It is necessary to consider both predecessors
+-        # and successors for directed graphs
++        # and successors for directed graphs. A node can be both.
+ 
+         def neighbors(v):
+-            return itertools.chain.from_iterable([G.predecessors(v), G.successors(v)])
++            return set(G.pred[v]) | set(G.succ[v])
+ 
+     else:
+         if not nx.is_connected(G):
+             return 0
+         iter_func = itertools.combinations
+-        neighbors = G.neighbors
++
++        def neighbors(v):
++            return set(G[v])
+ 
+     # Reuse the auxiliary digraph and the residual network
+     H = build_auxiliary_node_connectivity(G)
+@@ -331,14 +334,21 @@
+     kwargs = {"flow_func": flow_func, "auxiliary": H, "residual": R}
+ 
+     # Pick a node with minimum degree
+-    # Node connectivity is bounded by degree.
++    # Node connectivity is bounded by degree. In a digraph it is bounded by
++    # both the in-degree and the out-degree of any node.
+     v, K = min(G.degree(), key=itemgetter(1))
++    if directed:
++        K = min(G.in_degree(v), G.out_degree(v))
++    nbrs_v = neighbors(v)
+     # compute local node connectivity with all its non-neighbors nodes
+-    for w in set(G) - set(neighbors(v)) - {v}:
+-        kwargs["cutoff"] = K
+-        K = min(K, local_node_connectivity(G, v, w, **kwargs))
++    # (in both directions for digraphs)
++    for w in set(G) - nbrs_v - {v}:
++        pairs = [(v, w), (w, v)] if directed else [(v, w)]
++        for x, y in pairs:
++            kwargs["cutoff"] = K
++            K = min(K, local_node_connectivity(G, x, y, **kwargs))
+     # Also for non adjacent pairs of neighbors of v
+-    for x, y in iter_func(neighbors(v), 2):
++    for x, y in iter_func(nbrs_v, 2):
+         if y in G[x]:
+             continue
+         kwargs["cutoff"] = K
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/connectivity/cuts.py /app/networkx/algorithms/connectivity/cuts.py
+--- /opt/pristine/networkx/algorithms/connectivity/cuts.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/connectivity/cuts.py	2026-11-17 07:28:48.000000000 +0000
+@@ -207,9 +207,18 @@
+         Set of nodes that, if removed, would destroy all paths between
+         source and target in G.
+ 
+-        Returns an empty set if source and target are either in different
+-        components or are directly connected by an edge, as no node removal
+-        can destroy the path.
++        Returns an empty set if there is no path from source to target
++        (for instance, if they are in different components) or if there is
++        an edge from source to target, as no node removal can destroy that
++        path. For directed graphs only an edge from source to target
++        matters: an edge from target to source is not a path from source
++        to target.
++
++    Raises
++    ------
++    NetworkXError
++        If source or target is not in G, if they are the same node, or if
++        the auxiliary digraph is invalid.
+ 
+     Examples
+     --------
+@@ -294,7 +303,15 @@
+     mapping = H.graph.get("mapping", None)
+     if mapping is None:
+         raise nx.NetworkXError("Invalid auxiliary digraph.")
+-    if G.has_edge(s, t) or G.has_edge(t, s):
++    if s not in G:
++        raise nx.NetworkXError(f"node {s} not in graph")
++    if t not in G:
++        raise nx.NetworkXError(f"node {t} not in graph")
++    if s == t:
++        raise nx.NetworkXError("source and target are the same node")
++    # No set of nodes other than s and t can destroy the path made of an edge
++    # from s to t. In a directed graph an edge from t to s is no such path.
++    if G.has_edge(s, t):
+         return set()
+     kwargs = {"flow_func": flow_func, "residual": residual, "auxiliary": H}
+ 
+@@ -413,19 +430,23 @@
+ 
+     # Global minimum node cut.
+     # Analog to the algorithm 11 for global node connectivity in [1].
+-    if G.is_directed():
++    directed = G.is_directed()
++    if directed:
+         if not nx.is_weakly_connected(G):
+             raise nx.NetworkXError("Input graph is not connected")
+         iter_func = itertools.permutations
+ 
+         def neighbors(v):
+-            return itertools.chain.from_iterable([G.predecessors(v), G.successors(v)])
++            # A node can be both a predecessor and a successor of v.
++            return set(G.pred[v]) | set(G.succ[v])
+ 
+     else:
+         if not nx.is_connected(G):
+             raise nx.NetworkXError("Input graph is not connected")
+         iter_func = itertools.combinations
+-        neighbors = G.neighbors
++
++        def neighbors(v):
++            return set(G[v])
+ 
+     # Reuse the auxiliary digraph and the residual network.
+     H = build_auxiliary_node_connectivity(G)
+@@ -434,15 +455,24 @@
+ 
+     # Choose a node with minimum degree.
+     v = min(G, key=G.degree)
++    nbrs_v = neighbors(v)
+     # Initial node cutset is all neighbors of the node with minimum degree.
+-    min_cut = set(G[v])
++    # In a digraph removing either the predecessors or the successors of v
++    # separates v from the other nodes, so start with the smaller set.
++    if directed:
++        min_cut = min(set(G.pred[v]), set(G.succ[v]), key=len)
++    else:
++        min_cut = nbrs_v
+     # Compute st node cuts between v and all its non-neighbors nodes in G.
+-    for w in set(G) - set(neighbors(v)) - {v}:
+-        this_cut = minimum_st_node_cut(G, v, w, **kwargs)
+-        if len(min_cut) >= len(this_cut):
+-            min_cut = this_cut
++    # In a digraph a minimum cut may separate v from w or w from v.
++    for w in set(G) - nbrs_v - {v}:
++        pairs = [(v, w), (w, v)] if directed else [(v, w)]
++        for x, y in pairs:
++            this_cut = minimum_st_node_cut(G, x, y, **kwargs)
++            if len(min_cut) >= len(this_cut):
++                min_cut = this_cut
+     # Also for non adjacent pairs of neighbors of v.
+-    for x, y in iter_func(neighbors(v), 2):
++    for x, y in iter_func(nbrs_v, 2):
+         if y in G[x]:
+             continue
+         this_cut = minimum_st_node_cut(G, x, y, **kwargs)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/connectivity/kcomponents.py /app/networkx/algorithms/connectivity/kcomponents.py
+--- /opt/pristine/networkx/algorithms/connectivity/kcomponents.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/connectivity/kcomponents.py	2026-11-17 07:45:52.000000000 +0000
+@@ -77,8 +77,28 @@
+         4. If the graph is neither complete nor trivial, return to 1;
+            else end.
+ 
+-    This implementation also uses some heuristics (see [3]_ for details)
+-    to speed up the computation.
++    This implementation follows the same hierarchical scheme, splitting
++    along one minimum node cut at a time. It relies on the fact that a
++    `k`-connected subgraph cannot be split by removing fewer than `k` nodes:
++    if `S` is a node cut of a subgraph `C` with `|S| < k`, every
++    `k`-component inside `C` lies inside ``D | S`` for a single connected
++    component `D` of ``C - S``. Thus, starting from the bicomponents of G:
++
++        1. Restrict the current subgraph to its `(l+1)`-core, where `l` is
++           the highest connectivity level already accounted for (nodes of a
++           `k`-component have at least `k` neighbors in it), and process
++           each of its bicomponents `C` with more than `l + 1` nodes.
++
++        2. Compute a minimum node cut `S` of `C` (`C` is complete if it has
++           none), which gives its node connectivity `k = |S|`. If `k > l`,
++           `C` is a `j`-component of G for every `l < j <= k`.
++
++        3. Recurse on ``D | S`` for each connected component `D` of
++           ``C - S``, with level ``max(l, k)``.
++
++    Every component reported at level `k` therefore has node connectivity
++    at least `k`, and is maximal with that property. The heuristics of [3]_
++    (cores and bicomponents) are used to prune the search.
+ 
+     See also
+     --------
+@@ -111,49 +131,54 @@
+     # Define default flow function
+     if flow_func is None:
+         flow_func = default_flow_func
++    # Self-loops and parallel edges do not change node connectivity.
++    if G.is_multigraph() or nx.number_of_selfloops(G) > 0:
++        G = nx.Graph(G)
++        G.remove_edges_from(nx.selfloop_edges(G))
+     # Bicomponents as a base to check for higher order k-components
+     for component in nx.connected_components(G):
+         # isolated nodes have connectivity 0
+         comp = set(component)
+         if len(comp) > 1:
+             k_components[1].append(comp)
+-    bicomponents = [G.subgraph(c) for c in nx.biconnected_components(G)]
+-    for bicomponent in bicomponents:
+-        bicomp = set(bicomponent)
++    bicomponents = [set(c) for c in nx.biconnected_components(G)]
++    for bicomp in bicomponents:
+         # avoid considering dyads as bicomponents
+         if len(bicomp) > 2:
+             k_components[2].append(bicomp)
+-    for B in bicomponents:
+-        if len(B) <= 2:
+-            continue
+-        k = nx.node_connectivity(B, flow_func=flow_func)
+-        if k > 2:
+-            k_components[k].append(set(B))
+-        # Perform cuts in a DFS like order.
+-        cuts = list(nx.all_node_cuts(B, k=k, flow_func=flow_func))
+-        stack = [(k, _generate_partition(B, cuts, k))]
+-        while stack:
+-            (parent_k, partition) = stack[-1]
+-            try:
+-                nodes = next(partition)
+-                C = B.subgraph(nodes)
+-                this_k = nx.node_connectivity(C, flow_func=flow_func)
+-                if this_k > parent_k and this_k > 2:
+-                    k_components[this_k].append(set(C))
+-                cuts = list(nx.all_node_cuts(C, k=this_k, flow_func=flow_func))
+-                if cuts:
+-                    stack.append((this_k, _generate_partition(C, cuts, this_k)))
+-            except StopIteration:
+-                stack.pop()
+-
+-    # This is necessary because k-components may only be reported at their
+-    # maximum k level. But we want to return a dictionary in which keys are
+-    # connectivity levels and values list of sets of components, without
+-    # skipping any connectivity level. Also, it's possible that subsets of
+-    # an already detected k-component appear at a level k. Checking for this
+-    # in the while loop above penalizes the common case. Thus we also have to
+-    # _consolidate all connectivity levels in _reconstruct_k_components.
+-    return _reconstruct_k_components(k_components)
++
++    # Perform cuts in a DFS like order. Each entry of the stack is a set of
++    # nodes and a level such that, for every k > level, any k-component of G
++    # sharing more than `level` nodes with the set lies inside it.
++    stack = [(bicomp, 2) for bicomp in bicomponents if len(bicomp) > 3]
++    while stack:
++        nodes, level = stack.pop()
++        # Nodes of a k-component have at least k neighbors inside it.
++        core = nx.k_core(G.subgraph(nodes), level + 1)
++        # A k-component with k > level > 1 is biconnected, so it lies inside
++        # one of the bicomponents of the core, and has at least k + 1 nodes.
++        for block in nx.biconnected_components(core):
++            if len(block) <= level + 1:
++                continue
++            C = G.subgraph(block)
++            if C.number_of_edges() == len(C) * (len(C) - 1) // 2:
++                # A complete graph has no node cut.
++                cut = None
++                k = len(C) - 1
++            else:
++                cut = nx.minimum_node_cut(C, flow_func=flow_func)
++                k = len(cut)
++            # C is j-connected for level < j <= k. The j-component of G that
++            # contains C lies inside the nodes of this entry, hence inside the
++            # core and inside its bicomponent C: C is that j-component.
++            for j in range(level + 1, k + 1):
++                k_components[j].append(set(block))
++            if cut is not None:
++                # Higher order k-components lie on one side of the cut.
++                for part in nx.connected_components(G.subgraph(block - cut)):
++                    stack.append((part | cut, max(level, k)))
++
++    return {k: k_components[k] for k in sorted(k_components, reverse=True)}
+ 
+ 
+ def _consolidate(sets, k):
+@@ -178,39 +203,6 @@
+         yield set.union(*[nodes[n] for n in component])
+ 
+ 
+-def _generate_partition(G, cuts, k):
+-    def has_nbrs_in_partition(G, node, partition):
+-        return any(n in partition for n in G[node])
+-
+-    components = []
+-    n_in_cuts = {n for cut in cuts for n in cut}
+-    nodes = {n for n, d in G.degree() if d > k} - n_in_cuts
+-    H = G.subgraph(nodes)
+-    for cc in map(set, nx.connected_components(H)):
+-        component = cc | {n for n in n_in_cuts if has_nbrs_in_partition(G, n, cc)}
+-        if len(component) < G.order():
+-            components.append(component)
+-    yield from _consolidate(components, k + 1)
+-
+-
+-def _reconstruct_k_components(k_comps):
+-    result = {}
+-    max_k = max(k_comps) if k_comps else 0
+-    for k in range(max_k, 0, -1):
+-        if k == max_k:
+-            result[k] = list(_consolidate(k_comps[k], k))
+-        elif k not in k_comps:
+-            result[k] = list(_consolidate(result[k + 1], k))
+-        else:
+-            nodes_at_k = set.union(*k_comps[k])
+-            to_add = [c for c in result[k + 1] if any(n not in nodes_at_k for n in c)]
+-            if to_add:
+-                result[k] = list(_consolidate(k_comps[k] + to_add, k))
+-            else:
+-                result[k] = list(_consolidate(k_comps[k], k))
+-    return result
+-
+-
+ def build_k_number_dict(kcomps):
+     return {
+         node: k
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/boykovkolmogorov.py /app/networkx/algorithms/flow/boykovkolmogorov.py
+--- /opt/pristine/networkx/algorithms/flow/boykovkolmogorov.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/boykovkolmogorov.py	2026-11-17 07:22:22.000000000 +0000
+@@ -6,12 +6,16 @@
+ from operator import itemgetter
+ 
+ import networkx as nx
+-from networkx.algorithms.flow.utils import build_residual_network
++from networkx.algorithms.flow.utils import _capacity_function, build_residual_network
+ 
+ __all__ = ["boykov_kolmogorov"]
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def boykov_kolmogorov(
+     G, s, t, capacity="capacity", residual=None, value_only=False, cutoff=None
+ ):
+@@ -39,11 +43,21 @@
+     t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     residual : NetworkX graph
+         Residual network on which the algorithm is to be executed. If None, a
+@@ -169,6 +183,7 @@
+     if s == t:
+         raise nx.NetworkXError("source and sink are the same node")
+ 
++    capacity = _capacity_function(G, capacity)
+     if residual is None:
+         R = build_residual_network(G, capacity)
+     else:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/dinitz_alg.py /app/networkx/algorithms/flow/dinitz_alg.py
+--- /opt/pristine/networkx/algorithms/flow/dinitz_alg.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/dinitz_alg.py	2026-11-17 07:22:22.000000000 +0000
+@@ -5,13 +5,17 @@
+ from collections import deque
+ 
+ import networkx as nx
+-from networkx.algorithms.flow.utils import build_residual_network
++from networkx.algorithms.flow.utils import _capacity_function, build_residual_network
+ from networkx.utils import pairwise
+ 
+ __all__ = ["dinitz"]
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def dinitz(G, s, t, capacity="capacity", residual=None, value_only=False, cutoff=None):
+     """Find a maximum single-commodity flow using Dinitz' algorithm.
+ 
+@@ -36,11 +40,21 @@
+     t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     residual : NetworkX graph
+         Residual network on which the algorithm is to be executed. If None, a
+@@ -148,6 +162,7 @@
+     if s == t:
+         raise nx.NetworkXError("source and sink are the same node")
+ 
++    capacity = _capacity_function(G, capacity)
+     if residual is None:
+         R = build_residual_network(G, capacity)
+     else:
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/edmondskarp.py /app/networkx/algorithms/flow/edmondskarp.py
+--- /opt/pristine/networkx/algorithms/flow/edmondskarp.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/edmondskarp.py	2026-11-17 07:22:22.000000000 +0000
+@@ -3,7 +3,7 @@
+ """
+ 
+ import networkx as nx
+-from networkx.algorithms.flow.utils import build_residual_network
++from networkx.algorithms.flow.utils import _capacity_function, build_residual_network
+ 
+ __all__ = ["edmonds_karp"]
+ 
+@@ -100,6 +100,7 @@
+     if s == t:
+         raise nx.NetworkXError("source and sink are the same node")
+ 
++    capacity = _capacity_function(G, capacity)
+     if residual is None:
+         R = build_residual_network(G, capacity)
+     else:
+@@ -117,7 +118,11 @@
+     return R
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def edmonds_karp(
+     G, s, t, capacity="capacity", residual=None, value_only=False, cutoff=None
+ ):
+@@ -144,11 +149,21 @@
+     t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     residual : NetworkX graph
+         Residual network on which the algorithm is to be executed. If None, a
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/gomory_hu.py /app/networkx/algorithms/flow/gomory_hu.py
+--- /opt/pristine/networkx/algorithms/flow/gomory_hu.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/gomory_hu.py	2026-11-17 07:24:28.000000000 +0000
+@@ -14,7 +14,11 @@
+ 
+ 
+ @not_implemented_for("directed")
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def gomory_hu_tree(G, capacity="capacity", flow_func=None):
+     r"""Returns the Gomory-Hu tree of an undirected graph G.
+ 
+@@ -41,11 +45,21 @@
+     G : NetworkX graph
+         Undirected graph
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     flow_func : function
+         Function to perform the underlying flow computations. Default value
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/maxflow.py /app/networkx/algorithms/flow/maxflow.py
+--- /opt/pristine/networkx/algorithms/flow/maxflow.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/maxflow.py	2026-11-17 07:45:09.000000000 +0000
+@@ -2,6 +2,8 @@
+ Maximum flow (and minimum cut) algorithms on capacitated graphs.
+ """
+ 
++from collections import deque
++
+ import networkx as nx
+ 
+ from .boykovkolmogorov import boykov_kolmogorov
+@@ -14,10 +16,75 @@
+ # Define the default flow function for computing maximum flow.
+ default_flow_func = preflow_push
+ 
++# Flow functions that cannot stop early once the flow value reaches a cutoff:
++# they have no ``cutoff`` parameter. A tuple, so that membership tests work
++# for any callable passed as flow_func, hashable or not.
++_flow_funcs_without_cutoff = (preflow_push,)
++
+ __all__ = ["maximum_flow", "maximum_flow_value", "minimum_cut", "minimum_cut_value"]
+ 
+ 
+-@nx._dispatchable(graphs="flowG", edge_attrs={"capacity": float("inf")})
++def _resolve_flow_func(flow_func, kwargs):
++    """Validate the flow function and the keyword arguments meant for it.
++
++    Returns the flow function to use (the default one if `flow_func` is None)
++    together with the keyword arguments to pass to it.
++
++    Raises
++    ------
++    NetworkXError
++        If `kwargs` are given without an explicit `flow_func`, if `flow_func`
++        is not callable, or if a `cutoff` is requested from a flow function
++        that cannot honour it.
++    """
++    if flow_func is None:
++        if kwargs:
++            raise nx.NetworkXError(
++                "You have to explicitly set a flow_func if"
++                " you need to pass parameters via kwargs."
++            )
++        flow_func = default_flow_func
++
++    if not callable(flow_func):
++        raise nx.NetworkXError("flow_func has to be callable.")
++
++    if "cutoff" in kwargs and flow_func in _flow_funcs_without_cutoff:
++        if kwargs["cutoff"] is not None:
++            raise nx.NetworkXError(
++                "cutoff should not be specified: "
++                f"{flow_func.__name__} does not support a cutoff."
++            )
++        # A cutoff of None means "no cutoff", which is all this function does.
++        kwargs = {key: val for key, val in kwargs.items() if key != "cutoff"}
++
++    return flow_func, kwargs
++
++
++def _source_side_of_cut(R, s):
++    """Returns the set of nodes reachable from `s` in the residual network `R`.
++
++    An edge ``(u, v)`` of `R` can be traversed iff it has positive residual
++    capacity, that is, ``R[u][v]["flow"] < R[u][v]["capacity"]``. If the flow
++    stored in `R` is a maximum flow, the returned set is the source side of
++    the minimum cut induced by that flow (the max-flow min-cut theorem).
++    """
++    R_succ = R.succ
++    seen = {s}
++    queue = deque([s])
++    while queue:
++        u = queue.popleft()
++        for v, attr in R_succ[u].items():
++            if v not in seen and attr["flow"] < attr["capacity"]:
++                seen.add(v)
++                queue.append(v)
++    return seen
++
++
++@nx._dispatchable(
++    graphs="flowG",
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++)
+ def maximum_flow(flowG, _s, _t, capacity="capacity", flow_func=None, **kwargs):
+     """Find a maximum single-commodity flow.
+ 
+@@ -34,11 +101,21 @@
+     _t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     flow_func : function
+         A function for computing the maximum flow among a pair of nodes
+@@ -52,7 +129,13 @@
+         None.
+ 
+     kwargs : Any other keyword parameter is passed to the function that
+-        computes the maximum flow.
++        computes the maximum flow. For instance, a `cutoff` makes the
++        flow function stop as soon as the flow value reaches or exceeds it,
++        in which case the flow returned may not be a maximum flow.
++        Every flow function in NetworkX supports `cutoff` except
++        :meth:`preflow_push`, which cannot stop early: specifying a
++        `cutoff` (other than None) together with :meth:`preflow_push`
++        raises a NetworkXError.
+ 
+     Returns
+     -------
+@@ -68,7 +151,9 @@
+     NetworkXError
+         The algorithm does not support MultiGraph and MultiDiGraph. If
+         the input graph is an instance of one of these two classes, a
+-        NetworkXError is raised.
++        NetworkXError is raised. A NetworkXError is also raised if a
++        `cutoff` is specified for a flow function that does not support
++        it (:meth:`preflow_push`).
+ 
+     NetworkXUnbounded
+         If the graph has a path of infinite capacity, the value of a
+@@ -151,16 +236,7 @@
+     True
+ 
+     """
+-    if flow_func is None:
+-        if kwargs:
+-            raise nx.NetworkXError(
+-                "You have to explicitly set a flow_func if"
+-                " you need to pass parameters via kwargs."
+-            )
+-        flow_func = default_flow_func
+-
+-    if not callable(flow_func):
+-        raise nx.NetworkXError("flow_func has to be callable.")
++    flow_func, kwargs = _resolve_flow_func(flow_func, kwargs)
+ 
+     R = flow_func(flowG, _s, _t, capacity=capacity, value_only=False, **kwargs)
+     flow_dict = build_flow_dict(flowG, R)
+@@ -168,7 +244,11 @@
+     return (R.graph["flow_value"], flow_dict)
+ 
+ 
+-@nx._dispatchable(graphs="flowG", edge_attrs={"capacity": float("inf")})
++@nx._dispatchable(
++    graphs="flowG",
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++)
+ def maximum_flow_value(flowG, _s, _t, capacity="capacity", flow_func=None, **kwargs):
+     """Find the value of maximum single-commodity flow.
+ 
+@@ -185,11 +265,21 @@
+     _t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     flow_func : function
+         A function for computing the maximum flow among a pair of nodes
+@@ -203,7 +293,14 @@
+         None.
+ 
+     kwargs : Any other keyword parameter is passed to the function that
+-        computes the maximum flow.
++        computes the maximum flow. For instance, a `cutoff` makes the
++        flow function stop as soon as the flow value reaches or exceeds it,
++        in which case the value returned may be less than the maximum
++        flow value.
++        Every flow function in NetworkX supports `cutoff` except
++        :meth:`preflow_push`, which cannot stop early: specifying a
++        `cutoff` (other than None) together with :meth:`preflow_push`
++        raises a NetworkXError.
+ 
+     Returns
+     -------
+@@ -215,7 +312,9 @@
+     NetworkXError
+         The algorithm does not support MultiGraph and MultiDiGraph. If
+         the input graph is an instance of one of these two classes, a
+-        NetworkXError is raised.
++        NetworkXError is raised. A NetworkXError is also raised if a
++        `cutoff` is specified for a flow function that does not support
++        it (:meth:`preflow_push`).
+ 
+     NetworkXUnbounded
+         If the graph has a path of infinite capacity, the value of a
+@@ -292,23 +391,18 @@
+     True
+ 
+     """
+-    if flow_func is None:
+-        if kwargs:
+-            raise nx.NetworkXError(
+-                "You have to explicitly set a flow_func if"
+-                " you need to pass parameters via kwargs."
+-            )
+-        flow_func = default_flow_func
+-
+-    if not callable(flow_func):
+-        raise nx.NetworkXError("flow_func has to be callable.")
++    flow_func, kwargs = _resolve_flow_func(flow_func, kwargs)
+ 
+     R = flow_func(flowG, _s, _t, capacity=capacity, value_only=True, **kwargs)
+ 
+     return R.graph["flow_value"]
+ 
+ 
+-@nx._dispatchable(graphs="flowG", edge_attrs={"capacity": float("inf")})
++@nx._dispatchable(
++    graphs="flowG",
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++)
+ def minimum_cut(flowG, _s, _t, capacity="capacity", flow_func=None, **kwargs):
+     """Compute the value and the node partition of a minimum (s, t)-cut.
+ 
+@@ -328,11 +422,21 @@
+     _t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     flow_func : function
+         A function for computing the maximum flow among a pair of nodes
+@@ -346,7 +450,13 @@
+         None.
+ 
+     kwargs : Any other keyword parameter is passed to the function that
+-        computes the maximum flow.
++        computes the maximum flow. For instance, a `cutoff` makes the
++        flow function stop as soon as the flow value reaches or exceeds it,
++        in which case the partition returned may not define a minimum cut.
++        Every flow function in NetworkX supports `cutoff` except
++        :meth:`preflow_push`, which cannot stop early: specifying a
++        `cutoff` (other than None) together with :meth:`preflow_push`
++        raises a NetworkXError.
+ 
+     Returns
+     -------
+@@ -354,13 +464,27 @@
+         Value of the minimum cut.
+ 
+     partition : pair of node sets
+-        A partitioning of the nodes that defines a minimum cut.
++        A partitioning of the nodes that defines a minimum cut. It is the
++        cut induced by the maximum flow computed by `flow_func`: the first
++        set contains the nodes reachable from the source in the residual
++        network of that flow (thus it always contains the source), and the
++        second set contains all the other nodes, including the sink. Nodes
++        that can neither be reached from the source nor reach the sink,
++        for instance nodes in components containing neither of them, are
++        in the second set.
+ 
+     Raises
+     ------
++    NetworkXError
++        The algorithm does not support MultiGraph and MultiDiGraph. If
++        the input graph is an instance of one of these two classes, a
++        NetworkXError is raised. A NetworkXError is also raised if a
++        `cutoff` is specified for a flow function that does not support
++        it (:meth:`preflow_push`).
++
+     NetworkXUnbounded
+         If the graph has a path of infinite capacity, all cuts have
+-        infinite capacity and the function raises a NetworkXError.
++        infinite capacity and the function raises a NetworkXUnbounded.
+ 
+     See also
+     --------
+@@ -433,6 +557,17 @@
+     >>> cut_value == sum(G.edges[u, v]["capacity"] for (u, v) in cutset)
+     True
+ 
++    The partition is the one induced by the maximum flow, so when several
++    minimum cuts exist the one closest to the source is returned. Here
++    both ``{"s"}`` and ``{"s", "a"}`` are source sides of minimum cuts,
++    but only ``"s"`` is reachable from the source in the residual network:
++
++    >>> H = nx.DiGraph()
++    >>> nx.add_path(H, ["s", "a", "t"], capacity=1)
++    >>> H_cut_value, (H_reachable, H_non_reachable) = nx.minimum_cut(H, "s", "t")
++    >>> sorted(H_reachable), sorted(H_non_reachable)
++    (['s'], ['a', 't'])
++
+     You can also use alternative algorithms for computing the
+     minimum cut by using the flow_func parameter.
+ 
+@@ -441,37 +576,28 @@
+     True
+ 
+     """
+-    if flow_func is None:
+-        if kwargs:
+-            raise nx.NetworkXError(
+-                "You have to explicitly set a flow_func if"
+-                " you need to pass parameters via kwargs."
+-            )
+-        flow_func = default_flow_func
++    flow_func, kwargs = _resolve_flow_func(flow_func, kwargs)
+ 
+-    if not callable(flow_func):
+-        raise nx.NetworkXError("flow_func has to be callable.")
+-
+-    if kwargs.get("cutoff") is not None and flow_func is preflow_push:
+-        raise nx.NetworkXError("cutoff should not be specified.")
++    # The cut is derived from the flow, so a complete maximum flow is needed:
++    # a maximum preflow (``value_only=True``) has the right value but its
++    # residual network does not induce the cut defined below.
++    R = flow_func(flowG, _s, _t, capacity=capacity, value_only=False, **kwargs)
+ 
+-    R = flow_func(flowG, _s, _t, capacity=capacity, value_only=True, **kwargs)
+-    # Remove saturated edges from the residual network
+-    cutset = [(u, v, d) for u, v, d in R.edges(data=True) if d["flow"] == d["capacity"]]
+-    R.remove_edges_from(cutset)
+-
+-    # Then, reachable and non reachable nodes from source in the
+-    # residual network form the node partition that defines
+-    # the minimum cut.
+-    non_reachable = set(nx.shortest_path_length(R, target=_t))
+-    partition = (set(flowG) - non_reachable, non_reachable)
+-    # Finally add again cutset edges to the residual network to make
+-    # sure that it is reusable.
+-    R.add_edges_from(cutset)
+-    return (R.graph["flow_value"], partition)
++    # The nodes reachable from the source in the residual network of a
++    # maximum flow, and the rest of the nodes, form the node partition that
++    # defines the minimum cut induced by that flow. Nodes that can neither be
++    # reached from the source nor reach the sink lie on the sink side. The
++    # residual network is not modified, so that it can be reused.
++    reachable = _source_side_of_cut(R, _s)
++    non_reachable = set(flowG) - reachable
++    return (R.graph["flow_value"], (reachable, non_reachable))
+ 
+ 
+-@nx._dispatchable(graphs="flowG", edge_attrs={"capacity": float("inf")})
++@nx._dispatchable(
++    graphs="flowG",
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++)
+ def minimum_cut_value(flowG, _s, _t, capacity="capacity", flow_func=None, **kwargs):
+     """Compute the value of a minimum (s, t)-cut.
+ 
+@@ -491,11 +617,21 @@
+     _t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     flow_func : function
+         A function for computing the maximum flow among a pair of nodes
+@@ -509,7 +645,14 @@
+         None.
+ 
+     kwargs : Any other keyword parameter is passed to the function that
+-        computes the maximum flow.
++        computes the maximum flow. For instance, a `cutoff` makes the
++        flow function stop as soon as the flow value reaches or exceeds it,
++        in which case the value returned may be less than the minimum
++        cut value.
++        Every flow function in NetworkX supports `cutoff` except
++        :meth:`preflow_push`, which cannot stop early: specifying a
++        `cutoff` (other than None) together with :meth:`preflow_push`
++        raises a NetworkXError.
+ 
+     Returns
+     -------
+@@ -518,9 +661,16 @@
+ 
+     Raises
+     ------
++    NetworkXError
++        The algorithm does not support MultiGraph and MultiDiGraph. If
++        the input graph is an instance of one of these two classes, a
++        NetworkXError is raised. A NetworkXError is also raised if a
++        `cutoff` is specified for a flow function that does not support
++        it (:meth:`preflow_push`).
++
+     NetworkXUnbounded
+         If the graph has a path of infinite capacity, all cuts have
+-        infinite capacity and the function raises a NetworkXError.
++        infinite capacity and the function raises a NetworkXUnbounded.
+ 
+     See also
+     --------
+@@ -592,19 +742,7 @@
+     True
+ 
+     """
+-    if flow_func is None:
+-        if kwargs:
+-            raise nx.NetworkXError(
+-                "You have to explicitly set a flow_func if"
+-                " you need to pass parameters via kwargs."
+-            )
+-        flow_func = default_flow_func
+-
+-    if not callable(flow_func):
+-        raise nx.NetworkXError("flow_func has to be callable.")
+-
+-    if kwargs.get("cutoff") is not None and flow_func is preflow_push:
+-        raise nx.NetworkXError("cutoff should not be specified.")
++    flow_func, kwargs = _resolve_flow_func(flow_func, kwargs)
+ 
+     R = flow_func(flowG, _s, _t, capacity=capacity, value_only=True, **kwargs)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/preflowpush.py /app/networkx/algorithms/flow/preflowpush.py
+--- /opt/pristine/networkx/algorithms/flow/preflowpush.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/preflowpush.py	2026-11-17 07:49:08.000000000 +0000
+@@ -12,6 +12,7 @@
+     CurrentEdge,
+     GlobalRelabelThreshold,
+     Level,
++    _capacity_function,
+     build_residual_network,
+     detect_unboundedness,
+ )
+@@ -33,6 +34,7 @@
+     if global_relabel_freq < 0:
+         raise nx.NetworkXError("global_relabel_freq must be nonnegative.")
+ 
++    capacity = _capacity_function(G, capacity)
+     if residual is None:
+         R = build_residual_network(G, capacity)
+     else:
+@@ -288,7 +290,11 @@
+     return R
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def preflow_push(
+     G, s, t, capacity="capacity", residual=None, global_relabel_freq=1, value_only=False
+ ):
+@@ -316,11 +322,21 @@
+     t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     residual : NetworkX graph
+         Residual network on which the algorithm is to be executed. If None, a
+@@ -336,6 +352,11 @@
+         which is enough for computing the maximum flow value. Default value:
+         False.
+ 
++        Unlike the other maximum flow functions, this function has no
++        `cutoff` parameter: it cannot stop as soon as the flow value reaches
++        a given value. :meth:`maximum_flow` and the related functions raise
++        a NetworkXError if a `cutoff` is specified together with it.
++
+     Returns
+     -------
+     R : NetworkX DiGraph
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/shortestaugmentingpath.py /app/networkx/algorithms/flow/shortestaugmentingpath.py
+--- /opt/pristine/networkx/algorithms/flow/shortestaugmentingpath.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/shortestaugmentingpath.py	2026-11-17 07:22:22.000000000 +0000
+@@ -7,7 +7,7 @@
+ import networkx as nx
+ 
+ from .edmondskarp import edmonds_karp_core
+-from .utils import CurrentEdge, build_residual_network
++from .utils import CurrentEdge, _capacity_function, build_residual_network
+ 
+ __all__ = ["shortest_augmenting_path"]
+ 
+@@ -21,6 +21,7 @@
+     if s == t:
+         raise nx.NetworkXError("source and sink are the same node")
+ 
++    capacity = _capacity_function(G, capacity)
+     if residual is None:
+         R = build_residual_network(G, capacity)
+     else:
+@@ -163,7 +164,11 @@
+     return R
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def shortest_augmenting_path(
+     G,
+     s,
+@@ -198,11 +203,21 @@
+     t : node
+         Sink node for the flow.
+ 
+-    capacity : string
+-        Edges of the graph G are expected to have an attribute capacity
+-        that indicates how much flow the edge can support. If this
+-        attribute is not present, the edge is considered to have
+-        infinite capacity. Default value: 'capacity'.
++    capacity : string or function
++        If this is a string, then edge capacities are read from the edge
++        attribute with this key: the edges of the graph G are expected to
++        have an attribute `capacity` that indicates how much flow the edge
++        can support. If this attribute is not present, the edge is
++        considered to have infinite capacity.
++
++        If this is a function, the capacity of an edge is the value
++        returned by the function. The function must accept exactly three
++        positional arguments: the two endpoints of an edge and the
++        dictionary of edge attributes for that edge. The function must
++        return a number or None to indicate a hidden edge, that is, an
++        edge that is ignored by the algorithm.
++
++        Default value: 'capacity'.
+ 
+     residual : NetworkX graph
+         Residual network on which the algorithm is to be executed. If None, a
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/flow/utils.py /app/networkx/algorithms/flow/utils.py
+--- /opt/pristine/networkx/algorithms/flow/utils.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/flow/utils.py	2026-11-17 07:21:30.000000000 +0000
+@@ -77,7 +77,74 @@
+         self._work = 0
+ 
+ 
+-@nx._dispatchable(edge_attrs={"capacity": float("inf")}, returns_graph=True)
++def _capacity_function(G, capacity):
++    """Returns a function that returns the capacity of an edge.
++
++    This is the single place where the flow algorithms resolve edge
++    capacities, so that all of them agree on how a capacity is read and on
++    what a missing capacity means.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        The graph whose edges are queried. MultiGraph and MultiDiGraph are
++        not supported.
++
++    capacity : string or function
++        If it is callable, `capacity` itself is returned. It must accept
++        exactly three positional arguments: the two endpoints of an edge
++        and the edge attribute dictionary for that edge, and it must return
++        either a number, the capacity of the edge, or None to indicate that
++        the edge is hidden, that is, it is ignored by the flow algorithms.
++
++        If it is a string, it is the name of the edge attribute that holds
++        the capacity of an edge. In that case a function is returned that
++        reads that attribute; edges without the attribute are considered to
++        have infinite capacity.
++
++    Returns
++    -------
++    function
++        A function with signature ``(u, v, d)`` returning the capacity of
++        the edge ``(u, v)`` with attribute dictionary ``d``, or None if the
++        edge is to be ignored.
++
++    Raises
++    ------
++    NetworkXError
++        If `G` is a MultiGraph or a MultiDiGraph.
++
++    Examples
++    --------
++    >>> from networkx.algorithms.flow.utils import _capacity_function
++    >>> G = nx.DiGraph()
++    >>> G.add_edge("x", "y", capacity=3)
++    >>> G.add_edge("y", "z")
++    >>> cap = _capacity_function(G, "capacity")
++    >>> cap("x", "y", G["x"]["y"])
++    3
++    >>> cap("y", "z", G["y"]["z"])
++    inf
++    >>> def hide_yz(u, v, d):
++    ...     return None if (u, v) == ("y", "z") else d.get("capacity", 1)
++    >>> _capacity_function(G, hide_yz) is hide_yz
++    True
++    """
++    if G.is_multigraph():
++        raise nx.NetworkXError("MultiGraph and MultiDiGraph not supported (yet).")
++    if callable(capacity):
++        return capacity
++    # The capacity is the name of an edge attribute. Missing attributes mean
++    # that the edge can carry an unlimited amount of flow.
++    inf = float("inf")
++    return lambda u, v, d: d.get(capacity, inf)
++
++
++@nx._dispatchable(
++    edge_attrs={"capacity": float("inf")},
++    preserve_edge_attrs="capacity",
++    returns_graph=True,
++)
+ def build_residual_network(G, capacity):
+     """Build a residual network and initialize a zero flow.
+ 
+@@ -85,7 +152,7 @@
+     same nodes as :samp:`G`. :samp:`R` is a DiGraph that contains a pair
+     of edges :samp:`(u, v)` and :samp:`(v, u)` iff :samp:`(u, v)` is not a
+     self-loop, and at least one of :samp:`(u, v)` and :samp:`(v, u)` exists
+-    in :samp:`G`.
++    in :samp:`G` with a positive capacity.
+ 
+     For each edge :samp:`(u, v)` in :samp:`R`, :samp:`R[u][v]['capacity']`
+     is equal to the capacity of :samp:`(u, v)` in :samp:`G` if it exists
+@@ -102,21 +169,46 @@
+     that :samp:`R[u][v]['flow'] < R[u][v]['capacity']` induces a minimum
+     :samp:`s`-:samp:`t` cut.
+ 
++    Parameters
++    ----------
++    G : NetworkX graph
++        The input graph. MultiGraph and MultiDiGraph are not supported.
++
++    capacity : string or function
++        If it is a string, it is the name of the edge attribute holding the
++        capacity of an edge; edges without that attribute are considered to
++        have infinite capacity. If it is a function, it is called as
++        ``capacity(u, v, d)`` for each edge ``(u, v)`` with attribute
++        dictionary ``d`` and must return the capacity of the edge, or None
++        to leave the edge out of the residual network.
++
++    Returns
++    -------
++    R : NetworkX DiGraph
++        The residual network, with a zero flow.
++
++    Raises
++    ------
++    NetworkXError
++        If `G` is a MultiGraph or a MultiDiGraph.
+     """
+-    if G.is_multigraph():
+-        raise nx.NetworkXError("MultiGraph and MultiDiGraph not supported (yet).")
++    capacity = _capacity_function(G, capacity)
+ 
+     R = nx.DiGraph()
+     R.__networkx_cache__ = None  # Disable caching
+     R.add_nodes_from(G)
+ 
+     inf = float("inf")
+-    # Extract edges with positive capacities. Self loops excluded.
+-    edge_list = [
+-        (u, v, attr)
+-        for u, v, attr in G.edges(data=True)
+-        if u != v and attr.get(capacity, inf) > 0
+-    ]
++    # Extract edges with positive capacities. Self loops and edges hidden by
++    # the capacity function are excluded. The capacity of each edge is
++    # resolved exactly once.
++    edge_list = []
++    for u, v, attr in G.edges(data=True):
++        if u == v:
++            continue
++        cap = capacity(u, v, attr)
++        if cap is not None and cap > 0:
++            edge_list.append((u, v, cap))
+     # Simulate infinity with three times the sum of the finite edge capacities
+     # or any positive value if the sum is zero. This allows the
+     # infinite-capacity edges to be distinguished for unboundedness detection
+@@ -127,18 +219,10 @@
+     # finite-capacity edge is at most 1/3 of inf, if an operation moves more
+     # than 1/3 of inf units of flow to t, there must be an infinite-capacity
+     # s-t path in G.
+-    inf = (
+-        3
+-        * sum(
+-            attr[capacity]
+-            for u, v, attr in edge_list
+-            if capacity in attr and attr[capacity] != inf
+-        )
+-        or 1
+-    )
++    inf = 3 * sum(cap for u, v, cap in edge_list if cap != inf) or 1
+     if G.is_directed():
+-        for u, v, attr in edge_list:
+-            r = min(attr.get(capacity, inf), inf)
++        for u, v, cap in edge_list:
++            r = min(cap, inf)
+             if not R.has_edge(u, v):
+                 # Both (u, v) and (v, u) must be present in the residual
+                 # network.
+@@ -148,9 +232,9 @@
+                 # The edge (u, v) was added when (v, u) was visited.
+                 R[u][v]["capacity"] = r
+     else:
+-        for u, v, attr in edge_list:
++        for u, v, cap in edge_list:
+             # Add a pair of edges with equal residual capacities.
+-            r = min(attr.get(capacity, inf), inf)
++            r = min(cap, inf)
+             R.add_edge(u, v, capacity=r)
+             R.add_edge(v, u, capacity=r)
+ 

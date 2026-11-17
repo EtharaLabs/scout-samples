@@ -1,0 +1,231 @@
+{
+  "schema": "scout.group-map/v1",
+  "grouping": "file::class, the behavioural unit the suite itself uses",
+  "weight_rule": "equal per group: every group carries 0.083333, so no objective outweighs another by test count",
+  "group_count": 12,
+  "note_reconciliation": "Twelve groups over 187 required nodes. No group holds a single node, so the costliest one-node loss is one of the two in the smallest group at (1/12)/2 = 0.0417, which task.toml records as discrimination_weight. Four groups (test_utils, test_louvain, TestCoverage, TestPerformance; 14 nodes) fail only on a module-scope import of constant_potts_model and resolve as collateral of objective 2.",
+  "groups": {
+    "test_bipartitions": {
+      "node_count": 6,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_greedy_bipartition",
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_greedy_multigraph_disallowed",
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_greedy_node_swap_too_many_blocks",
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_greedy_non_disjoint_partition",
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_karate_club",
+        "networkx/algorithms/community/tests/test_bipartitions.py::test_spectral_bipartition"
+      ]
+    },
+    "test_cluster::TestButterflies": {
+      "node_count": 25,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[None-2]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[None-3]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[None-4]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[None-5]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes1-2]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes1-3]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes1-4]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes1-5]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes2-2]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes2-3]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes2-4]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes2-5]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes3-2]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes3-3]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes3-4]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_complete_bipartite_graph_equipartition[nodes3-5]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_different_sized_partitions",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_directed_raises",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_isolated_node_zero",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_no_butterflies[G0]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_no_butterflies[G1]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_no_butterflies[G2]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_no_butterflies[G3]",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_nodes_param_absent_node_ignored",
+        "networkx/algorithms/bipartite/tests/test_cluster.py::TestButterflies::test_two_disjoint_k22"
+      ]
+    },
+    "test_community::TestBipartiteModularity": {
+      "node_count": 17,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_communities_with_single_side_contribute_zero",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_complete_bipartite_no_structure",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_directed_not_implemented",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_disjoint_bipartite_components_positive",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_empty_graph",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_iterable_of_communities_is_accepted",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_multigraph",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_nodes_as_iterable",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_not_a_partition_raises",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_random_bipartite_trivial_partitions",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_resolution_scales_null_model",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_single_community",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_singleton_communities",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_southern_women_trivial_partitions",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_two_disjoint_edges",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_weight_none_ignores_attribute",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularity::test_weighted"
+      ]
+    },
+    "test_community::TestBipartiteModularityMergeDelta": {
+      "node_count": 7,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_multigraph",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_random_graph_all_pairs",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_resolution_parameter",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_singleton_move_blue",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_singleton_move_red",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_two_k22_merge",
+        "networkx/algorithms/bipartite/tests/test_community.py::TestBipartiteModularityMergeDelta::test_weighted_merge"
+      ]
+    },
+    "test_leiden": {
+      "node_count": 48,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_leiden.py::test_LFR_communities_across_algos",
+        "networkx/algorithms/community/tests/test_leiden.py::test_barbell_communities_across_algos",
+        "networkx/algorithms/community/tests/test_leiden.py::test_bipartite_graphs_modularity",
+        "networkx/algorithms/community/tests/test_leiden.py::test_bipartite_graphs_modularity_directed",
+        "networkx/algorithms/community/tests/test_leiden.py::test_comms_change_after_aggregation",
+        "networkx/algorithms/community/tests/test_leiden.py::test_communities_connected[Graph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_communities_connected[MultiGraph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_connected_communities",
+        "networkx/algorithms/community/tests/test_leiden.py::test_connected_communities_no_weights",
+        "networkx/algorithms/community/tests/test_leiden.py::test_coverage_up_with_leiden_metrics[Graph-cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_coverage_up_with_leiden_metrics[Graph-modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_coverage_up_with_leiden_metrics[MultiGraph-cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_coverage_up_with_leiden_metrics[MultiGraph-modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_cpm_node_weights_on_G",
+        "networkx/algorithms/community/tests/test_leiden.py::test_directed_graphs_modularity[cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_directed_graphs_modularity[modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_directed_selfloops",
+        "networkx/algorithms/community/tests/test_leiden.py::test_directed_weights_matter[cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_directed_weights_matter[modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_edge_wts",
+        "networkx/algorithms/community/tests/test_leiden.py::test_empty_graph",
+        "networkx/algorithms/community/tests/test_leiden.py::test_expected_stable_across_code_changes_cpm",
+        "networkx/algorithms/community/tests/test_leiden.py::test_expected_stable_across_code_changes_qmod",
+        "networkx/algorithms/community/tests/test_leiden.py::test_max_level_kwarg[Graph-cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_max_level_kwarg[Graph-modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_max_level_kwarg[MultiGraph-cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_max_level_kwarg[MultiGraph-modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_mispelled_metric",
+        "networkx/algorithms/community/tests/test_leiden.py::test_modularity_selfloops",
+        "networkx/algorithms/community/tests/test_leiden.py::test_modularity_twom_instead_of_m",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[cpm-cpm-0.2]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[cpm-cpm-0.5]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[cpm-cpm-0.9]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[modularity-qmod-0.2]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[modularity-qmod-0.5]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_overall_increase[modularity-qmod-0.9]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_partitions_yields_copy",
+        "networkx/algorithms/community/tests/test_leiden.py::test_resolution_kwarg_cpm[Graph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_resolution_kwarg_cpm[MultiGraph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_resolution_kwarg_mod[Graph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_resolution_kwarg_mod[MultiGraph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_undirected_selfloops[cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_undirected_selfloops[modularity]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_valid_partition[Graph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_valid_partition[MultiGraph]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_weight_kwarg",
+        "networkx/algorithms/community/tests/test_leiden.py::test_weights_matter[cpm]",
+        "networkx/algorithms/community/tests/test_leiden.py::test_weights_matter[modularity]"
+      ]
+    },
+    "test_louvain": {
+      "node_count": 2,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_louvain.py::test_inf_loops",
+        "networkx/algorithms/community/tests/test_louvain.py::test_petersen"
+      ]
+    },
+    "test_matrix::TestBiadjacencyMatrix": {
+      "node_count": 37,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-None-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-None-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-None-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order1-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order1-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order1-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order2-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order2-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[DiGraph-column_order2-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-None-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-None-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-None-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order1-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order1-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order1-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order2-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order2-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[Graph-column_order2-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-None-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-None-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-None-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order1-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order1-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order1-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order2-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order2-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiDiGraph-column_order2-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-None-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-None-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-None-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order1-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order1-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order1-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order2-None]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order2-row_order1]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_from_biadjacency_nodelist[MultiGraph-column_order2-row_order2]",
+        "networkx/algorithms/bipartite/tests/test_matrix.py::TestBiadjacencyMatrix::test_invalid_from_biadjacency_nodelist"
+      ]
+    },
+    "test_quality": {
+      "node_count": 1,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_quality.py::test_cpm_undirected"
+      ]
+    },
+    "test_quality::TestOverlappingModularity": {
+      "node_count": 11,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_directed_not_implemented",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_equivalence_on_karate_club",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_equivalence_with_modularity_on_partition",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_invalid_cover_raises",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_kclique_communities_integration",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_multigraph",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_resolution_monotonicity",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_resolution_partition_matches_modularity",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_triangle_all_pairs_cover",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_triangle_two_overlapping_communities",
+        "networkx/algorithms/community/tests/test_quality.py::TestOverlappingModularity::test_weighted_triangle_hand_calc"
+      ]
+    },
+    "test_utils": {
+      "node_count": 8,
+      "weight": 0.1,
+      "nodes": [
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_empty_communities_nonempty_graph",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_empty_graph_empty_communities",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_extraneous_nodes_ignored",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_iterable_inputs",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_missing_node",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_node_in_many_communities",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_overlapping",
+        "networkx/algorithms/community/tests/test_utils.py::test_is_cover_partition"
+      ]
+    }
+  }
+}

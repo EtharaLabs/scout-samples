@@ -1,0 +1,256 @@
+# Judged channel for the networkx release-evolution bundle.
+#
+# This channel carries one tenth of the reward. The rubric is a continuous instrument with measured
+# run-to-run spread on identical bytes, so it may inform the score without dominating it, and
+# [scoring] thresholds each criterion to pass or fail before the mean is taken.
+#
+# Any unreachable judge, whatever its name, makes Reward Kit raise rather than degrade and suppresses
+# the whole reward.json including the deterministic channel. The runner MUST give the verifier a
+# route to an OpenAI-compatible endpoint for this judge; without one, no reward.json is written.
+#
+# reasoning_effort is raised from the library default of "medium". Reward Kit passes this field
+# straight into the litellm call and pins nothing else: completion_kwargs carries model, messages,
+# response_format, timeout and this field, and no temperature and no seed. Decoding therefore
+# cannot be pinned from a bundle, and this field is the only lever available.
+
+# Q4 (graded test tree untouched) was REMOVED rather than reworded. final.diff deliberately excludes
+# the test subtrees, so a judge reading it cannot establish that they were untouched: the criterion
+# asked for a verdict the evidence cannot support. The deterministic channel already enforces
+# RL-NO-TEST-EDIT with a hard gate that zeroes the whole score, so the judged duplicate added noise
+# and no coverage. A sibling judge said exactly this when it refused the criterion.
+
+[judge]
+judge = "openai/gpt-5.6-sol"
+# Reward Kit builds the judge's user message from the files named here. With none it has no
+# evidence, and criterion files are refused for an LLM judge, so this is mandatory rather than
+# optional. final.diff is produced by step 3c of test.sh and excludes the test subtrees, so every
+# hunk the judge reads is implementation.
+files = ["/logs/verifier/final.diff"]
+reasoning_effort = "high"
+samples = 3
+
+# The judged component is thresholded rather than averaged in continuously. A judge score that
+# drifts between runs on identical bytes must not move a deterministic result, so each criterion
+# resolves to pass or fail at 0.5 before the weighted mean is taken.
+#
+# This also bounds the no-op. On an empty diff every negated criterion passes vacuously, which is
+# the arithmetic ceiling of zero implementation: the sibling conan bundle measured that ceiling at
+# 12/31 = 0.3871, and the threshold is what keeps it from clearing the bar.
+[scoring]
+aggregation = "weighted-mean"
+
+[[criterion]]
+
+id = "R1"
+description = "The community-detection entry points are implemented natively rather than left delegating to a backend."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the backend-only dispatch marker and the NotImplementedError body are gone, replaced by an algorithm that moves nodes between communities, refines, and aggregates"
+evaluation_rule = "EVIDENCE: the hunks touching the community leiden module. PASS when the raised NotImplementedError is gone and an implementation stands in its place. FAIL when the stub is re-raised, re-wrapped, or delegated to another backend."
+
+[[criterion]]
+
+id = "R2"
+description = "The constant Potts model is computed from its definition rather than fitted to expected values."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the measure sums internal edge weight against a resolution-scaled node-weight term, with the directed and undirected forms distinguished"
+evaluation_rule = "EVIDENCE: the hunks in the community quality module. PASS when the measure accumulates over the graph's own edges and node weights. FAIL when a literal expected value, lookup table, or hardcoded constant substitutes for the computation."
+
+[[criterion]]
+
+id = "R3"
+description = "Bipartite modularity is told which node set forms one side rather than inferring it from the partition."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the bipartite modularity takes a node set naming one side and uses it to separate the two sides"
+evaluation_rule = "EVIDENCE: the new bipartite community module. PASS when a nodes argument participates in the computation. FAIL when the bipartition is derived from the communities alone, which is not well defined for a disconnected bipartite graph."
+
+[[criterion]]
+
+id = "R4"
+description = "Node bipartitioning improves a partition by swapping nodes rather than returning a fixed or arbitrary split."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the bipartition routine evaluates a quality measure, moves nodes between the two sides, and keeps the better result across iterations"
+evaluation_rule = "EVIDENCE: the hunks adding the community bipartitions module. PASS when a quality measure is recomputed across candidate swaps and bounded by an iteration cap. FAIL when the split is returned without any improvement step."
+
+[[criterion]]
+
+id = "R6"
+description = "The bipartite matrix form gains optional node-order parameters while remaining callable as before."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "VALUE"
+residue = "the judgment turns on reading what the implementation DOES with the values it handles, which no token lookup over the diff can decide"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the matrix constructors accept optional row and column ordering, default sensibly when it is omitted, and still work when called with only the arguments the base revision accepted"
+evaluation_rule = "EVIDENCE: the hunks in the bipartite matrix module. ADDING optional keyword parameters with defaults is expected and is a Yes: the release widens these constructors deliberately. A No requires that an existing parameter was renamed, removed, reordered, or made required, so a call written against the base revision would break."
+
+[[criterion]]
+
+id = "N1"
+description = "A quality change is computed incrementally rather than by recomputing the whole objective."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a delta is computed INCREMENTALLY from the moved node or by full recomputation is a judgment about the shape of the calculation; both return a number of the same type"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the community-quality change for moving one node is derived from that node's own incident structure, rather than by recomputing the objective over the whole partition and subtracting"
+evaluation_rule = "EVIDENCE: the hunks computing a quality or modularity delta. ANSWER YES IF the delta is derived from the moved node's incident edges and its communities' aggregate terms. ANSWER NO if the code recomputes the whole objective twice and subtracts, which is a different algorithm with different cost. Judge the SHAPE of the calculation. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N2"
+description = "A bipartition is derived from the graph's two sides rather than from a general partition."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a routine exploits BIPARTITE structure or treats the graph as general is a semantic judgment; both operate on the same node and edge collections"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the bipartition routines use the graph's two-sided structure, so the result respects the sides rather than being any partition that happens to score well"
+evaluation_rule = "EVIDENCE: the hunks in the bipartite modules. ANSWER YES IF the code resolves or consults the two sides and keeps the result consistent with them. ANSWER NO if the routine partitions without regard to the sides, so a returned partition could split a side arbitrarily. Judge whether BIPARTITE structure is used. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N3"
+description = "A motif count counts the motif itself rather than an approximation of it."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "distinguishing an exact motif count from a heuristic estimate requires reading the enumeration, not matching a function name"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the new counting routine enumerates the motif it names, so the returned count is the number of those subgraphs rather than a proxy quantity that merely correlates with it"
+evaluation_rule = "EVIDENCE: the hunks adding a counting routine. ANSWER YES IF the enumeration traverses the structure the motif is defined by. ANSWER NO if the routine returns a proxy, a degree-based estimate, or a count of a different structure. Judge what is actually COUNTED. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N4"
+description = "A set-overlap measure normalises by the quantity its definition names."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "VALUE"
+residue = "which denominator a normalisation uses is a mathematical judgment; the smaller-set and union denominators are both ordinary expressions over the same two sets"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the overlap measure divides by the quantity its own definition requires, so it is not silently the Jaccard index or another coefficient wearing this name"
+evaluation_rule = "EVIDENCE: the hunks computing an overlap or similarity coefficient. ANSWER YES IF the denominator matches the measure the code names. ANSWER NO if the denominator is a different normalisation, which would make the function compute a neighbouring coefficient. Judge the DENOMINATOR against the named measure. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N5"
+description = "A resolution parameter actually scales the objective it is passed to."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a parameter REACHES the objective or is accepted and ignored is a dataflow judgment; an unused parameter is syntactically indistinguishable from a used one at the signature"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the resolution parameter is carried into the quality objective so changing it changes the partitions produced, rather than being accepted at the boundary and dropped"
+evaluation_rule = "EVIDENCE: the hunks accepting a resolution parameter. ANSWER YES IF the parameter reaches the term it scales. ANSWER NO if it is accepted and never reaches the objective, so passing a different value would change nothing. Judge the DATAFLOW. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N6"
+description = "An unsupported graph kind is refused explicitly rather than mishandled silently."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+dimension = "robustness"
+mode = "judged"
+type = "ABSENCE"
+residue = "the difference between an explicit refusal and silent mishandling is a judgment about what the code does on the unsupported input, which no presence check reveals"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a graph kind the algorithm cannot handle is refused with a documented error, rather than being processed as though it were supported and returning a meaningless result"
+evaluation_rule = "EVIDENCE: the hunks guarding input kinds. ANSWER YES IF an unsupported kind raises a documented error naming the limitation. ANSWER NO if the unsupported kind falls through and is processed anyway. A documented refusal IS specified behaviour, never a defect. Judge the behaviour on the UNSUPPORTED input. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "N7"
+description = "Direction is accounted for where the measure is defined on directed graphs."
+type = "binary"
+weight = 1
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether a measure HONOURS edge direction is semantic; the directed and undirected formulations use the same iteration constructs"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "where the measure is defined for directed graphs, the implementation accounts for direction rather than collapsing the graph to its undirected form"
+evaluation_rule = "EVIDENCE: the hunks handling directed input. ANSWER YES IF direction enters the computation, through in and out degree, through directed neighbour access, or through a separate branch. ANSWER NO if the directed case is routed through undirected handling that discards direction. Judge whether DIRECTION enters. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."

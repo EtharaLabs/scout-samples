@@ -1,0 +1,192 @@
+{
+  "schema": "scout.group-map/v1",
+  "grouping": "file::class",
+  "group_count": 20,
+  "weight_rule": "equal per group: every group carries 0.05",
+  "groups": {
+    "test_amqp::test_AMQP": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/app/test_amqp.py::test_AMQP::test_create_missing_queue_type_explicit_param",
+        "t/unit/app/test_amqp.py::test_AMQP::test_create_missing_queue_type_from_conf"
+      ]
+    },
+    "test_amqp::test_Queues": {
+      "node_count": 1,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/app/test_amqp.py::test_Queues::test_missing_queue_quorum"
+      ]
+    },
+    "test_app::test_App": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/app/test_app.py::test_App::test_use_local_timezone",
+        "t/unit/app/test_app.py::test_App::test_use_local_timezone_failure"
+      ]
+    },
+    "test_autoscale::test_Autoscaler": {
+      "node_count": 1,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/worker/test_autoscale.py::test_Autoscaler::test_disable_prefetch_respects_max_concurrency"
+      ]
+    },
+    "test_base::test_BaseBackend_dict": {
+      "node_count": 13,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_chord_error_from_stack_callback_dispatch[group_callback]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_chord_error_with_cause[with_exception]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_chord_error_with_cause[with_non_exception]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_chord_error_with_cause[without_exception]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_fake_task_request[basic_parameters]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_fake_task_request[default_parameters]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_create_fake_task_request[extra_parameters]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord__exceptions_paths",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord_error_cleanup_exception_handling",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord_error_exception_handling[extracts_cause]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord_error_exception_handling[without_cause]",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord_error_multiple_tasks",
+        "t/unit/backends/test_base.py::test_BaseBackend_dict::test_handle_group_chord_error_with_errbacks"
+      ]
+    },
+    "test_beat::test_PersistentScheduler": {
+      "node_count": 1,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/app/test_beat.py::test_PersistentScheduler::test_create_schedule_corrupted_pickle_error"
+      ]
+    },
+    "test_canvas::test_chord": {
+      "node_count": 3,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/tasks/test_canvas.py::test_chord::test_chord_run_body_freeze_with_no_external_task_id",
+        "t/unit/tasks/test_canvas.py::test_chord::test_chord_run_ensures_body_has_valid_task_id",
+        "t/unit/tasks/test_canvas.py::test_chord::test_chord_run_generates_task_id_when_none_provided"
+      ]
+    },
+    "test_consumer::test_Consumer": {
+      "node_count": 6,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/worker/test_consumer.py::test_Consumer::test_cancel_active_requests",
+        "t/unit/worker/test_consumer.py::test_Consumer::test_cancel_active_requests_preserves_successful_tasks",
+        "t/unit/worker/test_consumer.py::test_Consumer::test_connect_error_handler_progress",
+        "t/unit/worker/test_consumer.py::test_Consumer::test_disable_prefetch_enabled_basic",
+        "t/unit/worker/test_consumer.py::test_Consumer::test_disable_prefetch_respects_autoscale_max_concurrency",
+        "t/unit/worker/test_consumer.py::test_Consumer::test_disable_prefetch_respects_reserved_requests_limit"
+      ]
+    },
+    "test_consumer::test_Tasks": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/worker/test_consumer.py::test_Tasks::test_qos_with_worker_eta_task_limit",
+        "t/unit/worker/test_consumer.py::test_Tasks::test_qos_with_zero_worker_eta_task_limit"
+      ]
+    },
+    "test_control::test_Control": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/app/test_control.py::test_Control::test_control_mailbox_invalid_combination",
+        "t/unit/app/test_control.py::test_Control::test_control_mailbox_queue_options"
+      ]
+    },
+    "test_django::test_DjangoWorkerFixup": {
+      "node_count": 6,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test__close_database",
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test_close_database_always_closes_connections",
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test_close_database_conn_pool_based_on_settings",
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test_close_database_skip_conn_pool",
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test_close_database_suppresses_close_pool_keyerror",
+        "t/unit/fixups/test_django.py::test_DjangoWorkerFixup::test_on_worker_process_init"
+      ]
+    },
+    "test_dumper": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/events/test_dumper.py::test_on_event_non_task",
+        "t/unit/events/test_dumper.py::test_on_event_task_received"
+      ]
+    },
+    "test_events::test_EventReceiver": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/events/test_events.py::test_EventReceiver::test_event_queue_durable_and_validation",
+        "t/unit/events/test_events.py::test_EventReceiver::test_event_queue_exclusive"
+      ]
+    },
+    "test_native_delayed_delivery::test_DelayedDelivery": {
+      "node_count": 5,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/worker/test_native_delayed_delivery.py::test_DelayedDelivery::test_bind_queues_continues_after_failure",
+        "t/unit/worker/test_native_delayed_delivery.py::test_DelayedDelivery::test_bind_queues_raises_exceptions_on_failures",
+        "t/unit/worker/test_native_delayed_delivery.py::test_DelayedDelivery::test_bind_retries_on_retried_exception",
+        "t/unit/worker/test_native_delayed_delivery.py::test_DelayedDelivery::test_retry_over_time_with_float_return",
+        "t/unit/worker/test_native_delayed_delivery.py::test_DelayedDelivery::test_start_native_delayed_delivery_topic_exchange"
+      ]
+    },
+    "test_redis::test_RedisBackend": {
+      "node_count": 4,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/backends/test_redis.py::test_RedisBackend::test_backend_redis_client_name",
+        "t/unit/backends/test_redis.py::test_RedisBackend::test_backend_redis_client_name_not_set",
+        "t/unit/backends/test_redis.py::test_RedisBackend::test_credential_provider_from_redis_conf",
+        "t/unit/backends/test_redis.py::test_RedisBackend::test_url_with_credential_provider"
+      ]
+    },
+    "test_redis::test_RedisBackend_chords_complex": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/backends/test_redis.py::test_RedisBackend_chords_complex::test_on_chord_part_return[False]",
+        "t/unit/backends/test_redis.py::test_RedisBackend_chords_complex::test_on_chord_part_return[True]"
+      ]
+    },
+    "test_request::test_Request": {
+      "node_count": 4,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/worker/test_request.py::test_Request::test_cancel__emit_retry_false",
+        "t/unit/worker/test_request.py::test_Request::test_cancel__emit_retry_true",
+        "t/unit/worker/test_request.py::test_Request::test_on_failure_should_terminate",
+        "t/unit/worker/test_request.py::test_Request::test_on_timeout_should_terminate"
+      ]
+    },
+    "test_result::test_AsyncResult": {
+      "node_count": 1,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/tasks/test_result.py::test_AsyncResult::test_forget_remove_pending_result"
+      ]
+    },
+    "test_tasks::test_apply_task": {
+      "node_count": 3,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/tasks/test_tasks.py::test_apply_task::test_apply_nested_parent_child_relationship",
+        "t/unit/tasks/test_tasks.py::test_apply_task::test_apply_single_task_ids",
+        "t/unit/tasks/test_tasks.py::test_apply_task::test_apply_with_parent_task_no_root_id"
+      ]
+    },
+    "test_worker": {
+      "node_count": 2,
+      "weight": 0.05,
+      "nodes": [
+        "t/unit/bin/test_worker.py::test_cli_disable_prefetch_flag",
+        "t/unit/bin/test_worker.py::test_disable_prefetch_affects_qos_behavior"
+      ]
+    }
+  }
+}

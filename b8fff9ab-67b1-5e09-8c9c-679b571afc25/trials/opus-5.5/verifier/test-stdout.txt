@@ -1,0 +1,2418 @@
+verifier: test_edit_count=0
+verifier: overlay_dirs_restored=65
+verifier: graded_tree=/tmp/tmp.nbAlTPEQg7/graded
+...s..s..sss............................................................ [  1%]
+.....FFFF..............sss.............s................s........s.ss... [  2%]
+.s...............s..........................ss...........sss.....s.s.... [  4%]
+....................ss.................................................. [  5%]
+...................................................................s.... [  6%]
+.......................................s...sss............s......s...sss [  8%]
+..............sss..............................s......s................. [  9%]
+....ss..s............s........................s....s..s....s............ [ 10%]
+.s.s.............ss........s....................................s....s.. [ 12%]
+.......................................................F................ [ 13%]
+..................s...............................................s..s.. [ 14%]
+.s.....................................s....s.s......s....s.....s....... [ 16%]
+.......s...s................s...s...s........s................s......... [ 17%]
+........................................................................ [ 18%]
+....................x.x..................F.........................F.... [ 20%]
+....................................................x.....x............. [ 21%]
+...........x........x..............FF................................... [ 22%]
+..................x...................................x..........x.x.... [ 24%]
+........................................................................ [ 25%]
+.......................x................................................ [ 26%]
+..........x................FF........................................... [ 28%]
+.x..................................................................F... [ 29%]
+...............................x......................x.........F....x.. [ 30%]
+.....xx...........F.F................................................... [ 32%]
+..............x......................s.................................. [ 33%]
+..................F.......................................x............. [ 34%]
+........x............................................................... [ 36%]
+..................x..............................................x...... [ 37%]
+..............s......s..sx..ss....s.s.............................x..... [ 38%]
+.........F....F.......................x........F.FF........x.x.......... [ 40%]
+...........................x...........x................................ [ 41%]
+................................................FF....x...............s. [ 42%]
+.............................................................F.......... [ 44%]
+...............................x........................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+x...............s.ss.x......................x........x.................. [ 50%]
+..............x...............x........x................................ [ 52%]
+........................................................................ [ 53%]
+...................................x........................x........... [ 54%]
+........................................................................ [ 56%]
+...............x................x....................................... [ 57%]
+........................................................................ [ 58%]
+............................................x........................... [ 60%]
+........x..........................xs......x...........................x [ 61%]
+............................................x........................... [ 62%]
+........................................................................ [ 64%]
+x....................................................................... [ 65%]
+.....................................................................x.. [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+......................................x.F.......ss.sF............s...... [ 70%]
+............................................s........................... [ 72%]
+........................................................................ [ 73%]
+....................................................................ss.s [ 74%]
+............s.......F................F.................................. [ 76%]
+...............................F........................................ [ 77%]
+.........................F....F...sssss.ss.......sssss.sssssssssssssssss [ 78%]
+sss..................................................................... [ 80%]
+........................................................................ [ 81%]
+....................................................ssssssssssssssssssss [ 82%]
+ssssssssssssssssssss.......................................F.x.......... [ 84%]
+.......x..s............................................................. [ 85%]
+.......................................x...ssssssssssssssssssF.......... [ 86%]
+...................................x.................................... [ 88%]
+x....................................................................... [ 89%]
+...................................x................F................... [ 90%]
+.................ssssssssssssssss......................................F [ 92%]
+..............sssssssssssssssssssFF......................x.............. [ 93%]
+.......................F...F....s.......................x............... [ 94%]
+........................................................................ [ 96%]
+..........F............................................................. [ 97%]
+........................................................................ [ 98%]
+F.......s.ssss..ssssssssssssssssssssssssssssssssssssssssssx.             [100%]
+=================================== FAILURES ===================================
+____________________ test_sympy__codegen__numpy_nodes__amin ____________________
+
+    def test_sympy__codegen__numpy_nodes__amin():
+>       from sympy.codegen.numpy_nodes import amin
+E       ImportError: cannot import name 'amin' from 'sympy.codegen.numpy_nodes' (/tmp/tmp.nbAlTPEQg7/graded/sympy/codegen/numpy_nodes.py)
+
+sympy/core/tests/test_args.py:496: ImportError
+____________________ test_sympy__codegen__numpy_nodes__amax ____________________
+
+    def test_sympy__codegen__numpy_nodes__amax():
+>       from sympy.codegen.numpy_nodes import amax
+E       ImportError: cannot import name 'amax' from 'sympy.codegen.numpy_nodes' (/tmp/tmp.nbAlTPEQg7/graded/sympy/codegen/numpy_nodes.py)
+
+sympy/core/tests/test_args.py:501: ImportError
+__________________ test_sympy__codegen__numpy_nodes__minimum ___________________
+
+    def test_sympy__codegen__numpy_nodes__minimum():
+>       from sympy.codegen.numpy_nodes import minimum
+E       ImportError: cannot import name 'minimum' from 'sympy.codegen.numpy_nodes' (/tmp/tmp.nbAlTPEQg7/graded/sympy/codegen/numpy_nodes.py)
+
+sympy/core/tests/test_args.py:506: ImportError
+__________________ test_sympy__codegen__numpy_nodes__maximum ___________________
+
+    def test_sympy__codegen__numpy_nodes__maximum():
+>       from sympy.codegen.numpy_nodes import maximum
+E       ImportError: cannot import name 'maximum' from 'sympy.codegen.numpy_nodes' (/tmp/tmp.nbAlTPEQg7/graded/sympy/codegen/numpy_nodes.py)
+
+sympy/core/tests/test_args.py:511: ImportError
+___________ test_sympy__physics__quantum__operator__IdentityOperator ___________
+
+    def test_sympy__physics__quantum__operator__IdentityOperator():
+>       with warns_deprecated_sympy():
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/core/tests/test_args.py:3777: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.13/contextlib.py:148: in __exit__
+    next(self.gen)
+sympy/testing/pytest.py:378: in warns_deprecated_sympy
+    with warns(SymPyDeprecationWarning):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/contextlib.py:148: in __exit__
+    next(self.gen)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+warningcls = <class 'sympy.utilities.exceptions.SymPyDeprecationWarning'>
+match = '', test_stacklevel = True
+
+    @contextlib.contextmanager
+    def warns(warningcls, *, match='', test_stacklevel=True):
+        '''
+        Like raises but tests that warnings are emitted.
+    
+        >>> from sympy.testing.pytest import warns
+        >>> import warnings
+    
+        >>> with warns(UserWarning):
+        ...     warnings.warn('deprecated', UserWarning, stacklevel=2)
+    
+        >>> with warns(UserWarning):
+        ...     pass
+        Traceback (most recent call last):
+        ...
+        Failed: DID NOT WARN. No warnings of type UserWarning\
+        was emitted. The list of emitted warnings is: [].
+    
+        ``test_stacklevel`` makes it check that the ``stacklevel`` parameter to
+        ``warn()`` is set so that the warning shows the user line of code (the
+        code under the warns() context manager). Set this to False if this is
+        ambiguous or if the context manager does not test the direct user code
+        that emits the warning.
+    
+        If the warning is a ``SymPyDeprecationWarning``, this additionally tests
+        that the ``active_deprecations_target`` is a real target in the
+        ``active-deprecations.md`` file.
+    
+        '''
+        # Absorbs all warnings in warnrec
+        with warnings.catch_warnings(record=True) as warnrec:
+            # Any warning other than the one we are looking for is an error
+            warnings.simplefilter("error")
+            warnings.filterwarnings("always", category=warningcls)
+            # Now run the test
+            yield warnrec
+    
+        # Raise if expected warning not found
+        if not any(issubclass(w.category, warningcls) for w in warnrec):
+            msg = ('Failed: DID NOT WARN.'
+                   ' No warnings of type %s was emitted.'
+                   ' The list of emitted warnings is: %s.'
+                   ) % (warningcls, [w.message for w in warnrec])
+>           raise Failed(msg)
+E           Failed: Failed: DID NOT WARN. No warnings of type <class 'sympy.utilities.exceptions.SymPyDeprecationWarning'> was emitted. The list of emitted warnings is: [].
+
+sympy/testing/pytest.py:254: Failed
+_______________________ test_Mul_hermitian_antihermitian _______________________
+
+    def test_Mul_hermitian_antihermitian():
+        xz, yz = symbols('xz, yz', zero=True)
+        xf, yf = symbols('xf, yf', finite=True)
+        xh, yh = symbols('xh, yh', nonzero=True)
+        xa, ya = symbols('xa, ya', zero=False, finite=True)
+        assert (xz*xh).is_hermitian is True
+        assert (xz*xh).is_antihermitian is True
+        assert (xz*xa).is_hermitian is True
+>       assert (xz*xa).is_antihermitian is True
+E       assert None is True
+E        +  where None = (xz * xa).is_antihermitian
+
+sympy/core/tests/test_arit.py:1552: AssertionError
+___________________________________ test_Mod ___________________________________
+
+    def test_Mod():
+        assert Mod(x, 1).func is Mod
+        assert pi % pi is S.Zero
+        assert Mod(5, 3) == 2
+        assert Mod(-5, 3) == 1
+        assert Mod(5, -3) == -1
+        assert Mod(-5, -3) == -2
+        assert type(Mod(3.2, 2, evaluate=False)) == Mod
+        assert 5 % x == Mod(5, x)
+        assert x % 5 == Mod(x, 5)
+        assert x % y == Mod(x, y)
+        assert (x % y).subs({x: 5, y: 3}) == 2
+        assert Mod(nan, 1) is nan
+        assert Mod(1, nan) is nan
+        assert Mod(nan, nan) is nan
+    
+        assert Mod(0, x) == 0
+        with raises(ZeroDivisionError):
+            Mod(x, 0)
+    
+        k = Symbol('k', integer=True)
+        m = Symbol('m', integer=True, positive=True)
+        assert (x**m % x).func is Mod
+        assert (k**(-m) % k).func is Mod
+        assert k**m % k == 0
+        assert (-2*k)**m % k == 0
+    
+        # Float handling
+        point3 = Float(3.3) % 1
+        assert (x - 3.3) % 1 == Mod(1.*x + 1 - point3, 1)
+        assert Mod(-3.3, 1) == 1 - point3
+        assert Mod(0.7, 1) == Float(0.7)
+        e = Mod(1.3, 1)
+        assert comp(e, .3) and e.is_Float
+        e = Mod(1.3, .7)
+        assert comp(e, .6) and e.is_Float
+        e = Mod(1.3, Rational(7, 10))
+        assert comp(e, .6) and e.is_Float
+        e = Mod(Rational(13, 10), 0.7)
+        assert comp(e, .6) and e.is_Float
+        e = Mod(Rational(13, 10), Rational(7, 10))
+        assert comp(e, .6) and e.is_Rational
+    
+        # check that sign is right
+        r2 = sqrt(2)
+        r3 = sqrt(3)
+        for i in [-r3, -r2, r2, r3]:
+            for j in [-r3, -r2, r2, r3]:
+                assert verify_numerically(i % j, i.n() % j.n())
+        for _x in range(4):
+            for _y in range(9):
+                reps = [(x, _x), (y, _y)]
+                assert Mod(3*x + y, 9).subs(reps) == (3*_x + _y) % 9
+    
+        # denesting
+        t = Symbol('t', real=True)
+        assert Mod(Mod(x, t), t) == Mod(x, t)
+        assert Mod(-Mod(x, t), t) == Mod(-x, t)
+        assert Mod(Mod(x, 2*t), t) == Mod(x, t)
+        assert Mod(-Mod(x, 2*t), t) == Mod(-x, t)
+        assert Mod(Mod(x, t), 2*t) == Mod(x, t)
+        assert Mod(-Mod(x, t), -2*t) == -Mod(x, t)
+        for i in [-4, -2, 2, 4]:
+            for j in [-4, -2, 2, 4]:
+                for k in range(4):
+                    assert Mod(Mod(x, i), j).subs({x: k}) == (k % i) % j
+                    assert Mod(-Mod(x, i), j).subs({x: k}) == -(k % i) % j
+    
+        # known difference
+        assert Mod(5*sqrt(2), sqrt(5)) == 5*sqrt(2) - 3*sqrt(5)
+        p = symbols('p', positive=True)
+        assert Mod(2, p + 3) == 2
+        assert Mod(-2, p + 3) == p + 1
+        assert Mod(2, -p - 3) == -p - 1
+        assert Mod(-2, -p - 3) == -2
+        assert Mod(p + 5, p + 3) == 2
+        assert Mod(-p - 5, p + 3) == p + 1
+        assert Mod(p + 5, -p - 3) == -p - 1
+        assert Mod(-p - 5, -p - 3) == -2
+        assert Mod(p + 1, p - 1).func is Mod
+    
+        # issue 27749
+        n = symbols('n', integer=True, positive=True)
+>       assert unchanged(Mod, 1, n)
+E       assert False
+E        +  where False = unchanged(Mod, 1, n)
+
+sympy/core/tests/test_arit.py:1907: AssertionError
+___________________________ test_failing_assumptions ___________________________
+
+    def test_failing_assumptions():
+        x = Symbol('x', positive=True)
+        y = Symbol('y')
+>       assert failing_assumptions(6*x + y, **x.assumptions0) == \
+        {'real': None, 'imaginary': None, 'complex': None,
+        'positive': None, 'nonpositive': None, 'nonnegative': None, 'nonzero': None,
+        'negative': None, 'zero': None, 'extended_real': None, 'finite': None,
+        'infinite': None, 'extended_negative': None, 'extended_nonnegative': None,
+        'extended_nonpositive': None, 'extended_nonzero': None,
+        'extended_positive': None }
+E       AssertionError: assert {'positive': ...e': None, ...} == {'real': None...e': None, ...}
+E         
+E         Omitting 17 identical items, use -vv to show
+E         Left contains 1 more item:
+E         {'hermitian': None}
+E         Use -v to get more diff
+
+sympy/core/tests/test_assumptions.py:1290: AssertionError
+___________________________ test_common_assumptions ____________________________
+
+    def test_common_assumptions():
+>       assert common_assumptions([0, 1, 2]
+            ) == {'algebraic': True, 'irrational': False, 'extended_real': True, 'real': True, 'extended_negative':
+            False, 'extended_nonnegative': True, 'integer': True,
+            'rational': True, 'imaginary': False, 'complex': True,
+            'commutative': True,'noninteger': False, 'composite': False,
+            'infinite': False, 'nonnegative': True, 'finite': True,
+            'transcendental': False,'negative': False}
+E       AssertionError: assert {'hermitian':...l': True, ...} == {'algebraic':...l': True, ...}
+E         
+E         Omitting 18 identical items, use -vv to show
+E         Left contains 1 more item:
+E         {'hermitian': True}
+E         Use -v to get more diff
+
+sympy/core/tests/test_assumptions.py:1300: AssertionError
+____________________________ test__unevaluated_Mul _____________________________
+
+    def test__unevaluated_Mul():
+        A, B = symbols('A B', commutative=False)
+>       assert _unevaluated_Mul(x, A, B, S(2), A).args == (2, x, A, B, A)
+E       assert (2, x, A, A, B) == (2, x, A, B, A)
+E         
+E         At index 3 diff: A != B
+E         Use -v to get more diff
+
+sympy/core/tests/test_expr.py:2307: AssertionError
+________________________ test_Float_zero_division_error ________________________
+
+    def test_Float_zero_division_error():
+        # issue 27165
+>       assert Float('1.7567e-1417').round(15) == Float(0)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/core/tests/test_expr.py:2313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/core/expr.py:3863: in round
+    digits_to_decimal = _mag(x)  # _mag(12) = 2, _mag(.012) = -1
+                        ^^^^^^^
+sympy/core/expr.py:4046: in _mag
+    if (xpos/10**mag_first_dig) >= 1:
+        ^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:65: in __sympifyit_wrapper
+    return func(a, b)
+           ^^^^^^^^^^
+sympy/core/numbers.py:1058: in __truediv__
+    return Float._new(mlib.mpf_div(self._mpf_, rhs, prec, rnd), prec)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+s = (0, 7021775921705359, -4759, 53), t = (0, 0, 0, 0), prec = 53, rnd = 'n'
+
+    def mpf_div(s, t, prec, rnd=round_fast):
+        """Floating-point division"""
+        ssign, sman, sexp, sbc = s
+        tsign, tman, texp, tbc = t
+        if not sman or not tman:
+            if s == fzero:
+                if t == fzero: raise ZeroDivisionError
+                if t == fnan: return fnan
+                return fzero
+            if t == fzero:
+>               raise ZeroDivisionError
+E               ZeroDivisionError
+
+/usr/local/lib/python3.13/site-packages/mpmath/libmp/libmpf.py:844: ZeroDivisionError
+_______________________________ test_issue_27163 _______________________________
+
+    def test_issue_27163():
+        # https://github.com/sympy/sympy/issues/27163
+>       raises(TypeError, lambda: Derivative(f, t))
+E       Failed: DID NOT RAISE TypeError
+
+sympy/core/tests/test_function.py:1459: Failed
+_______________________________ test_match_bound _______________________________
+
+    def test_match_bound():
+        V, W = map(Wild, "VW")
+        x, y = symbols('x y')
+>       assert Sum(x, (x, 1, 2)).match(Sum(y, (y, 1, W))) is None
+E       assert {W_: 2} is None
+E        +  where {W_: 2} = match(Sum(y, (y, 1, W_)))
+E        +    where match = Sum(x, (x, 1, 2)).match
+E        +      where Sum(x, (x, 1, 2)) = Sum(x, (x, 1, 2))
+E        +    and   Sum(y, (y, 1, W_)) = Sum(y, (y, 1, W_))
+
+sympy/core/tests/test_match.py:756: AssertionError
+_________________________________ test_igcdex __________________________________
+
+    def test_igcdex():
+        assert igcdex(2, 3) == (-1, 1, 1)
+        assert igcdex(10, 12) == (-1, 1, 2)
+        assert igcdex(100, 2004) == (-20, 1, 4)
+>       assert igcdex(0, 0) == (0, 0, 0)
+E       assert (0, 1, 0) == (0, 0, 0)
+E         
+E         At index 1 diff: 1 != 0
+E         Use -v to get more diff
+
+sympy/core/tests/test_numbers.py:284: AssertionError
+______________________________ test_Rational_new _______________________________
+
+    def test_Rational_new():
+        """"
+        Test for Rational constructor
+        """
+        _test_rational_new(Rational)
+    
+        n1 = S.Half
+        assert n1 == Rational(Integer(1), 2)
+        assert n1 == Rational(Integer(1), Integer(2))
+        assert n1 == Rational(1, Integer(2))
+        assert n1 == Rational(S.Half)
+        assert 1 == Rational(n1, n1)
+        assert Rational(3, 2) == Rational(S.Half, Rational(1, 3))
+        assert Rational(3, 1) == Rational(1, Rational(1, 3))
+        n3_4 = Rational(3, 4)
+        assert Rational('3/4') == n3_4
+        assert -Rational('-3/4') == n3_4
+        assert Rational('.76').limit_denominator(4) == n3_4
+        assert Rational(19, 25).limit_denominator(4) == n3_4
+        assert Rational('19/25').limit_denominator(4) == n3_4
+        assert Rational(1.0, 3) == Rational(1, 3)
+        assert Rational(1, 3.0) == Rational(1, 3)
+        assert Rational(Float(0.5)) == S.Half
+        assert Rational('1e2/1e-2') == Rational(10000)
+        assert Rational('1 234') == Rational(1234)
+        assert Rational('1/1 234') == Rational(1, 1234)
+        assert Rational(-1, 0) is S.ComplexInfinity
+        assert Rational(1, 0) is S.ComplexInfinity
+        # Make sure Rational doesn't lose precision on Floats
+        assert Rational(pi.evalf(100)).evalf(100) == pi.evalf(100)
+        raises(TypeError, lambda: Rational('3**3'))
+        raises(TypeError, lambda: Rational('1/2 + 2/3'))
+    
+        # handle fractions.Fraction instances
+        try:
+            import fractions
+            assert Rational(fractions.Fraction(1, 2)) == S.Half
+        except ImportError:
+            pass
+    
+        assert Rational(PythonRational(2, 6)) == Rational(1, 3)
+    
+>       with warns_deprecated_sympy():
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/core/tests/test_numbers.py:367: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.13/contextlib.py:148: in __exit__
+    next(self.gen)
+sympy/testing/pytest.py:378: in warns_deprecated_sympy
+    with warns(SymPyDeprecationWarning):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/contextlib.py:148: in __exit__
+    next(self.gen)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+warningcls = <class 'sympy.utilities.exceptions.SymPyDeprecationWarning'>
+match = '', test_stacklevel = True
+
+    @contextlib.contextmanager
+    def warns(warningcls, *, match='', test_stacklevel=True):
+        '''
+        Like raises but tests that warnings are emitted.
+    
+        >>> from sympy.testing.pytest import warns
+        >>> import warnings
+    
+        >>> with warns(UserWarning):
+        ...     warnings.warn('deprecated', UserWarning, stacklevel=2)
+    
+        >>> with warns(UserWarning):
+        ...     pass
+        Traceback (most recent call last):
+        ...
+        Failed: DID NOT WARN. No warnings of type UserWarning\
+        was emitted. The list of emitted warnings is: [].
+    
+        ``test_stacklevel`` makes it check that the ``stacklevel`` parameter to
+        ``warn()`` is set so that the warning shows the user line of code (the
+        code under the warns() context manager). Set this to False if this is
+        ambiguous or if the context manager does not test the direct user code
+        that emits the warning.
+    
+        If the warning is a ``SymPyDeprecationWarning``, this additionally tests
+        that the ``active_deprecations_target`` is a real target in the
+        ``active-deprecations.md`` file.
+    
+        '''
+        # Absorbs all warnings in warnrec
+        with warnings.catch_warnings(record=True) as warnrec:
+            # Any warning other than the one we are looking for is an error
+            warnings.simplefilter("error")
+            warnings.filterwarnings("always", category=warningcls)
+            # Now run the test
+            yield warnrec
+    
+        # Raise if expected warning not found
+        if not any(issubclass(w.category, warningcls) for w in warnrec):
+            msg = ('Failed: DID NOT WARN.'
+                   ' No warnings of type %s was emitted.'
+                   ' The list of emitted warnings is: %s.'
+                   ) % (warningcls, [w.message for w in warnrec])
+>           raise Failed(msg)
+E           Failed: Failed: DID NOT WARN. No warnings of type <class 'sympy.utilities.exceptions.SymPyDeprecationWarning'> was emitted. The list of emitted warnings is: [].
+
+sympy/testing/pytest.py:254: Failed
+_______________________________ test_issue_2993 ________________________________
+
+    def test_issue_2993():
+>       assert str((2.3*x - 4)**0.3) == '(2.3*x - 4)**0.3'
+E       AssertionError: assert '1.5157165665...5*x - 1)**0.3' == '(2.3*x - 4)**0.3'
+E         
+E         - (2.3*x - 4)**0.3
+E         + 1.5157165665104*(0.575*x - 1)**0.3
+
+sympy/core/tests/test_power.py:499: AssertionError
+____________________________ test_euler_polynomials ____________________________
+
+    def test_euler_polynomials():
+        assert euler(0, x) == 1
+        assert euler(1, x) == x - S.Half
+        assert euler(2, x) == x**2 - x
+        assert euler(3, x) == x**3 - (3*x**2)/2 + Rational(1, 4)
+        m = Symbol('m')
+        assert isinstance(euler(m, x), euler)
+        from sympy.core.numbers import Float
+        A = Float('-0.46237208575048694923364757452876131e8')  # from Maple
+        B = euler(19, S.Pi).evalf(32)
+        assert abs((A - B)/A) < 1e-31
+        z = Float(0.1) + Float(0.2)*I
+        expected = Float(-3126.54721663773 ) + Float(565.736261497056) * I
+>       assert abs(euler(13, z) - expected) < 1e-10
+
+sympy/functions/combinatorial/tests/test_comb_numbers.py:431: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = sqrt((0.1 - 0.2*I)**13*(0.1 + 0.2*I)**13 + 169*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**12/4 + 20449*(0.1 - 0.2*I)**10*(0.1 + ...0.1 - 0.2*I)**4*(0.1 + 0.2*I)**2/4 + 5336538.22058509*(0.1 + 0.2*I)**2 - 7623013.25554208*I*(0.1 - 0.2*I)**2) < 1.0e-10
+
+    def __bool__(self):
+>       raise TypeError(
+            LazyExceptionMessage(
+                lambda: f"cannot determine truth value of Relational: {self}"
+            )
+        )
+E       TypeError: cannot determine truth value of Relational: sqrt((0.1 - 0.2*I)**13*(0.1 + 0.2*I)**13 + 169*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**12/4 + 20449*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**10/4 + 1656369*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**8/4 + 53187849*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**6/4 + 491287225*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**4/4 + 726248601*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**2/4 + 476910.915379158 + 7623013.25554208*I*(0.1 + 0.2*I)**2 + 5336538.22058509*(0.1 - 0.2*I)**2 - 597324585*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**4/4 - 4389193.27838764*(0.1 - 0.2*I)**4 + 6269772.11804112*I*(0.1 - 0.2*I)**4 + 196539057*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**6/4 - 2062957.27754901*I*(0.1 - 0.2*I)**6 + 1444186.17546948*(0.1 - 0.2*I)**6 - 161649345*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**6/4 + 364051.284273356*I*(0.1 - 0.2*I)**8 - 34683363*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**8/4 - 254856.383906379*(0.1 + 0.2*I)**8 + 28526355*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**8/4 + 28317.3759895977*(0.1 + 0.2*I)**10 + 3853707*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**2/4 - 9386091*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**8/4 - 40450.1426970395*I*(0.1 - 0.2*I)**10 - 3169595*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**10/4 - 350337*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**2/4 - 3677.28569973086*I*(0.1 + 0.2*I)**12 - 2574.30690814524*(0.1 + 0.2*I)**12 + 1042899*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**10/4 + 288145*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**4/4 + 396.04721663773*(0.1 - 0.2*I)**13 + 26949*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**13/2 + 565.736261497056*I*(0.1 + 0.2*I)**13 - 184041*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**10/4 - 22165*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**4/2 - 94809*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**12/4 + 7293*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**6/2 + 16731*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**12/4 - 1287*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**8/2 - 1859*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**12/4 + 143*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**13/2 - 13*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**13/2 - 13*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**12/2 + 143*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**10/2 - 1859*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**10/4 - 1287*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**13/2 + 16731*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**8/4 + 7293*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**13/2 - 94809*(0.1 - 0.2*I)**12*(0.1 + 0.2*I)**6/4 - 22165*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**13/2 - 184041*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**8/4 - 565.736261497056*I*(0.1 - 0.2*I)**13 + 26949*(0.1 - 0.2*I)**13*(0.1 + 0.2*I)**2/2 + 396.04721663773*(0.1 + 0.2*I)**13 + 288145*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**12/4 + 1042899*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**6/4 - 2574.30690814524*(0.1 - 0.2*I)**12 + 3677.28569973086*I*(0.1 - 0.2*I)**12 - 350337*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**12/4 - 3169595*(0.1 - 0.2*I)**10*(0.1 + 0.2*I)**4/4 + 40450.1426970395*I*(0.1 + 0.2*I)**10 - 9386091*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**6/4 + 3853707*(0.1 - 0.2*I)**2*(0.1 + 0.2*I)**10/4 + 28317.3759895977*(0.1 - 0.2*I)**10 + 28526355*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**4/4 - 254856.383906379*(0.1 - 0.2*I)**8 - 34683363*(0.1 - 0.2*I)**8*(0.1 + 0.2*I)**2/4 - 364051.284273356*I*(0.1 + 0.2*I)**8 - 161649345*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**4/4 + 1444186.17546948*(0.1 + 0.2*I)**6 + 2062957.27754901*I*(0.1 + 0.2*I)**6 + 196539057*(0.1 - 0.2*I)**6*(0.1 + 0.2*I)**2/4 - 6269772.11804112*I*(0.1 + 0.2*I)**4 - 4389193.27838764*(0.1 + 0.2*I)**4 - 597324585*(0.1 - 0.2*I)**4*(0.1 + 0.2*I)**2/4 + 5336538.22058509*(0.1 + 0.2*I)**2 - 7623013.25554208*I*(0.1 - 0.2*I)**2) < 1.0e-10
+
+sympy/core/relational.py:517: TypeError
+________________________________ test_partition ________________________________
+
+    @nocache_fail
+    def test_partition():
+        partition_nums = [1, 1, 2, 3, 5, 7, 11, 15, 22]
+        for n, p in enumerate(partition_nums):
+            assert partition(n) == p
+    
+        x = Symbol('x')
+        y = Symbol('y', real=True)
+        m = Symbol('m', integer=True)
+        n = Symbol('n', integer=True, negative=True)
+        p = Symbol('p', integer=True, nonnegative=True)
+        assert partition(m).is_integer
+        assert not partition(m).is_negative
+        assert partition(m).is_nonnegative
+        assert partition(n).is_zero
+        assert partition(p).is_positive
+        assert partition(x).subs(x, 7) == 15
+        assert partition(y).subs(y, 8) == 22
+        raises(TypeError, lambda: partition(Rational(5, 4)))
+>       assert partition(9, evaluate=False) % 5 == 0
+E       assert (partition(9) % 5) == 0
+E        +  where partition(9) = partition(9, evaluate=False)
+
+sympy/functions/combinatorial/tests/test_comb_numbers.py:580: AssertionError
+_________________________________ test_adjoint _________________________________
+
+    def test_adjoint():
+        b = HermitianOperator("b")
+        assert adjoint(b) == b
+        assert adjoint(I*b) == -I*b
+    
+        x, y = symbols('x y')
+        assert adjoint(adjoint(x)) == x
+>       assert adjoint(x + y) == conjugate(x) + conjugate(y)
+E       assert Dagger(x) + Dagger(y) == (conjugate(x) + conjugate(y))
+E        +  where Dagger(x) + Dagger(y) = adjoint((x + y))
+E        +  and   conjugate(x) = conjugate(x)
+E        +  and   conjugate(y) = conjugate(y)
+
+sympy/functions/elementary/tests/test_complexes.py:692: AssertionError
+___________________________ test_conjugate_transpose ___________________________
+
+    def test_conjugate_transpose():
+        x = Symbol('x', commutative=False)
+        assert conjugate(transpose(x)) == adjoint(x)
+        assert transpose(conjugate(x)) == adjoint(x)
+        assert adjoint(transpose(x)) == conjugate(x)
+        assert transpose(adjoint(x)) == conjugate(x)
+        assert adjoint(conjugate(x)) == transpose(x)
+        assert conjugate(adjoint(x)) == transpose(x)
+    
+        x = Symbol('x')
+>       assert conjugate(x) == adjoint(x)
+E       assert conjugate(x) == Dagger(x)
+E        +  where conjugate(x) = conjugate(x)
+E        +  and   Dagger(x) = adjoint(x)
+
+sympy/functions/elementary/tests/test_complexes.py:743: AssertionError
+________________________________ test_transpose ________________________________
+
+    def test_transpose():
+        a = Symbol('a', complex=True)
+        assert transpose(a) == a
+        assert transpose(I*a) == I*a
+    
+        x, y = symbols('x y')
+        assert transpose(transpose(x)) == x
+>       assert transpose(x + y) == x + y
+E       assert transpose(x) + transpose(y) == (x + y)
+E        +  where transpose(x) + transpose(y) = transpose((x + y))
+
+sympy/functions/elementary/tests/test_complexes.py:754: AssertionError
+__________________________________ test_floor __________________________________
+
+x = asin(5), prec = inf, options = {'maxprec': 333}
+
+    def evalf(x: 'Expr', prec: int, options: OPT_DICT) -> TMP_RES:
+        """
+        Evaluate the ``Expr`` instance, ``x``
+        to a binary precision of ``prec``. This
+        function is supposed to be used internally.
+    
+        Parameters
+        ==========
+    
+        x : Expr
+            The formula to evaluate to a float.
+        prec : int
+            The binary precision that the output should have.
+        options : dict
+            A dictionary with the same entries as
+            ``EvalfMixin.evalf`` and in addition,
+            ``maxprec`` which is the maximum working precision.
+    
+        Returns
+        =======
+    
+        An optional tuple, ``(re, im, re_acc, im_acc)``
+        which are the real, imaginary, real accuracy
+        and imaginary accuracy respectively. ``re`` is
+        an mpf value tuple and so is ``im``. ``re_acc``
+        and ``im_acc`` are ints.
+    
+        NB: all these return values can be ``None``.
+        If all values are ``None``, then that represents 0.
+        Note that 0 is also represented as ``fzero = (0, 0, 0, 0)``.
+        """
+        from sympy.functions.elementary.complexes import re as re_, im as im_
+        try:
+>           rf = evalf_table[type(x)]
+                 ^^^^^^^^^^^^^^^^^^^^
+E           KeyError: asin
+
+sympy/core/evalf.py:1482: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_floor():
+    
+        assert floor(nan) is nan
+    
+        assert floor(oo) is oo
+        assert floor(-oo) is -oo
+        assert floor(zoo) is zoo
+    
+        assert floor(0) == 0
+    
+        assert floor(1) == 1
+        assert floor(-1) == -1
+    
+>       assert floor(I*log(asin(5)/abs(asin(5)))) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/functions/elementary/tests/test_integers.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/core/cache.py:72: in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:864: in __new__
+    return cls._new_(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:476: in _new_
+    result = super().__new__(cls, *args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/cache.py:72: in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:307: in __new__
+    evaluated = cls.eval(*args)
+                ^^^^^^^^^^^^^^^
+sympy/functions/elementary/integers.py:70: in eval
+    r, i = get_integer_part(
+sympy/core/evalf.py:467: in get_integer_part
+    im_, im_acc = calc_part(im(expr, evaluate=False), iim)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:420: in calc_part
+    ire, iim, ire_acc, iim_acc = evalf(
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:311: in evalf_im
+    return get_complex_part(expr.args[0], 1, prec, options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:291: in get_complex_part
+    res = evalf(expr, workprec, options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:649: in evalf_mul
+    result = evalf(arg, prec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:963: in evalf_log
+    result = evalf(arg, workprec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:649: in evalf_mul
+    result = evalf(arg, prec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:777: in evalf_pow
+    result = evalf(base, prec + 5, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:303: in evalf_abs
+    return get_abs(expr.args[0], prec, options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:265: in get_abs
+    result = evalf(expr, prec + 2, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1488: in evalf
+    xe = x._eval_evalf(prec)
+         ^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:599: in _eval_evalf
+    with mpmath.workprec(prec):
+         ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/site-packages/mpmath/ctx_mp.py:1327: in __enter__
+    self.ctx.prec = self.precfun(self.ctx.prec)
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ctx = <mpmath.ctx_mp.MPContext object at 0xffffa09afcb0>, n = inf
+
+    def _set_prec(ctx, n):
+>       ctx._prec = ctx._prec_rounding[0] = max(1, int(n))
+                                                   ^^^^^^
+E       OverflowError: cannot convert float infinity to integer
+
+/usr/local/lib/python3.13/site-packages/mpmath/ctx_mp_python.py:798: OverflowError
+_________________________________ test_ceiling _________________________________
+
+x = asin(5), prec = inf, options = {'maxprec': 333}
+
+    def evalf(x: 'Expr', prec: int, options: OPT_DICT) -> TMP_RES:
+        """
+        Evaluate the ``Expr`` instance, ``x``
+        to a binary precision of ``prec``. This
+        function is supposed to be used internally.
+    
+        Parameters
+        ==========
+    
+        x : Expr
+            The formula to evaluate to a float.
+        prec : int
+            The binary precision that the output should have.
+        options : dict
+            A dictionary with the same entries as
+            ``EvalfMixin.evalf`` and in addition,
+            ``maxprec`` which is the maximum working precision.
+    
+        Returns
+        =======
+    
+        An optional tuple, ``(re, im, re_acc, im_acc)``
+        which are the real, imaginary, real accuracy
+        and imaginary accuracy respectively. ``re`` is
+        an mpf value tuple and so is ``im``. ``re_acc``
+        and ``im_acc`` are ints.
+    
+        NB: all these return values can be ``None``.
+        If all values are ``None``, then that represents 0.
+        Note that 0 is also represented as ``fzero = (0, 0, 0, 0)``.
+        """
+        from sympy.functions.elementary.complexes import re as re_, im as im_
+        try:
+>           rf = evalf_table[type(x)]
+                 ^^^^^^^^^^^^^^^^^^^^
+E           KeyError: asin
+
+sympy/core/evalf.py:1482: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_ceiling():
+    
+        assert ceiling(nan) is nan
+    
+        assert ceiling(oo) is oo
+        assert ceiling(-oo) is -oo
+        assert ceiling(zoo) is zoo
+    
+        assert ceiling(0) == 0
+    
+        assert ceiling(1) == 1
+        assert ceiling(-1) == -1
+    
+>       assert ceiling(I*log(asin(5)/abs(asin(5)))) == 1
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/functions/elementary/tests/test_integers.py:241: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/core/cache.py:72: in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:864: in __new__
+    return cls._new_(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:476: in _new_
+    result = super().__new__(cls, *args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/cache.py:72: in wrapper
+    retval = cfunc(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:307: in __new__
+    evaluated = cls.eval(*args)
+                ^^^^^^^^^^^^^^^
+sympy/functions/elementary/integers.py:70: in eval
+    r, i = get_integer_part(
+sympy/core/evalf.py:467: in get_integer_part
+    im_, im_acc = calc_part(im(expr, evaluate=False), iim)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:420: in calc_part
+    ire, iim, ire_acc, iim_acc = evalf(
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:311: in evalf_im
+    return get_complex_part(expr.args[0], 1, prec, options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:291: in get_complex_part
+    res = evalf(expr, workprec, options)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:649: in evalf_mul
+    result = evalf(arg, prec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:963: in evalf_log
+    result = evalf(arg, workprec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:649: in evalf_mul
+    result = evalf(arg, prec, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:777: in evalf_pow
+    result = evalf(base, prec + 5, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1483: in evalf
+    r = rf(x, prec, options)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:303: in evalf_abs
+    return get_abs(expr.args[0], prec, options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:265: in get_abs
+    result = evalf(expr, prec + 2, options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/evalf.py:1488: in evalf
+    xe = x._eval_evalf(prec)
+         ^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:599: in _eval_evalf
+    with mpmath.workprec(prec):
+         ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.13/site-packages/mpmath/ctx_mp.py:1327: in __enter__
+    self.ctx.prec = self.precfun(self.ctx.prec)
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+ctx = <mpmath.ctx_mp.MPContext object at 0xffffa09afcb0>, n = inf
+
+    def _set_prec(ctx, n):
+>       ctx._prec = ctx._prec_rounding[0] = max(1, int(n))
+                                                   ^^^^^^
+E       OverflowError: cannot convert float infinity to integer
+
+/usr/local/lib/python3.13/site-packages/mpmath/ctx_mp_python.py:798: OverflowError
+___________________ test_Piecewise_replace_relational_27538 ____________________
+
+    def test_Piecewise_replace_relational_27538():
+        x, y = symbols('x, y')
+        p1 = Piecewise(
+            (0, Eq(x, True)),
+            (1, True),
+        )
+>       p2 = p1.xreplace({x: y < 1})
+             ^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/functions/elementary/tests/test_piecewise.py:1344: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/core/basic.py:1350: in xreplace
+    value, _ = self._xreplace(rule)
+               ^^^^^^^^^^^^^^^^^^^^
+sympy/core/basic.py:1372: in _xreplace
+    return self.func(*args), True
+           ^^^^^^^^^^^^^^^^
+sympy/functions/elementary/piecewise.py:148: in __new__
+    r = cls.eval(*newargs)
+        ^^^^^^^^^^^^^^^^^^
+sympy/functions/elementary/piecewise.py:190: in eval
+    newargs = _piecewise_collapse_arguments(_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/functions/elementary/piecewise.py:1249: in _piecewise_collapse_arguments
+    cond = cond.replace(
+sympy/core/basic.py:1791: in replace
+    rv = walk(self, rec_replace)
+         ^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/basic.py:1776: in walk
+    rv = F(rv)
+         ^^^^^
+sympy/core/basic.py:1784: in rec_replace
+    v = _value(expr, result)
+        ^^^^^^^^^^^^^^^^^^^^
+sympy/core/basic.py:1745: in <lambda>
+    _value = lambda expr, result: value(expr)
+                                  ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+rel = Eq(True, y < 1)
+
+    def _canonical_coeff(rel):
+        # return -2*x + 1 < 0 as x > 1/2
+        # XXX make this part of Relational.canonical?
+        rel = rel.canonical
+        if not rel.is_Relational or rel.rhs.is_Boolean:
+            return rel  # Eq(x, True)
+>       b, l = rel.lhs.as_coeff_Add(rational=True)
+               ^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'BooleanTrue' object has no attribute 'as_coeff_Add'
+
+sympy/core/relational.py:55: AttributeError
+__________________________ test_adjoint_with_operator __________________________
+
+    def test_adjoint_with_operator():
+        # Regression test for issue 25130: adjoint() should propagate to operators
+        import sympy.physics.quantum
+        a = sympy.physics.quantum.operator.Operator('a')
+        a_dag = sympy.physics.quantum.Dagger(a)
+        dat = [[0, I * a], [0, a_dag]]
+        ans = Matrix([[0, 0], [-I * a_dag, a]])
+        for cls in classes:
+>           assert ans == cls(dat).adjoint()
+E           assert Matrix([\n[   ...agger(a), a]]) == Matrix([\n[   ...ranspose(a)]])
+E             
+E             Use -v to get more diff
+
+sympy/matrices/tests/test_matrices.py:2653: AssertionError
+________________________________ test_hermitian ________________________________
+
+    def test_hermitian():
+        a = Matrix([[1, I], [-I, 1]])
+        assert a.is_hermitian
+        a[0, 0] = 2*I
+        assert a.is_hermitian is False
+        a[0, 0] = x
+        assert a.is_hermitian is None
+        a[0, 1] = a[1, 0]*I
+        assert a.is_hermitian is False
+        b = HermitianOperator("b")
+        c = Operator("c")
+>       assert Matrix([[b]]).is_hermitian is True
+E       assert False is True
+E        +  where False = Matrix([[b]]).is_hermitian
+E        +    where Matrix([[b]]) = Matrix([[b]])
+
+sympy/matrices/tests/test_matrices.py:2832: AssertionError
+_______________________________ test_issue_27225 _______________________________
+
+args = (floor, Matrix([
+[1],
+[1],
+[0]])), kwargs = {}
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+>           retval = cfunc(*args, **kwargs)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: unhashable type: 'MutableDenseMatrix'
+
+sympy/core/cache.py:72: TypeError
+
+During handling of the above exception, another exception occurred:
+
+args = (floor, Matrix([
+[1],
+[1],
+[0]])), kwargs = {}
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+>           retval = cfunc(*args, **kwargs)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+E           TypeError: unhashable type: 'MutableDenseMatrix'
+
+sympy/core/cache.py:72: TypeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_issue_27225():
+        # https://github.com/sympy/sympy/issues/27225
+>       raises(TypeError, lambda : floor(Matrix([1, 1, 0])))
+
+sympy/matrices/tests/test_matrixbase.py:3795: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/matrices/tests/test_matrixbase.py:3795: in <lambda>
+    raises(TypeError, lambda : floor(Matrix([1, 1, 0])))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/cache.py:76: in wrapper
+    retval = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:864: in __new__
+    return cls._new_(*args, **options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:476: in _new_
+    result = super().__new__(cls, *args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/cache.py:76: in wrapper
+    retval = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+sympy/core/function.py:307: in __new__
+    evaluated = cls.eval(*args)
+                ^^^^^^^^^^^^^^^
+sympy/functions/elementary/integers.py:59: in eval
+    spart += t
+sympy/core/numbers.py:1879: in __add__
+    return Rational.__add__(self, other)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:65: in __sympifyit_wrapper
+    return func(a, b)
+           ^^^^^^^^^^
+sympy/core/numbers.py:1446: in __add__
+    return Number.__add__(self, other)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:65: in __sympifyit_wrapper
+    return func(a, b)
+           ^^^^^^^^^^
+sympy/core/numbers.py:467: in __add__
+    return AtomicExpr.__add__(self, other)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:236: in _func
+    return func(self, other)
+           ^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:105: in binary_op_wrapper
+    return f(self)
+           ^^^^^^^
+sympy/core/decorators.py:106: in binary_op_wrapper
+    return func(self, other)
+           ^^^^^^^^^^^^^^^^^
+sympy/matrices/matrixbase.py:2987: in __radd__
+    return self + other
+           ^^^^^^^^^^^^
+sympy/core/numbers.py:1889: in __radd__
+    return Rational.__radd__(self, other)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/core/decorators.py:65: in __sympifyit_wrapper
+    return func(a, b)
+           ^^^^^^^^^^
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+_____________________________ test_matrix_inv_mod ______________________________
+
+    def test_matrix_inv_mod():
+        A = Matrix(2, 1, [1, 0])
+        raises(NonSquareMatrixError, lambda: A.inv_mod(2))
+        A = Matrix(2, 2, [1, 0, 0, 0])
+        raises(NonInvertibleMatrixError, lambda: A.inv_mod(2))
+        A = Matrix(2, 2, [1, 2, 3, 4])
+        Ai = Matrix(2, 2, [1, 1, 0, 1])
+        assert A.inv_mod(3) == Ai
+        A = Matrix(2, 2, [1, 0, 0, 1])
+        assert A.inv_mod(2) == A
+        A = Matrix(3, 3, [1, 2, 3, 4, 5, 6, 7, 8, 9])
+        raises(NonInvertibleMatrixError, lambda: A.inv_mod(5))
+        A = Matrix(3, 3, [5, 1, 3, 2, 6, 0, 2, 1, 1])
+        Ai = Matrix(3, 3, [6, 8, 0, 1, 5, 6, 5, 6, 4])
+        assert A.inv_mod(9) == Ai
+        A = Matrix(3, 3, [1, 6, -3, 4, 1, -5, 3, -5, 5])
+        Ai = Matrix(3, 3, [4, 3, 3, 1, 2, 5, 1, 5, 1])
+        assert A.inv_mod(6) == Ai
+        A = Matrix(3, 3, [1, 6, 1, 4, 1, 5, 3, 2, 5])
+        Ai = Matrix(3, 3, [6, 0, 3, 6, 6, 4, 1, 6, 1])
+        assert A.inv_mod(7) == Ai
+        A = Matrix([[1, 2], [3, Rational(3,4)]])
+        raises(ValueError, lambda: A.inv_mod(2))
+        A = Matrix([[1, 2], [3, 4]])
+        raises(TypeError, lambda: A.inv_mod(Rational(1, 2)))
+        # https://github.com/sympy/sympy/issues/27663
+        M = Matrix([
+            [2, 3, 1, 4],
+            [1, 5, 3, 2],
+            [3, 2, 4, 1],
+            [4, 1, 2, 5],
+        ])
+>       assert M.inv_mod(26) == Matrix([
+               ^^^^^^^^^^^^^
+            [7, 21, 10, 10],
+            [1, 7, 19, 3],
+            [14, 1, 15, 1],
+            [25, 23, 3, 12],
+        ])
+
+sympy/matrices/tests/test_repmatrix.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/matrices/repmatrix.py:455: in inv_mod
+    dMi = dM.inv()
+          ^^^^^^^^
+sympy/polys/matrices/domainmatrix.py:2570: in inv
+    inv = self.rep.inv()
+          ^^^^^^^^^^^^^^
+sympy/polys/matrices/sdm.py:1025: in inv
+    return A.to_dfm_or_ddm().inv().to_sdm()
+           ^^^^^^^^^^^^^^^^^^^^^^^
+sympy/polys/matrices/ddm.py:947: in inv
+    ddm_iinv(ainv, a, K)
+sympy/polys/matrices/dense.py:541: in ddm_iinv
+    pivots = ddm_irref(Aaug)
+             ^^^^^^^^^^^^^^^
+sympy/polys/matrices/dense.py:215: in ddm_irref
+    aijinv = aij**-1
+             ^^^^^^^
+sympy/polys/domains/modularinteger.py:147: in __pow__
+    val, exp = self.invert().val, -exp
+               ^^^^^^^^^^^^^
+sympy/polys/domains/modularinteger.py:205: in invert
+    return self.__class__(self._invert(self.val))
+                          ^^^^^^^^^^^^^^^^^^^^^^
+sympy/polys/domains/modularinteger.py:202: in _invert
+    return cls.dom.invert(value, cls.mod)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ZZ, a = 2, b = 26
+
+    def invert(self, a, b):
+        """Returns inversion of ``a mod b``. """
+        s, t, h = self.gcdex(a, b)
+    
+        if self.is_one(h):
+            return s % b
+        else:
+>           raise NotInvertible("zero divisor")
+E           sympy.polys.polyerrors.NotInvertible: zero divisor
+
+sympy/polys/domains/ring.py:45: NotInvertible
+______________________________ test_factor_cache _______________________________
+
+    def test_factor_cache():
+        factor_cache.cache_clear()
+        raises(ValueError, lambda: factor_cache.__setitem__(1, 5))
+        raises(ValueError, lambda: factor_cache.__setitem__(10, 1))
+        raises(ValueError, lambda: factor_cache.__setitem__(10, 10))
+        raises(ValueError, lambda: factor_cache.__setitem__(10, 3))
+        raises(ValueError, lambda: factor_cache.__setitem__(20, 4))
+        factor_cache.maxsize = 3
+        for i in range(2, 10):
+            factor_cache[5*i] = 5
+        assert len(factor_cache) == 3
+        factor_cache.maxsize = 5
+        for i in range(2, 10):
+            factor_cache[5*i] = 5
+        assert len(factor_cache) == 5
+        factor_cache.maxsize = 2
+        assert len(factor_cache) == 2
+        factor_cache.maxsize =1000
+    
+        factor_cache.cache_clear()
+        factor_cache[40] = 5
+        assert factor_cache.get(40) == 5
+        assert factor_cache.get(20) is None
+        assert factor_cache[40] == 5
+        raises(KeyError, lambda: factor_cache[10])
+        del factor_cache[40]
+        assert len(factor_cache) == 0
+        raises(KeyError, lambda: factor_cache.__delitem__(40))
+        factor_cache.add(100, [5, 2])
+        assert len(factor_cache) == 2
+        assert factor_cache[100] == 5
+    
+        for n in [1000000007, 10000019*20000003]:
+            factorint(n)
+>           assert n in factor_cache
+E           assert 1000000007 in FactorCache(maxsize=1000)
+
+sympy/ntheory/tests/test_factor_.py:242: AssertionError
+__________________________________ test_qs_2 ___________________________________
+
+    def test_qs_2() -> None:
+        n = 10009202107
+        M = 50
+        sieve_poly = SievePolynomial(10, 80, n)
+        assert sieve_poly.eval_v(10) == sieve_poly.eval_u(10)**2 - n == -10009169707
+        assert sieve_poly.eval_v(5) == sieve_poly.eval_u(5)**2 - n == -10009185207
+    
+        idx_1000, idx_5000, factor_base = _generate_factor_base(2000, n)
+        assert idx_1000 == 82
+        assert [factor_base[i].prime for i in range(15)] == \
+            [2, 3, 7, 11, 17, 19, 29, 31, 43, 59, 61, 67, 71, 73, 79]
+        assert [factor_base[i].tmem_p for i in range(15)] == \
+            [1, 1, 3, 5, 3, 6, 6, 14, 1, 16, 24, 22, 18, 22, 15]
+        assert [factor_base[i].log_p for i in range(5)] == \
+            [710, 1125, 1993, 2455, 2901]
+    
+        it = _generate_polynomial(
+            n, M, factor_base, idx_1000, idx_5000, _randint(0))
+        g = next(it)
+        assert g.a == 1133107
+        assert g.b == 682543
+        assert [factor_base[i].soln1 for i in range(15)] == \
+            [0, 0, 3, 7, 13, 0, 8, 19, 9, 43, 27, 25, 63, 29, 19]
+        assert [factor_base[i].soln2 for i in range(15)] == \
+            [0, 1, 1, 3, 12, 16, 15, 6, 15, 1, 56, 55, 61, 58, 16]
+        assert [factor_base[i].b_ainv for i in range(5)] == \
+            [[0, 0], [0, 2], [3, 0], [3, 9], [13, 13]]
+    
+        g_1 = next(it)
+        assert g_1.a == 1133107
+        assert g_1.b == 136765
+    
+        sieve_array = _gen_sieve_array(M, factor_base)
+        assert sieve_array[0:5] == [8424, 13603, 1835, 5335, 710]
+    
+        assert _check_smoothness(9645, factor_base) == (36028797018963972, 5)
+        assert _check_smoothness(210313, factor_base) == (20992, 1)
+    
+        partial_relations: dict[int, tuple[int, int]] = {}
+        smooth_relation, proper_factor = _trial_division_stage(
+            n, M, factor_base, sieve_array, sieve_poly, partial_relations,
+            ERROR_TERM=25*2**10)
+    
+        assert partial_relations == {
+            8699: (440, -10009008507, 75557863761098695507973),
+            166741: (490, -10008962007, 524341),
+            131449: (530, -10008921207, 664613997892457936451903530140172325),
+            6653: (550, -10008899607, 19342813113834066795307021)
+        }
+>       assert [smooth_relation[i][0] for i in range(5)] == [
+            -250, 1064469, 72819, 231957, 44167]
+E       assert [-250, -67061...1811665537200] == [-250, 106446...231957, 44167]
+E         
+E         At index 1 diff: -670615476700 != 1064469
+E         Use -v to get more diff
+
+sympy/ntheory/tests/test_qs.py:72: AssertionError
+_________________________________ test_residue _________________________________
+
+    def test_residue():
+        assert n_order(2, 13) == 12
+        assert [n_order(a, 7) for a in range(1, 7)] == \
+               [1, 3, 6, 3, 6, 2]
+        assert n_order(5, 17) == 16
+        assert n_order(17, 11) == n_order(6, 11)
+        assert n_order(101, 119) == 6
+        assert n_order(11, (10**50 + 151)**2) == 10000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000022650
+        raises(ValueError, lambda: n_order(6, 9))
+    
+        assert is_primitive_root(2, 7) is False
+        assert is_primitive_root(3, 8) is False
+        assert is_primitive_root(11, 14) is False
+        assert is_primitive_root(12, 17) == is_primitive_root(29, 17)
+        raises(ValueError, lambda: is_primitive_root(3, 6))
+    
+        for p in primerange(3, 100):
+            li = list(_primitive_root_prime_iter(p))
+            assert li[0] == min(li)
+            for g in li:
+                assert n_order(g, p) == p - 1
+            assert len(li) == totient(totient(p))
+            for e in range(1, 4):
+                li_power = list(_primitive_root_prime_power_iter(p, e))
+                li_power2 = list(_primitive_root_prime_power2_iter(p, e))
+                assert len(li_power) == len(li_power2) == totient(totient(p**e))
+        assert primitive_root(97) == 5
+        assert n_order(primitive_root(97, False), 97) == totient(97)
+        assert primitive_root(97**2) == 5
+        assert n_order(primitive_root(97**2, False), 97**2) == totient(97**2)
+        assert primitive_root(40487) == 5
+        assert n_order(primitive_root(40487, False), 40487) == totient(40487)
+        # note that primitive_root(40487) + 40487 = 40492 is a primitive root
+        # of 40487**2, but it is not the smallest
+        assert primitive_root(40487**2) == 10
+        assert n_order(primitive_root(40487**2, False), 40487**2) == totient(40487**2)
+        assert primitive_root(82) == 7
+        assert n_order(primitive_root(82, False), 82) == totient(82)
+        p = 10**50 + 151
+        assert primitive_root(p) == 11
+        assert n_order(primitive_root(p, False), p) == totient(p)
+        assert primitive_root(2*p) == 11
+        assert n_order(primitive_root(2*p, False), 2*p) == totient(2*p)
+        assert primitive_root(p**2) == 11
+        assert n_order(primitive_root(p**2, False), p**2) == totient(p**2)
+        assert primitive_root(4 * 11) is None and primitive_root(4 * 11, False) is None
+        assert primitive_root(15) is None and primitive_root(15, False) is None
+        raises(ValueError, lambda: primitive_root(-3))
+    
+        assert is_quad_residue(3, 7) is False
+        assert is_quad_residue(10, 13) is True
+        assert is_quad_residue(12364, 139) == is_quad_residue(12364 % 139, 139)
+        assert is_quad_residue(207, 251) is True
+        assert is_quad_residue(0, 1) is True
+        assert is_quad_residue(1, 1) is True
+        assert is_quad_residue(0, 2) == is_quad_residue(1, 2) is True
+        assert is_quad_residue(1, 4) is True
+        assert is_quad_residue(2, 27) is False
+        assert is_quad_residue(13122380800, 13604889600) is True
+        assert [j for j in range(14) if is_quad_residue(j, 14)] == \
+               [0, 1, 2, 4, 7, 8, 9, 11]
+        raises(ValueError, lambda: is_quad_residue(1.1, 2))
+        raises(ValueError, lambda: is_quad_residue(2, 0))
+    
+        assert quadratic_residues(S.One) == [0]
+        assert quadratic_residues(1) == [0]
+        assert quadratic_residues(12) == [0, 1, 4, 9]
+        assert quadratic_residues(13) == [0, 1, 3, 4, 9, 10, 12]
+        assert [len(quadratic_residues(i)) for i in range(1, 20)] == \
+          [1, 2, 2, 2, 3, 4, 4, 3, 4, 6, 6, 4, 7, 8, 6, 4, 9, 8, 10]
+    
+        assert list(sqrt_mod_iter(6, 2)) == [0]
+        assert sqrt_mod(3, 13) == 4
+        assert sqrt_mod(3, -13) == 4
+        assert sqrt_mod(6, 23) == 11
+        assert sqrt_mod(345, 690) == 345
+        assert sqrt_mod(67, 101) == None
+        assert sqrt_mod(1020, 104729) == None
+    
+        for p in range(3, 100):
+            d = defaultdict(list)
+            for i in range(p):
+                d[pow(i, 2, p)].append(i)
+            for i in range(1, p):
+                it = sqrt_mod_iter(i, p)
+                v = sqrt_mod(i, p, True)
+                if v:
+                    v = sorted(v)
+                    assert d[i] == v
+                else:
+                    assert not d[i]
+    
+        assert sqrt_mod(9, 27, True) == [3, 6, 12, 15, 21, 24]
+        assert sqrt_mod(9, 81, True) == [3, 24, 30, 51, 57, 78]
+        assert sqrt_mod(9, 3**5, True) == [3, 78, 84, 159, 165, 240]
+        assert sqrt_mod(81, 3**4, True) == [0, 9, 18, 27, 36, 45, 54, 63, 72]
+        assert sqrt_mod(81, 3**5, True) == [9, 18, 36, 45, 63, 72, 90, 99, 117,\
+                126, 144, 153, 171, 180, 198, 207, 225, 234]
+        assert sqrt_mod(81, 3**6, True) == [9, 72, 90, 153, 171, 234, 252, 315,\
+                333, 396, 414, 477, 495, 558, 576, 639, 657, 720]
+        assert sqrt_mod(81, 3**7, True) == [9, 234, 252, 477, 495, 720, 738, 963,\
+                981, 1206, 1224, 1449, 1467, 1692, 1710, 1935, 1953, 2178]
+    
+        for a, p in [(26214400, 32768000000), (26214400, 16384000000),
+            (262144, 1048576), (87169610025, 163443018796875),
+            (22315420166400, 167365651248000000)]:
+            assert pow(sqrt_mod(a, p), 2, p) == a
+    
+        n = 70
+        a, p = 5**2*3**n*2**n, 5**6*3**(n+1)*2**(n+2)
+        it = sqrt_mod_iter(a, p)
+        for i in range(10):
+            assert pow(next(it), 2, p) == a
+        a, p = 5**2*3**n*2**n, 5**6*3**(n+1)*2**(n+3)
+        it = sqrt_mod_iter(a, p)
+        for i in range(2):
+            assert pow(next(it), 2, p) == a
+        n = 100
+        a, p = 5**2*3**n*2**n, 5**6*3**(n+1)*2**(n+1)
+        it = sqrt_mod_iter(a, p)
+        for i in range(2):
+            assert pow(next(it), 2, p) == a
+    
+        assert type(next(sqrt_mod_iter(9, 27))) is int
+        assert type(next(sqrt_mod_iter(9, 27, ZZ))) is type(ZZ(1))
+        assert type(next(sqrt_mod_iter(1, 7, ZZ))) is type(ZZ(1))
+    
+        assert is_nthpow_residue(2, 1, 5)
+    
+        #issue 10816
+        assert is_nthpow_residue(1, 0, 1) is False
+        assert is_nthpow_residue(1, 0, 2) is True
+        assert is_nthpow_residue(3, 0, 2) is True
+        assert is_nthpow_residue(0, 1, 8) is True
+        assert is_nthpow_residue(2, 3, 2) is True
+        assert is_nthpow_residue(2, 3, 9) is False
+        assert is_nthpow_residue(3, 5, 30) is True
+        assert is_nthpow_residue(21, 11, 20) is True
+        assert is_nthpow_residue(7, 10, 20) is False
+        assert is_nthpow_residue(5, 10, 20) is True
+        assert is_nthpow_residue(3, 10, 48) is False
+        assert is_nthpow_residue(1, 10, 40) is True
+        assert is_nthpow_residue(3, 10, 24) is False
+        assert is_nthpow_residue(1, 10, 24) is True
+        assert is_nthpow_residue(3, 10, 24) is False
+        assert is_nthpow_residue(2, 10, 48) is False
+        assert is_nthpow_residue(81, 3, 972) is False
+        assert is_nthpow_residue(243, 5, 5103) is True
+        assert is_nthpow_residue(243, 3, 1240029) is False
+        assert is_nthpow_residue(36010, 8, 87382) is True
+        assert is_nthpow_residue(28552, 6, 2218) is True
+        assert is_nthpow_residue(92712, 9, 50026) is True
+        x = {pow(i, 56, 1024) for i in range(1024)}
+        assert {a for a in range(1024) if is_nthpow_residue(a, 56, 1024)} == x
+        x = { pow(i, 256, 2048) for i in range(2048)}
+        assert {a for a in range(2048) if is_nthpow_residue(a, 256, 2048)} == x
+        x = { pow(i, 11, 324000) for i in range(1000)}
+        assert [ is_nthpow_residue(a, 11, 324000) for a in x]
+        x = { pow(i, 17, 22217575536) for i in range(1000)}
+        assert [ is_nthpow_residue(a, 17, 22217575536) for a in x]
+        assert is_nthpow_residue(676, 3, 5364)
+        assert is_nthpow_residue(9, 12, 36)
+        assert is_nthpow_residue(32, 10, 41)
+        assert is_nthpow_residue(4, 2, 64)
+        assert is_nthpow_residue(31, 4, 41)
+        assert not is_nthpow_residue(2, 2, 5)
+        assert is_nthpow_residue(8547, 12, 10007)
+        assert is_nthpow_residue(Dummy(even=True) + 3, 3, 2) == True
+        # _nthroot_mod_prime_power
+        for p in primerange(2, 10):
+            for a in range(3):
+                for n in range(3, 5):
+                    ans = _nthroot_mod_prime_power(a, n, p, 1)
+                    assert isinstance(ans, list)
+                    if len(ans) == 0:
+                        for b in range(p):
+                            assert pow(b, n, p) != a % p
+                        for k in range(2, 10):
+                            assert _nthroot_mod_prime_power(a, n, p, k) == []
+                    else:
+                        for b in range(p):
+                            pred = pow(b, n, p) == a % p
+                            assert not(pred ^ (b in ans))
+                        for k in range(2, 10):
+                            ans = _nthroot_mod_prime_power(a, n, p, k)
+                            if not ans:
+                                break
+                            for b in ans:
+                                assert pow(b, n , p**k) == a
+    
+        assert nthroot_mod(Dummy(odd=True), 3, 2) == 1
+        assert nthroot_mod(29, 31, 74) == 45
+        assert nthroot_mod(1801, 11, 2663) == 44
+        for a, q, p in [(51922, 2, 203017), (43, 3, 109), (1801, 11, 2663),
+              (26118163, 1303, 33333347), (1499, 7, 2663), (595, 6, 2663),
+              (1714, 12, 2663), (28477, 9, 33343)]:
+            r = nthroot_mod(a, q, p)
+            assert pow(r, q, p) == a
+        assert nthroot_mod(11, 3, 109) is None
+        assert nthroot_mod(16, 5, 36, True) == [4, 22]
+        assert nthroot_mod(9, 16, 36, True) == [3, 9, 15, 21, 27, 33]
+        assert nthroot_mod(4, 3, 3249000) is None
+        assert nthroot_mod(36010, 8, 87382, True) == [40208, 47174]
+        assert nthroot_mod(0, 12, 37, True) == [0]
+        assert nthroot_mod(0, 7, 100, True) == [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+        assert nthroot_mod(4, 4, 27, True) == [5, 22]
+        assert nthroot_mod(4, 4, 121, True) == [19, 102]
+        assert nthroot_mod(2, 3, 7, True) == []
+        for p in range(1, 20):
+            for a in range(p):
+                for n in range(1, p):
+                    ans = nthroot_mod(a, n, p, True)
+                    assert isinstance(ans, list)
+                    for b in range(p):
+                        pred = pow(b, n, p) == a
+                        assert not(pred ^ (b in ans))
+                    ans2 = nthroot_mod(a, n, p, False)
+                    if ans2 is None:
+                        assert ans == []
+                    else:
+                        assert ans2 in ans
+    
+        x = Symbol('x', positive=True)
+        i = Symbol('i', integer=True)
+        assert _discrete_log_trial_mul(587, 2**7, 2) == 7
+        assert _discrete_log_trial_mul(941, 7**18, 7) == 18
+        assert _discrete_log_trial_mul(389, 3**81, 3) == 81
+        assert _discrete_log_trial_mul(191, 19**123, 19) == 123
+        assert _discrete_log_shanks_steps(442879, 7**2, 7) == 2
+        assert _discrete_log_shanks_steps(874323, 5**19, 5) == 19
+        assert _discrete_log_shanks_steps(6876342, 7**71, 7) == 71
+        assert _discrete_log_shanks_steps(2456747, 3**321, 3) == 321
+        assert _discrete_log_pollard_rho(6013199, 2**6, 2, rseed=0) == 6
+        assert _discrete_log_pollard_rho(6138719, 2**19, 2, rseed=0) == 19
+        assert _discrete_log_pollard_rho(36721943, 2**40, 2, rseed=0) == 40
+        assert _discrete_log_pollard_rho(24567899, 3**333, 3, rseed=0) == 333
+        raises(ValueError, lambda: _discrete_log_pollard_rho(11, 7, 31, rseed=0))
+        raises(ValueError, lambda: _discrete_log_pollard_rho(227, 3**7, 5, rseed=0))
+        assert _discrete_log_index_calculus(983, 948, 2, 491) == 183
+        assert _discrete_log_index_calculus(633383, 21794, 2, 316691) == 68048
+        assert _discrete_log_index_calculus(941762639, 68822582, 2, 470881319) == 338029275
+        assert _discrete_log_index_calculus(999231337607, 888188918786, 2, 499615668803) == 142811376514
+        assert _discrete_log_index_calculus(47747730623, 19410045286, 43425105668, 645239603) == 590504662
+        assert _discrete_log_pohlig_hellman(98376431, 11**9, 11) == 9
+        assert _discrete_log_pohlig_hellman(78723213, 11**31, 11) == 31
+        assert _discrete_log_pohlig_hellman(32942478, 11**98, 11) == 98
+        assert _discrete_log_pohlig_hellman(14789363, 11**444, 11) == 444
+>       assert discrete_log(1, 0, 2) == 0
+               ^^^^^^^^^^^^^^^^^^^^^
+
+sympy/ntheory/tests/test_residue.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/ntheory/residue_ntheory.py:1665: in discrete_log
+    return _discrete_log_trial_mul(n, a, b, order)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+n = 1, a = 0, b = 0, order = 1
+
+    def _discrete_log_trial_mul(n, a, b, order=None):
+        """
+        Trial multiplication algorithm for computing the discrete logarithm of
+        ``a`` to the base ``b`` modulo ``n``.
+    
+        The algorithm finds the discrete logarithm using exhaustive search. This
+        naive method is used as fallback algorithm of ``discrete_log`` when the
+        group order is very small.
+    
+        Examples
+        ========
+    
+        >>> from sympy.ntheory.residue_ntheory import _discrete_log_trial_mul
+        >>> _discrete_log_trial_mul(41, 15, 7)
+        3
+    
+        See Also
+        ========
+    
+        discrete_log
+    
+        References
+        ==========
+    
+        .. [1] "Handbook of applied cryptography", Menezes, A. J., Van, O. P. C., &
+            Vanstone, S. A. (1997).
+        """
+        a %= n
+        b %= n
+        if order is None:
+            order = n
+        x = 1
+        for i in range(order):
+            if x == a:
+                return i
+            x = x * b % n
+>       raise ValueError("Log does not exist")
+E       ValueError: Log does not exist
+
+sympy/ntheory/residue_ntheory.py:1287: ValueError
+_____________________________ test_C89CodePrinter ______________________________
+
+    def test_C89CodePrinter():
+        c89printer = C89CodePrinter()
+        assert c89printer.language == 'C'
+        assert c89printer.standard == 'C89'
+        assert 'void' in c89printer.reserved_words
+        assert 'template' not in c89printer.reserved_words
+>       assert c89printer.doprint(log10(x)) == 'log10(x)'
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+sympy/printing/tests/test_c.py:628: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+sympy/printing/codeprinter.py:172: in doprint
+    lines = self._print(expr).splitlines()
+            ^^^^^^^^^^^^^^^^^
+sympy/printing/printer.py:331: in _print
+    return printmethod(expr, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sympy/printing/codeprinter.py:464: in _print_Function
+    return self._print_not_supported(expr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <sympy.printing.c.C89CodePrinter object at 0xffff43a41050>
+expr = log10(x)
+
+    def _print_not_supported(self, expr):
+        if self._settings.get('strict', False):
+>           raise PrintMethodNotImplementedError(
+                f"Unsupported by {type(self)}: {type(expr)}" +
+                "\nSet the printer option 'strict' to False in order to generate partially printed code."
+            )
+E           sympy.printing.codeprinter.PrintMethodNotImplementedError: Unsupported by <class 'sympy.printing.c.C89CodePrinter'>: log10
+E           Set the printer option 'strict' to False in order to generate partially printed code.
+
+sympy/printing/codeprinter.py:611: PrintMethodNotImplementedError
+________________________________ test_jax_array ________________________________
+
+    def test_jax_array():
+        assert JaxPrinter().doprint(Array(((1, 2), (3, 5)))) == 'jax.numpy.array([[1, 2], [3, 5]])'
+>       assert JaxPrinter().doprint(Array((1, 2))) == 'jax.numpy.array([1, 2])'
+E       AssertionError: assert 'jax.numpy.array((1, 2))' == 'jax.numpy.array([1, 2])'
+E         
+E         - jax.numpy.array([1, 2])
+E         ?                 ^    -
+E         + jax.numpy.array((1, 2))
+E         ?                 ^     +
+
+sympy/printing/tests/test_jax.py:337: AssertionError
+___________________________ test_DotProduct_printing ___________________________
+
+    def test_DotProduct_printing():
+        X = MatrixSymbol('X', 3, 1)
+        Y = MatrixSymbol('Y', 3, 1)
+        a = Symbol('a')
+        assert latex(DotProduct(X, Y)) == r"X \cdot Y"
+>       assert latex(DotProduct(a * X, Y)) == r"a X \cdot Y"
+E       AssertionError: assert '\\left(a X\\right) \\cdot Y' == 'a X \\cdot Y'
+E         
+E         - a X \cdot Y
+E         + \left(a X\right) \cdot Y
+
+sympy/printing/tests/test_latex.py:2577: AssertionError
+________________________________ test_Function _________________________________
+
+    def test_Function():
+        assert mcode(f(x, y, z)) == "f[x, y, z]"
+        assert mcode(sin(x) ** cos(x)) == "Sin[x]^Cos[x]"
+        assert mcode(sec(x) * acsc(x)) == "ArcCsc[x]*Sec[x]"
+>       assert mcode(atan2(y, x)) == "ArcTan[x, y]"
+E       AssertionError: assert 'ArcTan[y, x]' == 'ArcTan[x, y]'
+E         
+E         - ArcTan[x, y]
+E         ?         ---
+E         + ArcTan[y, x]
+E         ?        +++
+
+sympy/printing/tests/test_mathematica.py:48: AssertionError
+_______________________________ test_numpy_array _______________________________
+
+    def test_numpy_array():
+        p = NumPyPrinter()
+        assert p.doprint(Array([[1, 2], [3, 5]])) == 'numpy.array([[1, 2], [3, 5]])'
+>       assert p.doprint(Array([1, 2])) == 'numpy.array([1, 2])'
+E       AssertionError: assert 'numpy.array((1, 2))' == 'numpy.array([1, 2])'
+E         
+E         - numpy.array([1, 2])
+E         ?             ^    -
+E         + numpy.array((1, 2))
+E         ?             ^     +
+
+sympy/printing/tests/test_numpy.py:335: AssertionError
+______________________________ test_numpy_matrix _______________________________
+
+    def test_numpy_matrix():
+        p = NumPyPrinter()
+        assert p.doprint(Matrix([[1, 2], [3, 5]])) == 'numpy.array([[1, 2], [3, 5]])'
+        assert p.doprint(Matrix([1, 2])) == 'numpy.array([[1], [2]])'
+>       assert p.doprint(Matrix(0, 0, [])) == 'numpy.zeros((0, 0))'
+E       AssertionError: assert 'numpy.array([])' == 'numpy.zeros((0, 0))'
+E         
+E         - numpy.zeros((0, 0))
+E         + numpy.array([])
+
+sympy/printing/tests/test_numpy.py:347: AssertionError
+__________________ test_custom_function_precedence_comparison __________________
+
+    def test_custom_function_precedence_comparison():
+        """
+        Test cases for custom functions with different precedence values,
+        specifically handling:
+        1. Functions with precedence < PRECEDENCE["Mul"] (50)
+        2. Functions with precedence = Func (70)
+    
+        Key distinction:
+        1. Lower precedence functions (45) need parentheses: -2*(x F y)
+        2. Higher precedence functions (70) don't: -2*x F y
+        """
+        class LowPrecedenceF(Function):
+            precedence = PRECEDENCE["Mul"] - 5
+            def _sympystr(self, printer):
+                return f"{printer._print(self.args[0])} F {printer._print(self.args[1])}"
+    
+        class HighPrecedenceF(Function):
+            precedence = PRECEDENCE["Func"]
+            def _sympystr(self, printer):
+                return f"{printer._print(self.args[0])} F {printer._print(self.args[1])}"
+    
+        def test_low_precedence():
+            expr1 = 2 * LowPrecedenceF(x, y)
+            assert str(expr1) == "2*(x F y)"
+    
+            expr2 = -2 * LowPrecedenceF(x, y)
+            assert str(expr2) == "-2*(x F y)"
+    
+        def test_high_precedence():
+            expr1 = 2 * HighPrecedenceF(x, y)
+            assert str(expr1) == "2*x F y"
+    
+            expr2 = -2 * HighPrecedenceF(x, y)
+            assert str(expr2) == "-2*x F y"
+    
+>       test_low_precedence()
+
+sympy/printing/tests/test_precedence.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def test_low_precedence():
+        expr1 = 2 * LowPrecedenceF(x, y)
+        assert str(expr1) == "2*(x F y)"
+    
+        expr2 = -2 * LowPrecedenceF(x, y)
+>       assert str(expr2) == "-2*(x F y)"
+E       AssertionError: assert '-2*x F y' == '-2*(x F y)'
+E         
+E         - -2*(x F y)
+E         ?    -     -
+E         + -2*x F y
+
+sympy/printing/tests/test_precedence.py:118: AssertionError
+____________________________ test_PythonCodePrinter ____________________________
+
+    def test_PythonCodePrinter():
+        prntr = PythonCodePrinter()
+    
+        assert not prntr.module_imports
+    
+        assert prntr.doprint(x**y) == 'x**y'
+        assert prntr.doprint(Mod(x, 2)) == 'x % 2'
+        assert prntr.doprint(-Mod(x, y)) == '-(x % y)'
+        assert prntr.doprint(Mod(-x, y)) == '(-x) % y'
+        assert prntr.doprint(And(x, y)) == 'x and y'
+        assert prntr.doprint(Or(x, y)) == 'x or y'
+        assert prntr.doprint(1/(x+y)) == '1/(x + y)'
+>       assert prntr.doprint(Not(x)) == 'not x'
+E       AssertionError: assert 'notx' == 'not x'
+E         
+E         - not x
+E         ?    -
+E         + notx
+
+sympy/printing/tests/test_pycode.py:45: AssertionError
+__________________________________ test_sign ___________________________________
+
+    def test_sign():
+        expr = sign(x) * y
+>       assert rust_code(expr) == "y*(if (x == 0.0) { 0.0 } else { (x).signum() }) as f64"
+E       AssertionError: assert 'y*x.signum() as f64' == 'y*(if (x == ...m() }) as f64'
+E         
+E         - y*(if (x == 0.0) { 0.0 } else { (x).signum() }) as f64
+E         + y*x.signum() as f64
+
+sympy/printing/tests/test_rust.py:178: AssertionError
+________________________________ test_NDimArray ________________________________
+
+    def test_NDimArray():
+        assert sstr(NDimArray(1.0), full_prec=True) == '1.00000000000000'
+        assert sstr(NDimArray(1.0), full_prec=False) == '1.0'
+        assert sstr(NDimArray([1.0, 2.0]), full_prec=True) == '[1.00000000000000, 2.00000000000000]'
+        assert sstr(NDimArray([1.0, 2.0]), full_prec=False) == '[1.0, 2.0]'
+>       assert sstr(NDimArray([], (0,))) == 'ImmutableDenseNDimArray([], (0,))'
+E       AssertionError: assert '[]' == 'ImmutableDen...ray([], (0,))'
+E         
+E         - ImmutableDenseNDimArray([], (0,))
+E         + []
+
+sympy/printing/tests/test_str.py:1169: AssertionError
+=============================== warnings summary ===============================
+../../../usr/local/lib/python3.13/site-packages/mpmath/libmp/libintmath.py:75: 2 warnings
+sympy/core/tests/test_args.py: 117 warnings
+sympy/core/tests/test_arit.py: 11666 warnings
+sympy/core/tests/test_assumptions.py: 2650 warnings
+sympy/core/tests/test_basic.py: 27 warnings
+sympy/core/tests/test_complex.py: 65 warnings
+sympy/core/tests/test_evalf.py: 12616 warnings
+sympy/core/tests/test_expr.py: 2557 warnings
+sympy/core/tests/test_exprtools.py: 39 warnings
+sympy/core/tests/test_function.py: 11182 warnings
+sympy/core/tests/test_match.py: 1 warning
+sympy/core/tests/test_numbers.py: 2030 warnings
+sympy/core/tests/test_power.py: 865 warnings
+sympy/core/tests/test_relational.py: 8605 warnings
+sympy/core/tests/test_subs.py: 11 warnings
+sympy/core/tests/test_sympify.py: 3 warnings
+sympy/functions/combinatorial/tests/test_comb_factorials.py: 4 warnings
+sympy/functions/combinatorial/tests/test_comb_numbers.py: 15602 warnings
+sympy/functions/elementary/tests/test_complexes.py: 4753 warnings
+sympy/functions/elementary/tests/test_exponential.py: 1986 warnings
+sympy/functions/elementary/tests/test_hyperbolic.py: 2665 warnings
+sympy/functions/elementary/tests/test_integers.py: 82 warnings
+sympy/functions/elementary/tests/test_miscellaneous.py: 16 warnings
+sympy/functions/elementary/tests/test_piecewise.py: 765 warnings
+sympy/functions/elementary/tests/test_trigonometric.py: 369943 warnings
+sympy/functions/special/tests/test_bessel.py: 6708 warnings
+sympy/functions/special/tests/test_elliptic_integrals.py: 33 warnings
+sympy/functions/special/tests/test_error_functions.py: 1064 warnings
+sympy/functions/special/tests/test_gamma_functions.py: 797 warnings
+sympy/functions/special/tests/test_hyper.py: 71015 warnings
+sympy/functions/special/tests/test_singularity_functions.py: 4 warnings
+sympy/functions/special/tests/test_spec_polynomials.py: 4 warnings
+sympy/functions/special/tests/test_zeta_functions.py: 4904 warnings
+sympy/series/tests/test_aseries.py: 20 warnings
+sympy/series/tests/test_demidovich.py: 146 warnings
+sympy/series/tests/test_formal.py: 1764 warnings
+sympy/series/tests/test_fourier.py: 766 warnings
+sympy/series/tests/test_gruntz.py: 152 warnings
+sympy/series/tests/test_limits.py: 4214 warnings
+sympy/series/tests/test_limitseq.py: 107 warnings
+sympy/series/tests/test_lseries.py: 11 warnings
+sympy/series/tests/test_nseries.py: 347 warnings
+sympy/series/tests/test_order.py: 25 warnings
+sympy/series/tests/test_residues.py: 1372 warnings
+sympy/series/tests/test_sequences.py: 352 warnings
+sympy/series/tests/test_series.py: 1687 warnings
+sympy/matrices/tests/test_decompositions.py: 622986 warnings
+sympy/matrices/tests/test_determinant.py: 43 warnings
+sympy/matrices/tests/test_eigen.py: 99496 warnings
+sympy/matrices/tests/test_matrices.py: 23629 warnings
+sympy/matrices/tests/test_matrixbase.py: 23923 warnings
+sympy/matrices/tests/test_reductions.py: 44 warnings
+sympy/matrices/tests/test_solvers.py: 731 warnings
+sympy/ntheory/tests/test_continued_fraction.py: 665 warnings
+sympy/ntheory/tests/test_generate.py: 491 warnings
+sympy/ntheory/tests/test_partitions.py: 1410 warnings
+sympy/parsing/tests/test_maxima.py: 2 warnings
+sympy/printing/pretty/tests/test_pretty.py: 73 warnings
+sympy/printing/tests/test_c.py: 26 warnings
+sympy/printing/tests/test_cxx.py: 5 warnings
+sympy/printing/tests/test_latex.py: 49 warnings
+sympy/printing/tests/test_mathematica.py: 16 warnings
+sympy/printing/tests/test_rust.py: 2 warnings
+sympy/printing/tests/test_str.py: 19 warnings
+  /usr/local/lib/python3.13/site-packages/mpmath/libmp/libintmath.py:75: DeprecationWarning: bitcount function is deprecated
+    warnings.warn("bitcount function is deprecated",
+
+sympy/core/tests/test_function.py::test_nfloat
+  /usr/local/lib/python3.13/site-packages/mpmath/calculus/polynomials.py:177: DeprecationWarning: Descending (wrt powers) order of polynomial coefficients is deprecated, please adapt you code to use ascending order, asc=True.
+    warnings.warn("Descending (wrt powers) order of polynomial "
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+                                DO *NOT* COMMIT!                                
+=========================== short test summary info ============================
+FAILED sympy/core/tests/test_args.py::test_sympy__codegen__numpy_nodes__amin
+FAILED sympy/core/tests/test_args.py::test_sympy__codegen__numpy_nodes__amax
+FAILED sympy/core/tests/test_args.py::test_sympy__codegen__numpy_nodes__minimum
+FAILED sympy/core/tests/test_args.py::test_sympy__codegen__numpy_nodes__maximum
+FAILED sympy/core/tests/test_args.py::test_sympy__physics__quantum__operator__IdentityOperator
+FAILED sympy/core/tests/test_arit.py::test_Mul_hermitian_antihermitian - asse...
+FAILED sympy/core/tests/test_arit.py::test_Mod - assert False
+FAILED sympy/core/tests/test_assumptions.py::test_failing_assumptions - Asser...
+FAILED sympy/core/tests/test_assumptions.py::test_common_assumptions - Assert...
+FAILED sympy/core/tests/test_expr.py::test__unevaluated_Mul - assert (2, x, A...
+FAILED sympy/core/tests/test_expr.py::test_Float_zero_division_error - ZeroDi...
+FAILED sympy/core/tests/test_function.py::test_issue_27163 - Failed: DID NOT ...
+FAILED sympy/core/tests/test_match.py::test_match_bound - assert {W_: 2} is None
+FAILED sympy/core/tests/test_numbers.py::test_igcdex - assert (0, 1, 0) == (0...
+FAILED sympy/core/tests/test_numbers.py::test_Rational_new - Failed: Failed: ...
+FAILED sympy/core/tests/test_power.py::test_issue_2993 - AssertionError: asse...
+FAILED sympy/functions/combinatorial/tests/test_comb_numbers.py::test_euler_polynomials
+FAILED sympy/functions/combinatorial/tests/test_comb_numbers.py::test_partition
+FAILED sympy/functions/elementary/tests/test_complexes.py::test_adjoint - ass...
+FAILED sympy/functions/elementary/tests/test_complexes.py::test_conjugate_transpose
+FAILED sympy/functions/elementary/tests/test_complexes.py::test_transpose - a...
+FAILED sympy/functions/elementary/tests/test_integers.py::test_floor - Overfl...
+FAILED sympy/functions/elementary/tests/test_integers.py::test_ceiling - Over...
+FAILED sympy/functions/elementary/tests/test_piecewise.py::test_Piecewise_replace_relational_27538
+FAILED sympy/matrices/tests/test_matrices.py::test_adjoint_with_operator - as...
+FAILED sympy/matrices/tests/test_matrices.py::test_hermitian - assert False i...
+FAILED sympy/matrices/tests/test_matrixbase.py::test_issue_27225 - RecursionE...
+FAILED sympy/matrices/tests/test_repmatrix.py::test_matrix_inv_mod - sympy.po...
+FAILED sympy/ntheory/tests/test_factor_.py::test_factor_cache - assert 100000...
+FAILED sympy/ntheory/tests/test_qs.py::test_qs_2 - assert [-250, -67061...181...
+FAILED sympy/ntheory/tests/test_residue.py::test_residue - ValueError: Log do...
+FAILED sympy/printing/tests/test_c.py::test_C89CodePrinter - sympy.printing.c...
+FAILED sympy/printing/tests/test_jax.py::test_jax_array - AssertionError: ass...
+FAILED sympy/printing/tests/test_latex.py::test_DotProduct_printing - Asserti...
+FAILED sympy/printing/tests/test_mathematica.py::test_Function - AssertionErr...
+FAILED sympy/printing/tests/test_numpy.py::test_numpy_array - AssertionError:...
+FAILED sympy/printing/tests/test_numpy.py::test_numpy_matrix - AssertionError...
+FAILED sympy/printing/tests/test_precedence.py::test_custom_function_precedence_comparison
+FAILED sympy/printing/tests/test_pycode.py::test_PythonCodePrinter - Assertio...
+FAILED sympy/printing/tests/test_rust.py::test_sign - AssertionError: assert ...
+FAILED sympy/printing/tests/test_str.py::test_NDimArray - AssertionError: ass...
+41 failed, 5019 passed, 267 skipped, 61 xfailed, 1317355 warnings in 415.61s (0:06:55)
+verifier: pytest exit=1
+verifier: exclusion_guard=ok (2 modules absent as intended)
+verifier: collected=5388 range=[5325,5388] margin=24
+verifier: guards=0
+verifier: final_diff_bytes=172676
+verifier: ctrf_tests=5388
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/bin/rewardkit", line 6, in <module>
+  |     sys.exit(main())
+  |              ~~~~^^
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/__main__.py", line 114, in main
+  |     result = run(
+  |         args.tests_dirs[0],
+  |     ...<2 lines>...
+  |         **run_kwargs,
+  |     )
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 733, in run
+  |     asyncio.run(
+  |     ~~~~~~~~~~~^
+  |         _run_all(
+  |         ^^^^^^^^^
+  |     ...<4 lines>...
+  |         )
+  |         ^
+  |     )
+  |     ^
+  |   File "/usr/local/lib/python3.13/asyncio/runners.py", line 196, in run
+  |     return runner.run(main)
+  |            ~~~~~~~~~~^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/runners.py", line 119, in run
+  |     return self._loop.run_until_complete(task)
+  |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/base_events.py", line 726, in run_until_complete
+  |     return future.result()
+  |            ~~~~~~~~~~~~~^^
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 590, in _run_all
+  |     async with asyncio.TaskGroup() as tg:
+  |                ~~~~~~~~~~~~~~~~~^^
+  |   File "/usr/local/lib/python3.13/asyncio/taskgroups.py", line 71, in __aexit__
+  |     return await self._aexit(et, exc)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/taskgroups.py", line 173, in _aexit
+  |     raise BaseExceptionGroup(
+  |     ...<2 lines>...
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/asyncio/selector_events.py", line 1011, in _read_ready__data_received
+    |     data = self._sock.recv(self.max_size)
+    | ConnectionResetError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 90, in map_aiohttp_exceptions
+    |     yield
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 422, in handle_async_request
+    |     response = await self._make_aiohttp_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<6 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 385, in _make_aiohttp_request
+    |     response: Final = await client_session.request(
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<14 lines>...
+    |     ).__aenter__()
+    |     ^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 1756, in __aenter__
+    |     self._resp: _RetType_co = await self._coro
+    |                               ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 900, in _request
+    |     resp = await handler(req)
+    |            ^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 878, in _connect_and_send_request
+    |     await resp.start(conn)
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 745, in start
+    |     message, payload = await protocol.read()  # type: ignore[union-attr]
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/streams.py", line 716, in read
+    |     await self._waiter
+    | aiohttp.client_exceptions.ClientOSError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1709, in request
+    |     response = await self._send_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_client.py", line 1097, in _send_request
+    |     response = await self._send_with_auth_retry(request, stream=stream, **kwargs)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_client.py", line 1075, in _send_with_auth_retry
+    |     response = await super()._send_request(request, stream=stream, **kwargs)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1628, in _send_request
+    |     return await self._client.send(request, stream=stream, **kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 421, in handle_async_request
+    |     with map_aiohttp_exceptions():
+    |          ~~~~~~~~~~~~~~~~~~~~~~^^
+    |   File "/usr/local/lib/python3.13/contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 109, in map_aiohttp_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ConnectError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 985, in acompletion
+    |     headers, response = await self.make_openai_chat_completion_request(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/logging_utils.py", line 344, in async_wrapper
+    |     result: Final = await func(*args, **kwargs)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 539, in make_openai_chat_completion_request
+    |     raise e
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 515, in make_openai_chat_completion_request
+    |     raw_response = await openai_aclient.chat.completions.with_raw_response.create(**data, timeout=timeout)
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_legacy_response.py", line 386, in wrapped
+    |     return cast(LegacyAPIResponse[R], await func(*args, **kwargs))
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/resources/chat/completions/completions.py", line 2907, in create
+    |     return await self._post(
+    |            ^^^^^^^^^^^^^^^^^
+    |     ...<55 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1992, in post
+    |     return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1744, in request
+    |     raise APIConnectionError(request=request) from err
+    | openai.APIConnectionError: Connection error.
+    | 
+    | During handling of the above exception, another exception occurred:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 687, in acompletion
+    |     response = await _resolve_dispatched_chat_response(init_response)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 752, in _resolve_dispatched_chat_response
+    |     return await pending
+    |            ^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 1045, in acompletion
+    |     raise OpenAIError(
+    |     ...<4 lines>...
+    |     )
+    | litellm.llms.openai.common_utils.OpenAIError: Connection error.
+    | 
+    | During handling of the above exception, another exception occurred:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 46, in _guarded
+    |     return await coro
+    |            ^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 319, in _judge_once
+    |     return await arun_llm(
+    |            ^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/judges.py", line 431, in arun_llm
+    |     result = await _arun_llm_call(
+    |              ^^^^^^^^^^^^^^^^^^^^^
+    |     ...<7 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/judges.py", line 580, in _arun_llm_call
+    |     resp = await litellm.acompletion(**completion_kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/chat_completions/dispatch.py", line 102, in acompletion
+    |     return await _ADISPATCH.arun(
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<5 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/rust_bridge/dispatch.py", line 114, in arun
+    |     return await python(*args, **kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/utils.py", line 2297, in wrapper_async
+    |     raise e
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/utils.py", line 2112, in wrapper_async
+    |     result = await original_function(*args, **call_kwargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 740, in acompletion
+    |     raise exception_type(
+    |           ~~~~~~~~~~~~~~^
+    |         model=model,
+    |         ^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |         extra_kwargs=kwargs,
+    |         ^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 2745, in exception_type
+    |     raise e  # it's already mapped
+    |     ^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 2492, in exception_type
+    |     _map_openai_exception(
+    |     ~~~~~~~~~~~~~~~~~~~~~^
+    |         model=model,
+    |         ^^^^^^^^^^^^
+    |     ...<5 lines>...
+    |         extra_information=extra_information,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 475, in _map_openai_exception
+    |     raise InternalServerError(
+    |     ...<6 lines>...
+    |     )
+    | litellm.exceptions.InternalServerError: litellm.InternalServerError: InternalServerError: OpenAIException - Connection error.
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 588, in _run_reward
+    |     await r.arun(sem=sem_llm)
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 311, in arun
+    |     raise RuntimeError(f"Reward {self.name!r} failed: {first}") from first
+    | RuntimeError: Reward 'judge' failed: litellm.InternalServerError: InternalServerError: OpenAIException - Connection error.
+    +------------------------------------
+verifier: judge attempt 1 returned no complete result
+
+[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
+LiteLLM.Info: If you need to debug this error, use `litellm.turn_on_debug()'.
+
+  + Exception Group Traceback (most recent call last):
+  |   File "/usr/local/bin/rewardkit", line 6, in <module>
+  |     sys.exit(main())
+  |              ~~~~^^
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/__main__.py", line 114, in main
+  |     result = run(
+  |         args.tests_dirs[0],
+  |     ...<2 lines>...
+  |         **run_kwargs,
+  |     )
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 733, in run
+  |     asyncio.run(
+  |     ~~~~~~~~~~~^
+  |         _run_all(
+  |         ^^^^^^^^^
+  |     ...<4 lines>...
+  |         )
+  |         ^
+  |     )
+  |     ^
+  |   File "/usr/local/lib/python3.13/asyncio/runners.py", line 196, in run
+  |     return runner.run(main)
+  |            ~~~~~~~~~~^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/runners.py", line 119, in run
+  |     return self._loop.run_until_complete(task)
+  |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/base_events.py", line 726, in run_until_complete
+  |     return future.result()
+  |            ~~~~~~~~~~~~~^^
+  |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 590, in _run_all
+  |     async with asyncio.TaskGroup() as tg:
+  |                ~~~~~~~~~~~~~~~~~^^
+  |   File "/usr/local/lib/python3.13/asyncio/taskgroups.py", line 71, in __aexit__
+  |     return await self._aexit(et, exc)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/local/lib/python3.13/asyncio/taskgroups.py", line 173, in _aexit
+  |     raise BaseExceptionGroup(
+  |     ...<2 lines>...
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/asyncio/selector_events.py", line 1011, in _read_ready__data_received
+    |     data = self._sock.recv(self.max_size)
+    | ConnectionResetError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 90, in map_aiohttp_exceptions
+    |     yield
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 422, in handle_async_request
+    |     response = await self._make_aiohttp_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<6 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 385, in _make_aiohttp_request
+    |     response: Final = await client_session.request(
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<14 lines>...
+    |     ).__aenter__()
+    |     ^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 1756, in __aenter__
+    |     self._resp: _RetType_co = await self._coro
+    |                               ^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 900, in _request
+    |     resp = await handler(req)
+    |            ^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client.py", line 878, in _connect_and_send_request
+    |     await resp.start(conn)
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 745, in start
+    |     message, payload = await protocol.read()  # type: ignore[union-attr]
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/aiohttp/streams.py", line 716, in read
+    |     await self._waiter
+    | aiohttp.client_exceptions.ClientOSError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1709, in request
+    |     response = await self._send_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_client.py", line 1097, in _send_request
+    |     response = await self._send_with_auth_retry(request, stream=stream, **kwargs)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_client.py", line 1075, in _send_with_auth_retry
+    |     response = await super()._send_request(request, stream=stream, **kwargs)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1628, in _send_request
+    |     return await self._client.send(request, stream=stream, **kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 421, in handle_async_request
+    |     with map_aiohttp_exceptions():
+    |          ~~~~~~~~~~~~~~~~~~~~~~^^
+    |   File "/usr/local/lib/python3.13/contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/custom_httpx/aiohttp_transport.py", line 109, in map_aiohttp_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ConnectError: [Errno 104] Connection reset by peer
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 985, in acompletion
+    |     headers, response = await self.make_openai_chat_completion_request(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/logging_utils.py", line 344, in async_wrapper
+    |     result: Final = await func(*args, **kwargs)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 539, in make_openai_chat_completion_request
+    |     raise e
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 515, in make_openai_chat_completion_request
+    |     raw_response = await openai_aclient.chat.completions.with_raw_response.create(**data, timeout=timeout)
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_legacy_response.py", line 386, in wrapped
+    |     return cast(LegacyAPIResponse[R], await func(*args, **kwargs))
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/resources/chat/completions/completions.py", line 2907, in create
+    |     return await self._post(
+    |            ^^^^^^^^^^^^^^^^^
+    |     ...<55 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1992, in post
+    |     return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/openai/_base_client.py", line 1744, in request
+    |     raise APIConnectionError(request=request) from err
+    | openai.APIConnectionError: Connection error.
+    | 
+    | During handling of the above exception, another exception occurred:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 687, in acompletion
+    |     response = await _resolve_dispatched_chat_response(init_response)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 752, in _resolve_dispatched_chat_response
+    |     return await pending
+    |            ^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 1045, in acompletion
+    |     raise OpenAIError(
+    |     ...<4 lines>...
+    |     )
+    | litellm.llms.openai.common_utils.OpenAIError: Connection error.
+    | 
+    | During handling of the above exception, another exception occurred:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 46, in _guarded
+    |     return await coro
+    |            ^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 319, in _judge_once
+    |     return await arun_llm(
+    |            ^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/judges.py", line 431, in arun_llm
+    |     result = await _arun_llm_call(
+    |              ^^^^^^^^^^^^^^^^^^^^^
+    |     ...<7 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/judges.py", line 580, in _arun_llm_call
+    |     resp = await litellm.acompletion(**completion_kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/chat_completions/dispatch.py", line 102, in acompletion
+    |     return await _ADISPATCH.arun(
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<5 lines>...
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/rust_bridge/dispatch.py", line 114, in arun
+    |     return await python(*args, **kwargs)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/utils.py", line 2297, in wrapper_async
+    |     raise e
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/utils.py", line 2112, in wrapper_async
+    |     result = await original_function(*args, **call_kwargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/main.py", line 740, in acompletion
+    |     raise exception_type(
+    |           ~~~~~~~~~~~~~~^
+    |         model=model,
+    |         ^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |         extra_kwargs=kwargs,
+    |         ^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 2745, in exception_type
+    |     raise e  # it's already mapped
+    |     ^^^^^^^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 2492, in exception_type
+    |     _map_openai_exception(
+    |     ~~~~~~~~~~~~~~~~~~~~~^
+    |         model=model,
+    |         ^^^^^^^^^^^^
+    |     ...<5 lines>...
+    |         extra_information=extra_information,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    |   File "/usr/local/lib/python3.13/site-packages/litellm/litellm_core_utils/exception_mapping_utils.py", line 475, in _map_openai_exception
+    |     raise InternalServerError(
+    |     ...<6 lines>...
+    |     )
+    | litellm.exceptions.InternalServerError: litellm.InternalServerError: InternalServerError: OpenAIException - Connection error.
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/runner.py", line 588, in _run_reward
+    |     await r.arun(sem=sem_llm)
+    |   File "/usr/local/lib/python3.13/site-packages/rewardkit/reward.py", line 311, in arun
+    |     raise RuntimeError(f"Reward {self.name!r} failed: {first}") from first
+    | RuntimeError: Reward 'judge' failed: litellm.InternalServerError: InternalServerError: OpenAIException - Connection error.
+    +------------------------------------
+verifier: judge attempt 2 returned no complete result
+reward: 0.3496
+verifier: red line clear, composed reward stands

@@ -1,0 +1,18 @@
+[
+  {
+    "source": "/logs/artifacts",
+    "destination": "artifacts/logs/artifacts",
+    "type": "directory",
+    "status": "ok",
+    "service": null,
+    "exclude": []
+  },
+  {
+    "source": "/app/networkx",
+    "destination": "artifacts/app/networkx",
+    "type": "directory",
+    "status": "ok",
+    "service": null,
+    "exclude": []
+  }
+]

@@ -1,0 +1,2442 @@
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/dag.py /app/networkx/algorithms/dag.py
+--- /opt/pristine/networkx/algorithms/dag.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/dag.py	2026-11-17 08:29:07.000000000 +0000
+@@ -27,6 +27,7 @@
+     "transitive_closure_dag",
+     "transitive_reduction",
+     "antichains",
++    "antichain_width",
+     "dag_longest_path",
+     "dag_longest_path_length",
+     "dag_to_branching",
+@@ -1003,6 +1004,202 @@
+             antichains_stacks.append((new_antichain, new_stack))
+ 
+ 
++def _reachability_bitsets(G, topo_order):
++    """Return the strict reachability relation of a DAG as integer bitsets.
++
++    Node ``topo_order[i]`` is identified with bit ``i``. The returned list holds,
++    for each position ``i``, an integer whose set bits are the positions of the
++    nodes reachable from ``topo_order[i]`` by a non-empty path.
++    """
++    index = {v: i for i, v in enumerate(topo_order)}
++    succ = G._succ
++    reach = [0] * len(topo_order)
++    for i in range(len(topo_order) - 1, -1, -1):
++        bits = 0
++        for w in succ[topo_order[i]]:
++            j = index[w]
++            bits |= (1 << j) | reach[j]
++        reach[i] = bits
++    return reach
++
++
++def _iter_bits(bits):
++    """Yield the positions of the set bits of the nonnegative integer `bits`.
++
++    Positions are generated in increasing order.
++    """
++    while bits:
++        low = bits & -bits
++        yield low.bit_length() - 1
++        bits ^= low
++
++
++def _maximum_bipartite_matching_size(adj_bits):
++    """Size of a maximum matching of a bipartite graph via Hopcroft--Karp.
++
++    Both sides of the bipartite graph are ``range(n)`` with ``n = len(adj_bits)``
++    and the set bits of the integer ``adj_bits[u]`` are the right-side neighbors
++    of the left node ``u``. Neighbors are enumerated lazily and the search for
++    augmenting paths is iterative, so that dense relations and long augmenting
++    paths are handled without materializing every pair or exhausting the
++    recursion limit.
++    """
++    n = len(adj_bits)
++    unmatched = -1
++    match_left = [unmatched] * n
++    match_right = [unmatched] * n
++    size = 0
++    # Greedy initial matching: match each node with its first free neighbor.
++    free_right = (1 << n) - 1
++    for u, bits in enumerate(adj_bits):
++        candidates = bits & free_right
++        if candidates:
++            v = (candidates & -candidates).bit_length() - 1
++            match_left[u] = v
++            match_right[v] = u
++            free_right ^= 1 << v
++            size += 1
++
++    infinity = n + 1
++    while True:
++        # Breadth-first search building the layers of alternating paths.
++        # Every right node is scanned at most once per phase.
++        dist = [infinity] * n
++        queue = deque()
++        for u in range(n):
++            if match_left[u] == unmatched:
++                dist[u] = 0
++                queue.append(u)
++        unseen_right = (1 << n) - 1
++        found_free = False
++        while queue:
++            u = queue.popleft()
++            new_right = adj_bits[u] & unseen_right
++            unseen_right ^= new_right
++            for v in _iter_bits(new_right):
++                w = match_right[v]
++                if w == unmatched:
++                    found_free = True
++                elif dist[w] == infinity:
++                    dist[w] = dist[u] + 1
++                    queue.append(w)
++        if not found_free:
++            return size
++        # Depth-first search for augmenting paths along the layers.
++        nbr_iters = {}
++        for root in range(n):
++            if match_left[root] != unmatched:
++                continue
++            stack = [root]
++            via = []
++            if root not in nbr_iters:
++                nbr_iters[root] = _iter_bits(adj_bits[root])
++            while stack:
++                u = stack[-1]
++                for v in nbr_iters[u]:
++                    w = match_right[v]
++                    if w == unmatched:
++                        # augment along stack[0] - via[0] - stack[1] - ... - v
++                        via.append(v)
++                        for left, right in zip(stack, via):
++                            match_left[left] = right
++                            match_right[right] = left
++                        size += 1
++                        stack = []
++                        break
++                    if dist[w] == dist[u] + 1:
++                        via.append(v)
++                        stack.append(w)
++                        if w not in nbr_iters:
++                            nbr_iters[w] = _iter_bits(adj_bits[w])
++                        break
++                else:
++                    # dead end: no augmenting path continues through u
++                    dist[u] = infinity
++                    stack.pop()
++                    if via:
++                        via.pop()
++
++
++@not_implemented_for("undirected")
++@nx._dispatchable
++def antichain_width(G):
++    """Returns the width of the partial order defined by a DAG.
++
++    A directed acyclic graph (DAG) `G` defines a partial order on its nodes
++    in which ``u < v`` whenever there is a directed path from `u` to `v`.
++    Two nodes are *comparable* if one of them can reach the other. An
++    *antichain* is a set of pairwise incomparable nodes (see :func:`antichains`)
++    and the *width* of the partial order is the size of its largest antichain.
++
++    By Dilworth's theorem [1]_ the width equals the minimum number of chains
++    (sets of pairwise comparable nodes) needed to cover all nodes. This
++    function computes it as the number of nodes minus the size of a maximum
++    matching in the bipartite graph of the strict order relation [2]_, which
++    avoids enumerating the (possibly exponentially many) antichains.
++
++    Parameters
++    ----------
++    G : NetworkX DiGraph
++        A directed acyclic graph (DAG).
++
++    Returns
++    -------
++    int
++        The largest number of mutually incomparable nodes of `G`. The null
++        graph has width 0.
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is undirected.
++
++    NetworkXUnfeasible
++        If `G` contains a cycle.
++
++    Examples
++    --------
++    >>> DG = nx.DiGraph([(1, 2), (1, 3)])
++    >>> nx.antichain_width(DG)
++    2
++    >>> nx.antichain_width(nx.path_graph(5, create_using=nx.DiGraph))
++    1
++    >>> nx.antichain_width(nx.empty_graph(4, create_using=nx.DiGraph))
++    4
++
++    The width agrees with the size of the largest antichain:
++
++    >>> DG = nx.DiGraph([(0, 1), (0, 2), (1, 3), (2, 3), (4, 3)])
++    >>> nx.antichain_width(DG), max(len(a) for a in nx.antichains(DG))
++    (3, 3)
++
++    Notes
++    -----
++    The running time is dominated by computing the reachability relation and
++    a maximum bipartite matching (Hopcroft--Karp) on it, i.e.
++    $O(n (n + m) + R \\sqrt{n})$ where $R$ is the number of comparable pairs.
++
++    See Also
++    --------
++    antichains
++    transitive_closure_dag
++
++    References
++    ----------
++    .. [1] R. P. Dilworth, "A Decomposition Theorem for Partially Ordered Sets",
++       Annals of Mathematics, 51 (1950), pp. 161--166.
++    .. [2] D. R. Fulkerson, "Note on Dilworth's decomposition theorem for
++       partially ordered sets", Proceedings of the American Mathematical
++       Society, 7 (1956), pp. 701--702.
++    """
++    topo_order = list(topological_sort(G))
++    n = len(topo_order)
++    if n == 0:
++        return 0
++    reach = _reachability_bitsets(G, topo_order)
++    return n - _maximum_bipartite_matching_size(reach)
++
++
+ @not_implemented_for("undirected")
+ @nx._dispatchable(edge_attrs={"weight": "default_weight"})
+ def dag_longest_path(G, weight="weight", default_weight=1, topo_order=None):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/distance_measures.py /app/networkx/algorithms/distance_measures.py
+--- /opt/pristine/networkx/algorithms/distance_measures.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/distance_measures.py	2026-11-17 08:55:39.000000000 +0000
+@@ -1,6 +1,7 @@
+ """Graph diameter, radius, eccentricity and other properties."""
+ 
+ import math
++import operator
+ 
+ import networkx as nx
+ from networkx.utils import not_implemented_for
+@@ -13,6 +14,7 @@
+     "periphery",
+     "center",
+     "barycenter",
++    "centroid",
+     "resistance_distance",
+     "kemeny_constant",
+     "effective_graph_resistance",
+@@ -94,6 +96,8 @@
+        Theoretical Computer Science, 2015
+        https://www.sciencedirect.com/science/article/pii/S0304397515001644
+     """
++    if len(G) == 0:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     # init variables
+     degrees = dict(G.degree())  # start with the highest degree node
+     minlowernode = max(degrees, key=degrees.get)
+@@ -379,6 +383,13 @@
+     d : integer
+        Diameter of graph
+ 
++    Raises
++    ------
++    NetworkXPointlessConcept
++        If `G` has no nodes.
++    NetworkXError
++        If `G` is not (strongly) connected, so that some distances are infinite.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -400,6 +411,8 @@
+         return _extrema_bounding(G, compute="diameter", weight=weight)
+     if e is None:
+         e = eccentricity(G, weight=weight)
++    if not e:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     return max(e.values())
+ 
+ 
+@@ -523,6 +536,13 @@
+     p : list
+        List of nodes in periphery
+ 
++    Raises
++    ------
++    NetworkXPointlessConcept
++        If `G` has no nodes.
++    NetworkXError
++        If `G` is not (strongly) connected, so that some distances are infinite.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -545,6 +565,8 @@
+         return _extrema_bounding(G, compute="periphery", weight=weight)
+     if e is None:
+         e = eccentricity(G, weight=weight)
++    if not e:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     diameter = max(e.values())
+     p = [v for v in e if e[v] == diameter]
+     return p
+@@ -595,6 +617,13 @@
+     r : integer
+        Radius of graph
+ 
++    Raises
++    ------
++    NetworkXPointlessConcept
++        If `G` has no nodes.
++    NetworkXError
++        If `G` is not (strongly) connected, so that some distances are infinite.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -613,6 +642,8 @@
+         return _extrema_bounding(G, compute="radius", weight=weight)
+     if e is None:
+         e = eccentricity(G, weight=weight)
++    if not e:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     return min(e.values())
+ 
+ 
+@@ -661,6 +692,13 @@
+     c : list
+        List of nodes in center
+ 
++    Raises
++    ------
++    NetworkXPointlessConcept
++        If `G` has no nodes.
++    NetworkXError
++        If `G` is not (strongly) connected, so that some distances are infinite.
++
+     Notes
+     -----
+     When ``usebounds=True``, the computation makes use of smart lower
+@@ -687,6 +725,8 @@
+         return nx.tree.center(G)
+     if e is None:
+         e = eccentricity(G, weight=weight)
++    if not e:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     radius = min(e.values())
+     p = [v for v in e if e[v] == radius]
+     return p
+@@ -729,6 +769,8 @@
+ 
+     Raises
+     ------
++    NetworkXPointlessConcept
++        If `G` has no nodes.
+     NetworkXNoPath
+         If `G` is disconnected. `G` may appear disconnected to
+         :func:`barycenter` if `sp` is given but is missing shortest path
+@@ -745,9 +787,12 @@
+     See Also
+     --------
+     center
++    centroid
+     periphery
+     :func:`~networkx.algorithms.tree.distance_measures.centroid` : tree centroid
+     """
++    if len(G) == 0:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
+     if weight is None and attr is None and sp is None:
+         if not G.is_directed() and nx.is_tree(G):
+             return nx.tree.centroid(G)
+@@ -778,6 +823,118 @@
+     return barycenter_vertices
+ 
+ 
++class _DisconnectedGraphError(nx.NetworkXNoPath, nx.NetworkXError):
++    """Raised when a measure that needs a connected graph gets a disconnected one.
++
++    It is both a `NetworkXNoPath` (some distances are infinite) and a
++    `NetworkXError`, like the errors of the other distance measures.
++    """
++
++
++@not_implemented_for("directed")
++@nx._dispatchable(edge_attrs="weight")
++def centroid(G, *, weight=None):
++    r"""Returns the centroid of a connected undirected graph.
++
++    For two nodes $u$ and $v$ let $n(u, v)$ be the number of nodes that are
++    strictly closer to $u$ than to $v$. Placing a facility at $u$ while a
++    competitor places one at $v$, $n(u, v) - n(v, u)$ is the margin by which
++    $u$ wins the nodes over $v$. The *centroid* of `G` is the set of nodes $u$
++    with the largest worst-case margin [1]_ [2]_
++
++    .. math::
++
++        f(u) = \min_{v \neq u} \left( n(u, v) - n(v, u) \right).
++
++    For trees this is the classical centroid: the node or two adjacent nodes
++    whose removal leaves components of at most half of the nodes (see
++    :func:`~networkx.algorithms.tree.distance_measures.centroid`), which also
++    coincides with the barycenter of the tree.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        A connected undirected graph.
++
++    weight : string, function, or None, optional (default=None)
++        If None, every edge has length 1. Otherwise this is the edge attribute
++        (or function) giving the edge lengths used to measure distances, as in
++        :func:`~networkx.algorithms.shortest_paths.generic.shortest_path_length`.
++        Weights must be nonnegative.
++
++    Returns
++    -------
++    list
++        Nodes of `G` in the centroid, in the order of ``G.nodes``.
++
++    Raises
++    ------
++    NetworkXNotImplemented
++        If `G` is directed.
++    NetworkXPointlessConcept
++        If `G` has no nodes.
++    NetworkXNoPath
++        If `G` is disconnected (the exception is also a `NetworkXError`).
++
++    Notes
++    -----
++    The computation needs the distances between all pairs of nodes and
++    compares them for every pair of nodes, so it takes $O(n^3)$ time for a
++    graph with $n$ nodes. For unweighted trees the linear time algorithm of
++    :func:`~networkx.algorithms.tree.distance_measures.centroid` is used.
++
++    Examples
++    --------
++    >>> nx.centroid(nx.path_graph(4))
++    [1, 2]
++    >>> nx.centroid(nx.wheel_graph(6))
++    [0]
++    >>> nx.centroid(nx.cycle_graph(4))
++    [0, 1, 2, 3]
++
++    See Also
++    --------
++    barycenter
++    center
++    :func:`~networkx.algorithms.tree.distance_measures.centroid` : tree centroid
++
++    References
++    ----------
++    .. [1] P. J. Slater, "Maximin facility location",
++       Journal of Research of the National Bureau of Standards, 79B (1975),
++       pp. 107--115.
++    .. [2] C. Smart and P. J. Slater, "Center, median, and centroid subgraphs",
++       Networks, 34 (1999), pp. 303--311.
++    """
++    if len(G) == 0:
++        raise nx.NetworkXPointlessConcept("G has no nodes.")
++    if weight is None and nx.is_tree(G):
++        return nx.tree.centroid(G)
++    if not nx.is_connected(G):
++        raise _DisconnectedGraphError(
++            f"Input graph {G} is disconnected, so it has no centroid."
++        )
++
++    if weight is None:
++        dist = dict(nx.all_pairs_shortest_path_length(G))
++    else:
++        dist = dict(nx.all_pairs_dijkstra_path_length(G, weight=weight))
++    nodes = list(G)
++    rows = [[dist[u][x] for x in nodes] for u in nodes]
++    margins = [math.inf] * len(nodes)
++    for i, du in enumerate(rows):
++        for j in range(i + 1, len(rows)):
++            dv = rows[j]
++            # (nodes closer to nodes[i]) - (nodes closer to nodes[j])
++            margin = sum(map(operator.lt, du, dv)) - sum(map(operator.gt, du, dv))
++            if margin < margins[i]:
++                margins[i] = margin
++            if -margin < margins[j]:
++                margins[j] = -margin
++    best = max(margins)
++    return [u for u, margin in zip(nodes, margins) if margin == best]
++
++
+ @not_implemented_for("directed")
+ @nx._dispatchable(edge_attrs="weight")
+ def resistance_distance(G, nodeA=None, nodeB=None, weight=None, invert_weight=True):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/planarity.py /app/networkx/algorithms/planarity.py
+--- /opt/pristine/networkx/algorithms/planarity.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/planarity.py	2026-11-17 08:57:40.000000000 +0000
+@@ -228,9 +228,11 @@
+     the one in the right interval.
+     """
+ 
+-    def __init__(self, left=Interval(), right=Interval()):
+-        self.left = left
+-        self.right = right
++    def __init__(self, left=None, right=None):
++        # Fresh intervals for each pair: the intervals are modified in place
++        # while the conflict pairs are merged, so they must not be shared.
++        self.left = Interval() if left is None else left
++        self.right = Interval() if right is None else right
+ 
+     def swap(self):
+         """Swap left and right intervals"""
+@@ -908,6 +910,8 @@
+ 
+         """
+         for v in data:
++            # nodes without neighbors (isolated nodes) belong to the embedding too
++            self.add_node(v)
+             ref = None
+             for w in reversed(data[v]):
+                 self.add_half_edge(v, w, cw=ref)
+@@ -1002,8 +1006,18 @@
+         start_node = next(reversed(succs))
+         yield start_node
+         current_node = succs[start_node]["cw"]
++        num_yielded = 1
+         while start_node != current_node:
++            # In a valid embedding the clockwise order returns to the start node
++            # after visiting every neighbor once (the neighbors may be added to
++            # while iterating). Stop instead of cycling forever on invalid ones.
++            if num_yielded >= len(succs):
++                raise nx.NetworkXException(
++                    f"Bad embedding. The clockwise order of the neighbors of {v} "
++                    "does not form a cycle."
++                )
+             yield current_node
++            num_yielded += 1
+             current_node = succs[current_node]["cw"]
+ 
+     def add_half_edge(self, start_node, end_node, *, cw=None, ccw=None):
+@@ -1088,7 +1102,9 @@
+ 
+         * Edges go in both directions (because the edge attributes differ).
+         * Every edge has a 'cw' and 'ccw' attribute which corresponds to a
+-          correct planar embedding.
++          correct planar embedding: around every node the 'cw' attributes
++          cycle through all of its neighbors and the 'ccw' attributes give
++          the same cycle in the opposite direction.
+ 
+         Running this method verifies that the underlying Graph must be planar.
+ 
+@@ -1110,11 +1126,16 @@
+             if sorted_nbrs != unsorted_nbrs:
+                 msg = "Bad embedding. Edge orientations not set correctly."
+                 raise nx.NetworkXException(msg)
+-            for w in self[v]:
++            succs = self._succ[v]
++            for w in succs:
+                 # Check if opposite half-edge exists
+                 if not self.has_edge(w, v):
+                     msg = "Bad embedding. Opposite half-edge is missing."
+                     raise nx.NetworkXException(msg)
++                # Check that the ccw order is the reverse of the cw order
++                if succs[succs[w]["cw"]].get("ccw") != w:
++                    msg = f"Bad embedding. Inconsistent edge orientations at {v}."
++                    raise nx.NetworkXException(msg)
+ 
+         # Check planarity
+         counted_half_edges = set()
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/tree/distance_measures.py /app/networkx/algorithms/tree/distance_measures.py
+--- /opt/pristine/networkx/algorithms/tree/distance_measures.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/tree/distance_measures.py	2026-11-17 08:56:16.000000000 +0000
+@@ -59,6 +59,11 @@
+     >>> nx.tree.center(G)
+     [2]
+     """
++    # A tree on n nodes has exactly n - 1 edges. This (cheap) check also catches
++    # self-loops and parallel edges that the leaf stripping below cannot see.
++    if G.number_of_edges() != len(G) - 1:
++        raise nx.NotATree("input graph is not a tree")
++
+     center_candidates_degree = dict(G.degree)
+     leaves = {node for node, degree in center_candidates_degree.items() if degree == 1}
+ 
+@@ -81,7 +86,6 @@
+     # check disconnected or cyclic
+     if (n == 2 and not leaves) or n not in {1, 2}:
+         # We have detected graph is not a tree. This check does not cover all cases.
+-        # For example, `nx.Graph([(0, 0)])` will not raise an error.
+         raise nx.NotATree("input graph is not a tree")
+ 
+     return list(center_candidates_degree)
+@@ -132,8 +136,9 @@
+     return sizes
+ 
+ 
++# Not dispatchable: `networkx.centroid` (for general graphs) owns the dispatch
++# name "centroid" and calls this function for trees, as with `center`.
+ @nx.utils.not_implemented_for("directed")
+-@nx._dispatchable
+ def centroid(G):
+     """Return the centroid of an unweighted tree.
+ 
+@@ -196,6 +201,7 @@
+     --------
+     :func:`~networkx.algorithms.distance_measures.barycenter`
+     :func:`~networkx.algorithms.distance_measures.center`
++    :func:`~networkx.algorithms.distance_measures.centroid` : centroid of general graphs
+     center : tree center
+     """
+     if not nx.is_tree(G):
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/algorithms/walks.py /app/networkx/algorithms/walks.py
+--- /opt/pristine/networkx/algorithms/walks.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/algorithms/walks.py	2026-11-17 09:00:01.000000000 +0000
+@@ -1,12 +1,26 @@
+-"""Function for computing walks in a graph."""
++"""Functions for counting and generating walks in a graph.
++
++A *walk* is a sequence of nodes in which each adjacent pair of nodes is joined
++by an edge of the graph. Each *step* of a walk traverses one edge: parallel
++edges of a multigraph are distinct steps, a self-loop is a step that returns to
++the same node and, for directed graphs, steps follow the edge direction.
++:func:`number_of_walks` counts walks according to this notion of a step and
++:func:`random_walk` samples them.
++"""
++
++import math
++import operator
++from bisect import bisect_right
++from itertools import accumulate
+ 
+ import networkx as nx
++from networkx.utils import py_random_state
+ 
+-__all__ = ["number_of_walks"]
++__all__ = ["number_of_walks", "random_walk"]
+ 
+ 
+-@nx._dispatchable
+-def number_of_walks(G, walk_length):
++@nx._dispatchable(edge_attrs="weight")
++def number_of_walks(G, walk_length, *, weight=None):
+     """Returns the number of walks connecting each pair of nodes in `G`
+ 
+     A *walk* is a sequence of nodes in which each adjacent pair of nodes
+@@ -19,6 +33,11 @@
+     The number of walks can grow very quickly on a larger graph
+     and with a larger walk length.
+ 
++    Each step of a walk traverses one edge, exactly as a step of
++    :func:`random_walk` does: the parallel edges of a multigraph give
++    distinct walks, a self-loop gives a step from a node to itself and the
++    walks of a directed graph follow the direction of its edges.
++
+     Parameters
+     ----------
+     G : NetworkX graph
+@@ -26,6 +45,13 @@
+     walk_length : int
+         A nonnegative integer representing the length of a walk.
+ 
++    weight : string or None, optional (default=None)
++        If None, every walk counts once. Otherwise this is the edge attribute
++        holding the edge weights (missing weights count as 1) and each walk
++        contributes the product of the weights of the edges it traverses,
++        i.e. the result is given by the powers of the weighted adjacency
++        matrix.
++
+     Returns
+     -------
+     dict
+@@ -36,7 +62,12 @@
+     Raises
+     ------
+     ValueError
+-        If `walk_length` is negative
++        If `walk_length` is negative or not an integer.
++
++    Notes
++    -----
++    The counts are exact: when they could exceed the range of 64-bit
++    integers the computation switches to Python integers.
+ 
+     Examples
+     --------
+@@ -62,16 +93,217 @@
+     >>> walks[0][1]
+     1
+ 
++    Parallel edges are distinct steps:
++
++    >>> nx.number_of_walks(nx.MultiGraph([(0, 1), (0, 1)]), 1)[0][1]
++    2
++
++    See Also
++    --------
++    random_walk
+     """
+     import scipy as sp
+ 
++    try:
++        walk_length = operator.index(walk_length)
++    except TypeError as err:
++        raise ValueError(
++            f"`walk_length` must be a nonnegative integer: {walk_length!r}"
++        ) from err
+     if walk_length < 0:
+         raise ValueError(f"`walk_length` cannot be negative: {walk_length}")
+ 
+-    A = nx.adjacency_matrix(G, weight=None)
++    if len(G) == 0:
++        return {}
++
++    A = nx.adjacency_matrix(G, weight=weight).tocsr()
++    if A.dtype.kind in "iub" and _may_overflow(A, walk_length):
++        # Fixed width integers would silently overflow: use Python integers.
++        power = _exact_matrix_power(A.toarray().astype(object), walk_length)
++        return {
++            u: {v: power[u_idx, v_idx] for v_idx, v in enumerate(G)}
++            for u_idx, u in enumerate(G)
++        }
+     power = sp.sparse.linalg.matrix_power(A, walk_length).tocsr()
+     result = {
+         u: {v: power[u_idx, v_idx].item() for v_idx, v in enumerate(G)}
+         for u_idx, u in enumerate(G)
+     }
+     return result
++
++
++def _may_overflow(A, k):
++    """Return True if entries of the integer sparse array ``A ** k`` may not fit
++    in a signed 64-bit integer."""
++    import scipy as sp
++
++    # cheap bound: entries of A ** k are at most (largest absolute row sum) ** k
++    max_row_sum = int(abs(A).sum(axis=1).max())
++    if max_row_sum <= 1 or k * math.log2(max_row_sum) <= 62:
++        return False
++    # otherwise estimate the magnitude of the entries in floating point
++    estimate = abs(sp.sparse.linalg.matrix_power(A.astype(float), k)).max()
++    return not estimate < 2.0**62
++
++
++def _exact_matrix_power(A, k):
++    """Return ``A ** k`` for a square object array `A` of Python numbers."""
++    import numpy as np
++
++    result = np.identity(A.shape[0], dtype=int).astype(object)
++    while k:
++        if k & 1:
++            result = result @ A
++        k >>= 1
++        if k:
++            A = A @ A
++    return result
++
++
++class _StartNodeNotFound(nx.NodeNotFound, nx.NetworkXError):
++    """Raised when the start node of a walk is not in the graph.
++
++    It is both a `NodeNotFound` and a `NetworkXError` (the error raised by the
++    graph traversals for missing source nodes).
++    """
++
++
++@py_random_state("seed")
++@nx._dispatchable(edge_attrs="weight")
++def random_walk(G, *, start, weight=None, seed=None):
++    """Generate the nodes visited by a random walk on `G` from `start`.
++
++    The walk begins at `start`, which is the first node generated. At every
++    step the walk moves from the current node to one of its neighbors
++    (successors for directed graphs) by traversing an edge chosen at random,
++    and the node reached is generated. Without `weight` every edge leaving
++    the current node is equally likely, so parallel edges of a multigraph
++    make a neighbor proportionally more likely and a self-loop is a step that
++    stays at the same node. With `weight`, each edge is chosen with
++    probability proportional to its weight.
++
++    The walk is unbounded: it only stops when it reaches a node from which no
++    step is possible (a node without neighbors, or whose edges all have zero
++    weight). Use e.g. :func:`itertools.islice` to take a walk of a given
++    length; ``k + 1`` generated nodes form a walk of length ``k``, the same
++    notion of length used by :func:`number_of_walks`.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++
++    start : node
++        The node where the walk starts. This argument is keyword-only.
++
++    weight : string or None, optional (default=None)
++        The edge attribute used to bias the choice of each step. Each edge is
++        traversed with probability proportional to this attribute (missing
++        values count as 1; weights must be nonnegative). If None, all edges
++        are equally likely.
++
++    seed : integer, random_state, or None (default)
++        Indicator of random number generation state.
++        See :ref:`Randomness<randomness>`.
++
++    Returns
++    -------
++    generator
++        A generator of the nodes visited by the walk, starting with `start`.
++
++    Raises
++    ------
++    NodeNotFound
++        If `start` is not a node of `G` (the exception is also a
++        `NetworkXError`).
++
++    ValueError
++        If `weight` is given and the walk meets an edge with a negative weight.
++
++    Notes
++    -----
++    The transition probabilities are those of the row-normalized (weighted)
++    adjacency matrix, so the probability of each walk of length `k` from
++    `start` is given by products of entries of that matrix. The graph should
++    not be modified while the walk is being generated.
++
++    Examples
++    --------
++    >>> from itertools import islice
++    >>> G = nx.cycle_graph(5)
++    >>> walk = list(islice(nx.random_walk(G, start=0, seed=42), 6))
++    >>> len(walk), walk[0]
++    (6, 0)
++    >>> all(G.has_edge(u, v) for u, v in nx.utils.pairwise(walk))
++    True
++
++    The walk ends where no further step is possible:
++
++    >>> list(nx.random_walk(nx.DiGraph([(0, 1), (1, 2)]), start=0))
++    [0, 1, 2]
++
++    Edge weights bias the walk; an edge of weight zero is never traversed:
++
++    >>> G = nx.Graph([(0, 1, {"w": 1}), (0, 2, {"w": 0}), (1, 2, {"w": 1})])
++    >>> walk = list(islice(nx.random_walk(G, start=0, weight="w", seed=1), 20))
++    >>> any({u, v} == {0, 2} for u, v in nx.utils.pairwise(walk))
++    False
++
++    See Also
++    --------
++    number_of_walks
++    generate_random_paths
++    """
++    if start not in G:
++        raise _StartNodeNotFound(f"Starting node {start} is not in G")
++    return _random_walk(G, start, weight, seed)
++
++
++def _random_walk(G, node, weight, seed):
++    """Generator behind :func:`random_walk`; `node` is the start node."""
++    succ = G._succ if G.is_directed() else G._adj
++    multigraph = G.is_multigraph()
++    steps = {}
++    while True:
++        yield node
++        try:
++            nbrs, cumulative = steps[node]
++        except KeyError:
++            nbrs, cumulative = steps[node] = _step_choices(
++                succ[node], weight, multigraph
++            )
++        if not nbrs:
++            return
++        if cumulative is None:
++            node = seed.choice(nbrs)
++        else:
++            # as in random.choices, `hi` guards against floating point round-off
++            x = seed.random() * cumulative[-1]
++            node = nbrs[bisect_right(cumulative, x, 0, len(cumulative) - 1)]
++
++
++def _step_choices(nbrdict, weight, multigraph):
++    """Return the possible next nodes of a walk and their cumulative weights.
++
++    Without `weight` the returned list holds each neighbor once per edge (so a
++    uniform choice from it picks a uniformly random edge) and the cumulative
++    weights are None. With `weight`, the cumulative edge weights towards each
++    neighbor are returned. An empty neighbor list means no step is possible.
++    """
++    if weight is None:
++        if multigraph:
++            return [nbr for nbr, keydict in nbrdict.items() for _ in keydict], None
++        return list(nbrdict), None
++    nbrs = []
++    weights = []
++    for nbr, data in nbrdict.items():
++        edges = data.values() if multigraph else (data,)
++        for dd in edges:
++            wt = dd.get(weight, 1)
++            if wt < 0:
++                raise ValueError(f"Negative edge weight {wt!r} found on a random walk")
++            if wt:
++                nbrs.append(nbr)
++                weights.append(wt)
++    if not nbrs:
++        return [], None
++    return nbrs, list(accumulate(weights))
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/classes/function.py /app/networkx/classes/function.py
+--- /opt/pristine/networkx/classes/function.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/classes/function.py	2026-11-17 08:43:09.000000000 +0000
+@@ -1031,8 +1031,17 @@
+     -------
+     non_neighbors : set
+         Set of nodes in the graph that are not neighbors of the node.
++
++    Raises
++    ------
++    NetworkXError
++        If `node` is not in the graph.
+     """
+-    return graph._adj.keys() - graph._adj[node].keys() - {node}
++    try:
++        nbrs = graph._adj[node]
++    except KeyError as err:
++        raise nx.NetworkXError(f"The node {node} is not in the graph.") from err
++    return graph._adj.keys() - nbrs.keys() - {node}
+ 
+ 
+ def non_edges(graph):
+@@ -1141,6 +1150,9 @@
+         if data is None:
+             msg = f"Edge {edge!r} does not exist."
+             raise nx.NetworkXError(msg)
++        if G.is_multigraph() and len(edge) == 2:
++            # all the parallel edges between the two nodes are tested
++            return all(weight in dd for dd in data.values())
+         return weight in data
+ 
+     if is_empty(G):
+@@ -1199,6 +1211,9 @@
+         if data is None:
+             msg = f"Edge {edge!r} does not exist."
+             raise nx.NetworkXError(msg)
++        if G.is_multigraph() and len(edge) == 2:
++            # any of the parallel edges between the two nodes may be negative
++            return any(weight in dd and dd[weight] < 0 for dd in data.values())
+         return weight in data and data[weight] < 0
+ 
+     return any(weight in data and data[weight] < 0 for u, v, data in G.edges(data=True))
+@@ -1402,8 +1417,25 @@
+     bool
+         True if `path` is a valid path in `G`
+ 
++    Notes
++    -----
++    A path consisting of a single node is valid if (and only if) the node is
++    in `G`. An empty path is not a valid path.
++
++    Examples
++    --------
++    >>> G = nx.path_graph(4)
++    >>> nx.is_path(G, [0, 1, 2])
++    True
++    >>> nx.is_path(G, [0, 2])
++    False
++    >>> nx.is_path(G, [3]), nx.is_path(G, [4])
++    (True, False)
+     """
+     try:
++        path = list(path)
++        if not path or path[0] not in G:
++            return False
+         return all(nbr in G._adj[node] for node, nbr in nx.utils.pairwise(path))
+     except (KeyError, TypeError):
+         return False
+@@ -1432,11 +1464,20 @@
+     Raises
+     ------
+     NetworkXNoPath
+-        If the specified edge does not exist.
++        If the specified path does not exist in `G` (see :func:`is_path`).
++
++    Examples
++    --------
++    >>> G = nx.Graph([(0, 1, {"cost": 2}), (1, 2, {"cost": 3})])
++    >>> nx.path_weight(G, [0, 1, 2], "cost")
++    5
++    >>> nx.path_weight(G, [1], "cost")  # a single node path has no edges
++    0
+     """
+     multigraph = G.is_multigraph()
+     cost = 0
+ 
++    path = list(path)
+     if not nx.is_path(G, path):
+         raise nx.NetworkXNoPath("path does not exist")
+     for node, nbr in nx.utils.pairwise(path):
+@@ -1525,7 +1566,8 @@
+             "Number of edges": G.number_of_edges(),
+             "Directed": G.is_directed(),
+             "Multigraph": G.is_multigraph(),
+-            "Tree": nx.is_tree(G),
++            # the null graph is not considered a tree (see `is_tree`)
++            "Tree": len(G) > 0 and nx.is_tree(G),
+             "Bipartite": nx.is_bipartite(G),
+         }
+     )
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/classes/graph.py /app/networkx/classes/graph.py
+--- /opt/pristine/networkx/classes/graph.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/classes/graph.py	2026-11-17 08:34:03.000000000 +0000
+@@ -14,7 +14,12 @@
+ import networkx as nx
+ from networkx import convert
+ from networkx.classes.coreviews import AdjacencyView
+-from networkx.classes.reportviews import DegreeView, EdgeView, NodeView
++from networkx.classes.reportviews import (
++    DegreeView,
++    EdgeView,
++    NodeView,
++    _nbunch_iter,
++)
+ from networkx.exception import NetworkXError
+ 
+ __all__ = ["Graph"]
+@@ -2050,33 +2055,4 @@
+         or None, a :exc:`NetworkXError` is raised.  Also, if any object in
+         nbunch is not hashable, a :exc:`NetworkXError` is raised.
+         """
+-        if nbunch is None:  # include all nodes via iterator
+-            bunch = iter(self._adj)
+-        elif nbunch in self:  # if nbunch is a single node
+-            bunch = iter([nbunch])
+-        else:  # if nbunch is a sequence of nodes
+-
+-            def bunch_iter(nlist, adj):
+-                try:
+-                    for n in nlist:
+-                        if n in adj:
+-                            yield n
+-                except TypeError as err:
+-                    exc, message = err, err.args[0]
+-                    # capture error for non-sequence/iterator nbunch.
+-                    if "iter" in message:
+-                        exc = NetworkXError(
+-                            "nbunch is not a node or a sequence of nodes."
+-                        )
+-                    # capture single nodes that are not in the graph.
+-                    if "object is not iterable" in message:
+-                        exc = NetworkXError(f"Node {nbunch} is not in the graph.")
+-                    # capture error for unhashable node.
+-                    if "hashable" in message:
+-                        exc = NetworkXError(
+-                            f"Node {n} in sequence nbunch is not a valid node."
+-                        )
+-                    raise exc
+-
+-            bunch = bunch_iter(nbunch, self._adj)
+-        return bunch
++        return _nbunch_iter(self._adj, nbunch)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/classes/reportviews.py /app/networkx/classes/reportviews.py
+--- /opt/pristine/networkx/classes/reportviews.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/classes/reportviews.py	2026-11-17 08:55:22.000000000 +0000
+@@ -15,6 +15,13 @@
+ Degree views allow lookup of degree values for single nodes.
+ Weighted degree is supported with the `weight` argument.
+ 
++The views hold the data structures of the graph they report on, but refer to
++the graph object itself only through a weak reference. Hence a view (and in
++particular the views that a graph caches as `G.nodes`, `G.edges`, `G.degree`)
++does not keep the graph alive. If the graph is deleted, its views continue to
++report the last state of the graph. Views can be pickled: the graph is pickled
++with the view and the view is attached to the unpickled graph on load.
++
+ NodeView
+ ========
+ 
+@@ -83,6 +90,7 @@
+     The argument `nbunch` restricts edges to those incident to nodes in nbunch.
+ """
+ 
++import weakref
+ from abc import ABC
+ from collections.abc import Mapping, Set
+ 
+@@ -114,6 +122,103 @@
+ ]
+ 
+ 
++def _nbunch_iter(nodes, nbunch=None):
++    """Returns an iterator over the nodes in `nbunch` that are also in `nodes`.
++
++    This is the node-bunch iteration behind :meth:`Graph.nbunch_iter
++    <networkx.Graph.nbunch_iter>`. It only needs a container of the graph's
++    nodes (usually its adjacency mapping), so the views can process an
++    `nbunch` with the data they hold, without access to the graph object.
++
++    Parameters
++    ----------
++    nodes : container
++        The nodes of the graph, typically ``G._adj``. It must support ``in``
++        and iteration.
++    nbunch : single node, container, or all nodes (default= all nodes)
++        The nodes to iterate over. Nodes in a container `nbunch` that are not
++        in `nodes` are silently ignored.
++
++    Returns
++    -------
++    niter : iterator
++        An iterator over nodes in nbunch that are also in `nodes`.
++        If nbunch is None, iterate over all nodes.
++
++    Raises
++    ------
++    NetworkXError
++        If nbunch is not a node or sequence of nodes.
++        If a node in nbunch is not hashable.
++    """
++    if nbunch is None:  # include all nodes via iterator
++        return iter(nodes)
++    try:
++        if nbunch in nodes:  # if nbunch is a single node
++            return iter([nbunch])
++    except TypeError:  # unhashable, so not a node: assume a container of nodes
++        pass
++    return _bunch_iter(nbunch, nodes)
++
++
++def _bunch_iter(nbunch, nodes):
++    """Yields the nodes of the container `nbunch` that are in `nodes`."""
++    try:
++        for n in nbunch:
++            if n in nodes:
++                yield n
++    except TypeError as err:
++        exc, message = err, err.args[0]
++        # capture error for non-sequence/iterator nbunch.
++        if "iter" in message:
++            exc = nx.NetworkXError("nbunch is not a node or a sequence of nodes.")
++        # capture single nodes that are not in the graph.
++        if "object is not iterable" in message:
++            exc = nx.NetworkXError(f"Node {nbunch} is not in the graph.")
++        # capture error for unhashable node.
++        if "hashable" in message:
++            exc = nx.NetworkXError(f"Node {n} in sequence nbunch is not a valid node.")
++        raise exc
++
++
++def _dead_reference():
++    """Stands in for the weak reference of a view whose graph is unknown."""
++    return None
++
++
++def _graph_reference(G):
++    """Return a callable giving back `G`, holding `G` only weakly if possible."""
++    if G is None:
++        return _dead_reference
++    try:
++        return weakref.ref(G)
++    except TypeError:  # G does not support weak references: hold it strongly
++
++        def strong_reference():
++            return G
++
++        return strong_reference
++
++
++def _get_graph(view):
++    return view._graph_ref()
++
++
++def _set_graph(view, G):
++    view._graph_ref = _graph_reference(G)
++
++
++# Degree and edge views refer to their graph through a weak reference, so that
++# a view (which a graph caches on itself) does not keep the graph alive. All
++# reporting is done with the graph data structures held by the views, so the
++# views keep working once the graph is gone; `view._graph` is then None.
++_graph_property = property(
++    _get_graph,
++    _set_graph,
++    doc="The graph reported on by this view, or None if it no longer exists.",
++)
++
++
+ # NodeViews
+ class NodeView(Mapping, Set):
+     """A NodeView class to act as G.nodes for a NetworkX Graph
+@@ -418,26 +523,57 @@
+     >>> assert len(list(DVnbunch)) == 2  # iteration over nbunch only
+     """
+ 
++    _graph = _graph_property
++
+     def __init__(self, G, nbunch=None, weight=None):
+         self._graph = G
+         self._succ = G._succ if hasattr(G, "_succ") else G._adj
+         self._pred = G._pred if hasattr(G, "_pred") else G._adj
+-        self._nodes = self._succ if nbunch is None else list(G.nbunch_iter(nbunch))
++        self._nodes = (
++            self._succ if nbunch is None else list(_nbunch_iter(self._succ, nbunch))
++        )
+         self._weight = weight
+ 
++    def __getstate__(self):
++        state = self.__dict__.copy()
++        state.pop("_graph_ref", None)
++        state["_graph"] = self._graph
++        return state
++
++    def __setstate__(self, state):
++        state = dict(state)
++        G = state.pop("_graph", None)
++        state.pop("_graph_ref", None)
++        self.__dict__.update(state)
++        self._graph = G
++
+     def __call__(self, nbunch=None, weight=None):
+         if nbunch is None:
+             if weight == self._weight:
+                 return self
+-            return self.__class__(self._graph, None, weight)
++            return self._new_view(None, weight)
+         try:
+             if nbunch in self._nodes:
+                 if weight == self._weight:
+                     return self[nbunch]
+-                return self.__class__(self._graph, None, weight)[nbunch]
++                return self._new_view(None, weight)[nbunch]
+         except TypeError:
+             pass
+-        return self.__class__(self._graph, nbunch, weight)
++        return self._new_view(nbunch, weight)
++
++    def _new_view(self, nbunch, weight):
++        """Returns a view like this one but for `nbunch` and `weight`."""
++        G = self._graph
++        if G is not None:
++            return self.__class__(G, nbunch, weight)
++        # The graph no longer exists: build the view from the data we hold.
++        view = self.__class__.__new__(self.__class__)
++        view.__dict__.update(self.__dict__)
++        view._nodes = (
++            view._succ if nbunch is None else list(_nbunch_iter(view._succ, nbunch))
++        )
++        view._weight = weight
++        return view
+ 
+     def __getitem__(self, n):
+         weight = self._weight
+@@ -775,7 +911,7 @@
+             self._nodes_nbrs = adjdict.items
+         else:
+             # dict retains order of nodes but acts like a set
+-            nbunch = dict.fromkeys(viewer._graph.nbunch_iter(nbunch))
++            nbunch = dict.fromkeys(_nbunch_iter(adjdict, nbunch))
+             self._nodes_nbrs = lambda: [(n, adjdict[n]) for n in nbunch]
+         self._nbunch = nbunch
+         self._data = data
+@@ -921,7 +1057,7 @@
+             self._nodes_nbrs = adjdict.items
+         else:
+             # dict retains order of nodes but acts like a set
+-            nbunch = dict.fromkeys(viewer._graph.nbunch_iter(nbunch))
++            nbunch = dict.fromkeys(_nbunch_iter(adjdict, nbunch))
+             self._nodes_nbrs = lambda: [(n, adjdict[n]) for n in nbunch]
+         self._nbunch = nbunch
+         self._data = data
+@@ -1048,7 +1184,9 @@
+ class OutEdgeView(Set, Mapping, EdgeViewABC):
+     """A EdgeView class for outward edges of a DiGraph"""
+ 
+-    __slots__ = ("_adjdict", "_graph", "_nodes_nbrs")
++    __slots__ = ("_adjdict", "_graph_ref", "_nodes_nbrs")
++
++    _graph = _graph_property
+ 
+     def __getstate__(self):
+         return {"_graph": self._graph, "_adjdict": self._adjdict}
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/generators/random_graphs.py /app/networkx/generators/random_graphs.py
+--- /opt/pristine/networkx/generators/random_graphs.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/generators/random_graphs.py	2026-11-17 08:53:15.000000000 +0000
+@@ -5,6 +5,7 @@
+ 
+ import itertools
+ import math
++import operator
+ from collections import defaultdict
+ 
+ import networkx as nx
+@@ -35,6 +36,7 @@
+     "random_powerlaw_tree",
+     "random_powerlaw_tree_sequence",
+     "random_kernel_graph",
++    "random_k_lift",
+ ]
+ 
+ 
+@@ -1414,3 +1416,106 @@
+             j = math.ceil(n * kernel_root(i / n, j / n, r))
+             graph.add_edge(i - 1, j - 1)
+     return graph
++
++
++class _InvalidLiftOrder(nx.NetworkXError, ValueError):
++    """Raised when the order `k` of a lift is not a positive integer."""
++
++
++@py_random_state(2)
++@nx._dispatchable(preserve_all_attrs=True, returns_graph=True)
++def random_k_lift(G, k, seed=None):
++    r"""Returns a random `k`-lift of the graph `G`.
++
++    A `k`-lift (or `k`-fold covering graph) of `G` holds `k` copies of every
++    node of `G`. The copies ``(v, 0), (v, 1), ..., (v, k - 1)`` of a node `v`
++    form the *fibre* of `v`. Every edge ``(u, v)`` of `G` is realised in the
++    lift as a perfect matching between the fibre of `u` and the fibre of `v`:
++    a permutation $\pi$ of ``range(k)`` is chosen uniformly at random and the
++    edges ``((u, i), (v, pi[i]))`` are added for every ``i`` in ``range(k)``.
++    Each edge of `G` receives its own independent permutation [1]_ [2]_.
++
++    The map ``(v, i) -> v`` is a covering map from the lift onto `G`, so every
++    copy ``(v, i)`` has the same degree as `v` (when `G` has no self-loops)
++    and the lift of a `d`-regular graph is again `d`-regular. Random lifts
++    are a standard tool to build (nearly Ramanujan) expander graphs [2]_.
++
++    Parameters
++    ----------
++    G : NetworkX graph
++        The base graph. Directed graphs and multigraphs are supported: an arc
++        ``(u, v)`` lifts to arcs from the fibre of `u` to the fibre of `v`,
++        and every parallel edge is lifted independently.
++
++    k : int
++        The number of copies of each node (the order of the lift). Must be a
++        positive integer.
++
++    seed : integer, random_state, or None (default)
++        Indicator of random number generation state.
++        See :ref:`Randomness<randomness>`.
++
++    Returns
++    -------
++    H : NetworkX graph
++        A graph of the same type as `G` whose nodes are the pairs ``(v, i)``
++        for each node `v` of `G` and each ``i`` in ``range(k)``. Graph, node
++        and edge attributes of `G` are copied onto the lift.
++
++    Raises
++    ------
++    NetworkXError
++        If `k` is not a positive integer (the exception is also a
++        `ValueError`).
++
++    Notes
++    -----
++    A self-loop at `v` lifts to the edges ``((v, i), (v, pi[i]))``, i.e. to
++    the cycle structure of the random permutation on the fibre of `v`. For
++    graph types that do not allow parallel edges, coinciding lifted edges are
++    merged.
++
++    Examples
++    --------
++    >>> G = nx.complete_graph(4)
++    >>> H = nx.random_k_lift(G, 3, seed=42)
++    >>> H.number_of_nodes(), H.number_of_edges()
++    (12, 18)
++    >>> all(d == 3 for _, d in H.degree)
++    True
++    >>> sorted(v for v in H if v[0] == 0)
++    [(0, 0), (0, 1), (0, 2)]
++
++    Every edge of `G` becomes a perfect matching between two fibres:
++
++    >>> sorted(i for (a, i), (b, j) in H.edges if {a, b} == {0, 1})
++    [0, 1, 2]
++
++    References
++    ----------
++    .. [1] Alon Amit and Nathan Linial,
++       "Random graph coverings I: General theory and graph connectivity",
++       *Combinatorica* 22 (2002): 1--18.
++    .. [2] Yonatan Bilu and Nathan Linial,
++       "Lifts, discrepancy and nearly optimal spectral gap",
++       *Combinatorica* 26 (2006): 495--519.
++    """
++    try:
++        order = operator.index(k)
++    except TypeError as err:
++        raise _InvalidLiftOrder(f"k must be a positive integer, got {k!r}") from err
++    if order < 1:
++        raise _InvalidLiftOrder(f"k must be a positive integer, got {k!r}")
++
++    H = G.__class__()
++    H.graph.update(G.graph)
++    H.add_nodes_from(((v, i), dd) for v, dd in G._node.items() for i in range(order))
++    if G.is_multigraph():
++        edges = ((u, v, dd) for u, v, _, dd in G.edges(keys=True, data=True))
++    else:
++        edges = G.edges(data=True)
++    for u, v, dd in edges:
++        perm = list(range(order))
++        seed.shuffle(perm)
++        H.add_edges_from(((u, i), (v, j), dd) for i, j in enumerate(perm))
++    return H
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/generators/small.py /app/networkx/generators/small.py
+--- /opt/pristine/networkx/generators/small.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/generators/small.py	2026-11-17 08:23:20.000000000 +0000
+@@ -24,6 +24,7 @@
+     "pappus_graph",
+     "petersen_graph",
+     "sedgewick_maze_graph",
++    "shrikhande_graph",
+     "tetrahedral_graph",
+     "truncated_cube_graph",
+     "truncated_tetrahedron_graph",
+@@ -872,6 +873,71 @@
+     return G
+ 
+ 
++@_raise_on_directed
++@nx._dispatchable(graphs=None, returns_graph=True)
++def shrikhande_graph(create_using=None):
++    """
++    Returns the Shrikhande graph.
++
++    The Shrikhande graph is a 6-regular, undirected graph with 16 nodes and
++    48 edges [1]_. It is strongly regular with parameters ``(16, 6, 2, 2)``:
++    every pair of adjacent nodes has exactly two common neighbors and so does
++    every pair of non-adjacent nodes. It shares these parameters with the
++    4 x 4 rook's graph (``nx.cartesian_product(nx.complete_graph(4),
++    nx.complete_graph(4))``) without being isomorphic to it [2]_.
++
++    The graph is constructed as a 4 x 4 toroidal grid with diagonal
++    wraparound connections: node ``4 * i + j`` corresponds to the pair
++    ``(i, j)`` of integers modulo 4 and is adjacent to the six nodes
++    ``(i +- 1, j)``, ``(i, j +- 1)`` and ``(i +- 1, j +- 1)`` (with the same
++    sign in both coordinates).
++
++    Parameters
++    ----------
++    create_using : NetworkX graph constructor, optional (default=nx.Graph)
++       Graph type to create. If graph instance, then cleared before populated.
++
++    Returns
++    -------
++    G : networkx Graph
++        Shrikhande graph
++
++    Raises
++    ------
++    NetworkXError
++        If `create_using` is a directed graph type.
++
++    Examples
++    --------
++    >>> G = nx.shrikhande_graph()
++    >>> G.number_of_nodes(), G.number_of_edges()
++    (16, 48)
++    >>> nx.is_strongly_regular(G)
++    True
++    >>> rook = nx.cartesian_product(nx.complete_graph(4), nx.complete_graph(4))
++    >>> nx.is_isomorphic(G, rook)
++    False
++
++    References
++    ----------
++    .. [1] https://en.wikipedia.org/wiki/Shrikhande_graph
++    .. [2] S. S. Shrikhande, "The uniqueness of the L2 association scheme",
++       Annals of Mathematical Statistics, 30 (1959), pp. 781-798.
++    """
++    # the generating set of the Cayley graph on Z_4 x Z_4 (closed under negation)
++    shifts = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (-1, -1)]
++    G = nx.from_dict_of_lists(
++        {
++            4 * i + j: [4 * ((i + di) % 4) + (j + dj) % 4 for di, dj in shifts]
++            for i in range(4)
++            for j in range(4)
++        },
++        create_using=create_using,
++    )
++    G.name = "Shrikhande Graph"
++    return G
++
++
+ @nx._dispatchable(graphs=None, returns_graph=True)
+ def tetrahedral_graph(create_using=None):
+     """
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/linalg/graphmatrix.py /app/networkx/linalg/graphmatrix.py
+--- /opt/pristine/networkx/linalg/graphmatrix.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/linalg/graphmatrix.py	2026-11-17 08:42:16.000000000 +0000
+@@ -53,10 +53,23 @@
+     A : SciPy sparse array
+       The incidence matrix of G.
+ 
++    Raises
++    ------
++    NetworkXError
++        If `nodelist` contains duplicates, if an edge of `edgelist` has a node
++        that is not in `nodelist`, or if `weight` is given and an edge of
++        `edgelist` is not an edge of `G`.
++
+     Notes
+     -----
+     For MultiGraph/MultiDiGraph, the edges in edgelist should be
+-    (u,v,key) 3-tuples.
++    (u,v,key) 3-tuples. Edges given as (u,v) 2-tuples refer to the parallel
++    edges between `u` and `v` in order: the first occurrence of ``(u, v)`` is
++    the first such edge, the second occurrence the second one, and so on.
++
++    Self-loops give zero columns. Nodes of `nodelist` without incident edges
++    give zero rows, so a graph without edges has an incidence matrix with no
++    columns.
+ 
+     "Networks are the best discrete model for so many problems in
+     applied mathematics" [1]_.
+@@ -70,17 +83,24 @@
+ 
+     if nodelist is None:
+         nodelist = list(G)
++    node_index = {}
++    for i, node in enumerate(nodelist):
++        if node in node_index:
++            raise nx.NetworkXError(f"nodelist contains duplicate node {node!r}")
++        node_index[node] = i
++    multigraph = G.is_multigraph()
+     if edgelist is None:
+-        if G.is_multigraph():
++        if multigraph:
+             edgelist = list(G.edges(keys=True))
+         else:
+             edgelist = list(G.edges())
++    else:
++        edgelist = list(edgelist)
+     A = sp.sparse.lil_array((len(nodelist), len(edgelist)), dtype=dtype)
+-    node_index = {node: i for i, node in enumerate(nodelist)}
++    # for multigraph edges given as 2-tuples: the keys not yet used per node pair
++    unused_keys = {}
+     for ei, e in enumerate(edgelist):
+         (u, v) = e[:2]
+-        if u == v:
+-            continue  # self loops give zero column
+         try:
+             ui = node_index[u]
+             vi = node_index[v]
+@@ -91,11 +111,20 @@
+         if weight is None:
+             wt = 1
+         else:
+-            if G.is_multigraph():
+-                ekey = e[2]
+-                wt = G[u][v][ekey].get(weight, 1)
+-            else:
+-                wt = G[u][v].get(weight, 1)
++            try:
++                datadict = G._adj[u][v]
++                if multigraph:
++                    if len(e) > 2 and not isinstance(e[2], dict):
++                        datadict = datadict[e[2]]
++                    else:
++                        # the i-th occurrence of (u, v) is the i-th parallel edge
++                        keys = unused_keys.setdefault(id(datadict), iter(datadict))
++                        datadict = datadict[next(keys)]
++            except (KeyError, StopIteration) as err:
++                raise nx.NetworkXError(f"edge {e} in edgelist is not in G") from err
++            wt = datadict.get(weight, 1)
++        if u == v:
++            continue  # self loops give zero column
+         if oriented:
+             A[ui, ei] = -wt
+             A[vi, ei] = wt
+@@ -144,6 +173,8 @@
+     For multigraphs with parallel edges the weights are summed.
+     See :func:`networkx.convert_matrix.to_numpy_array` for other options.
+ 
++    The null graph (with no nodes) has an empty ``0 x 0`` adjacency matrix.
++
+     The convention used for self-loop edges in graphs is to assign the
+     diagonal matrix entry value to the edge weight attribute
+     (or the number 1 if the edge has no weight attribute).  If the
+@@ -165,4 +196,9 @@
+     to_dict_of_dicts
+     adjacency_spectrum
+     """
++    if len(G) == 0 and not nodelist:
++        # The null graph has an empty (0 x 0) adjacency matrix
++        import scipy as sp
++
++        return sp.sparse.csr_array((0, 0), dtype=dtype)
+     return nx.to_scipy_sparse_array(G, nodelist=nodelist, dtype=dtype, weight=weight)
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/linalg/laplacianmatrix.py /app/networkx/linalg/laplacianmatrix.py
+--- /opt/pristine/networkx/linalg/laplacianmatrix.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/linalg/laplacianmatrix.py	2026-11-17 08:53:57.000000000 +0000
+@@ -14,6 +14,7 @@
+ __all__ = [
+     "laplacian_matrix",
+     "normalized_laplacian_matrix",
++    "magnetic_laplacian_matrix",
+     "directed_laplacian_matrix",
+     "directed_combinatorial_laplacian_matrix",
+ ]
+@@ -239,6 +240,153 @@
+     with np.errstate(divide="ignore"):
+         diags_sqrt = 1.0 / np.sqrt(diags)
+     diags_sqrt[np.isinf(diags_sqrt)] = 0
++    DH = sp.sparse.dia_array((diags_sqrt, 0), shape=(n, n)).tocsr()
++    return DH @ (L @ DH)
++
++
++@nx._dispatchable(edge_attrs="weight")
++def magnetic_laplacian_matrix(
++    G, *, nodelist=None, normalized=False, q=0.25, weight="weight"
++):
++    r"""Returns the magnetic Laplacian matrix of `G`.
++
++    The magnetic Laplacian is a complex Hermitian matrix that encodes the
++    direction of the edges of a (directed) graph in the phase of its
++    off-diagonal entries [1]_ [2]_. With $A$ the weighted adjacency matrix,
++    let
++
++    .. math::
++
++        A_s = \frac{1}{2}(A + A^T), \qquad
++        \Theta^{(q)} = 2 \pi q (A - A^T), \qquad
++        D_s = \operatorname{diag}(A_s \mathbf{1}).
++
++    The magnetic Laplacian is
++
++    .. math::
++
++        L^{(q)} = D_s - A_s \odot \exp(i \Theta^{(q)}),
++
++    where $\odot$ is the entry-wise product and the exponential is taken
++    entry-wise. The normalized magnetic Laplacian is
++    $D_s^{-1/2} L^{(q)} D_s^{-1/2}$, that is
++    $I - D_s^{-1/2} \left(A_s \odot \exp(i \Theta^{(q)})\right) D_s^{-1/2}$
++    for nodes with nonzero degree.
++
++    An edge ``(u, v)`` without a reciprocal edge ``(v, u)`` contributes the
++    phase $e^{2 \pi i q w}$ to entry ``(u, v)`` and the conjugate phase to
++    entry ``(v, u)``, where $w$ is its weight. Reciprocal edges of equal
++    weight, and hence all edges of undirected graphs, carry no phase.
++
++    Parameters
++    ----------
++    G : graph
++       A NetworkX graph
++
++    nodelist : list, optional
++       The rows and columns are ordered according to the nodes in `nodelist`.
++       If `nodelist` is None, then the ordering is produced by ``G.nodes()``.
++
++    normalized : bool, optional (default=False)
++       If True, return the symmetrically normalized magnetic Laplacian
++       $D_s^{-1/2} L^{(q)} D_s^{-1/2}$.
++
++    q : float, optional (default=0.25)
++       The charge parameter that sets the size of the phase. With ``q=0`` the
++       magnetic Laplacian is the Laplacian of the symmetrized graph $A_s$.
++       Values in ``[0, 1/2]`` cover all distinct behaviours for unweighted
++       graphs and ``q=1/4`` maximally separates the two directions of an edge.
++
++    weight : string or None, optional (default='weight')
++       The edge data key used to compute each value in the matrix.
++       If None, then each edge has weight 1.
++
++    Returns
++    -------
++    L : SciPy sparse array
++      The (complex, Hermitian) magnetic Laplacian matrix of `G`.
++
++    Notes
++    -----
++    For MultiGraph/MultiDiGraph, the edges weights are summed.
++    Self-loops contribute to $A_s$ and $D_s$ without a phase, so (as for
++    :func:`laplacian_matrix`) they cancel on the diagonal of the
++    unnormalized matrix.
++
++    For undirected graphs the magnetic Laplacian equals the Laplacian
++    (:func:`laplacian_matrix`) and its normalized version equals
++    :func:`normalized_laplacian_matrix`, for every value of `q`.
++
++    The magnetic Laplacian is positive semidefinite, so its eigenvalues are
++    real and non-negative. See :func:`~networkx.linalg.spectrum.magnetic_spectrum`.
++
++    Examples
++    --------
++    >>> import numpy as np
++    >>> G = nx.DiGraph([(0, 1), (1, 2), (2, 0)])
++    >>> L = nx.magnetic_laplacian_matrix(G)
++    >>> print(np.round(L.toarray(), 6) + 0)
++    [[1.+0.j  0.-0.5j 0.+0.5j]
++     [0.+0.5j 1.+0.j  0.-0.5j]
++     [0.-0.5j 0.+0.5j 1.+0.j ]]
++    >>> np.allclose(L.toarray(), L.toarray().conj().T)  # Hermitian
++    True
++
++    Undirected graphs carry no phase:
++
++    >>> H = nx.path_graph(4)
++    >>> LH = nx.magnetic_laplacian_matrix(H)
++    >>> np.allclose(LH.toarray(), nx.laplacian_matrix(H).toarray())
++    True
++
++    See Also
++    --------
++    laplacian_matrix
++    normalized_laplacian_matrix
++    magnetic_spectrum
++
++    References
++    ----------
++    .. [1] M. Fanuel, C. M. Alaíz, Á. Fernández and J. A. K. Suykens,
++       "Magnetic Eigenmaps for the Visualization of Directed Networks",
++       Applied and Computational Harmonic Analysis, 44 (2018), pp. 189--199.
++    .. [2] X. Zhang, Y. He, N. Brugnone, M. Perlmutter and M. Hirn,
++       "MagNet: A Neural Network for Directed Graphs",
++       Advances in Neural Information Processing Systems 34 (2021).
++    """
++    import numpy as np
++    import scipy as sp
++
++    if nodelist is None:
++        nodelist = list(G)
++    A = nx.to_scipy_sparse_array(
++        G, nodelist=nodelist, weight=weight, dtype=float, format="coo"
++    )
++    n = A.shape[0]
++    # Entries of A and of its transpose, on the union of both sparsity patterns.
++    rows = np.concatenate((A.row, A.col))
++    cols = np.concatenate((A.col, A.row))
++    # A_s = (A + A^T) / 2 and the antisymmetric part A - A^T generating the phase.
++    # Both are built from the same coordinates, so after summing duplicates
++    # their entries are stored in the same (canonical) order.
++    sym = sp.sparse.coo_array(
++        (np.concatenate((A.data, A.data)) / 2, (rows, cols)), shape=(n, n)
++    )
++    antisym = sp.sparse.coo_array(
++        (np.concatenate((A.data, -A.data)), (rows, cols)), shape=(n, n)
++    )
++    sym.sum_duplicates()
++    antisym.sum_duplicates()
++    phase = np.exp(2j * np.pi * q * antisym.data)
++    H = sp.sparse.coo_array((sym.data * phase, (sym.row, sym.col)), shape=(n, n))
++    diags = sym.sum(axis=1)
++    D = sp.sparse.dia_array((diags, 0), shape=(n, n))
++    L = (D - H).tocsr()
++    if not normalized:
++        return L
++    with np.errstate(divide="ignore"):
++        diags_sqrt = 1.0 / np.sqrt(diags)
++    diags_sqrt[np.isinf(diags_sqrt)] = 0
+     DH = sp.sparse.dia_array((diags_sqrt, 0), shape=(n, n)).tocsr()
+     return DH @ (L @ DH)
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/linalg/spectrum.py /app/networkx/linalg/spectrum.py
+--- /opt/pristine/networkx/linalg/spectrum.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/linalg/spectrum.py	2026-11-17 08:26:08.000000000 +0000
+@@ -9,6 +9,7 @@
+     "adjacency_spectrum",
+     "modularity_spectrum",
+     "normalized_laplacian_spectrum",
++    "magnetic_spectrum",
+     "bethe_hessian_spectrum",
+ ]
+ 
+@@ -92,6 +93,67 @@
+ 
+ 
+ @nx._dispatchable(edge_attrs="weight")
++def magnetic_spectrum(G, *, q=0.25, weight="weight", normalized=False):
++    """Returns eigenvalues of the magnetic Laplacian of G.
++
++    The magnetic Laplacian is Hermitian and positive semidefinite, so its
++    eigenvalues are real and non-negative. They are returned in ascending
++    order.
++
++    Parameters
++    ----------
++    G : graph
++       A NetworkX graph
++
++    q : float, optional (default=0.25)
++       The charge parameter of the magnetic Laplacian, which sets the size of
++       the phase carried by directed edges.
++
++    weight : string or None, optional (default='weight')
++       The edge data key used to compute each value in the matrix.
++       If None, then each edge has weight 1.
++
++    normalized : bool, optional (default=False)
++       If True, return the eigenvalues of the normalized magnetic Laplacian.
++
++    Returns
++    -------
++    evals : NumPy array
++      Real eigenvalues in ascending order.
++
++    Notes
++    -----
++    For MultiGraph/MultiDiGraph, the edges weights are summed.
++
++    For undirected graphs the magnetic spectrum equals the Laplacian
++    spectrum (or the normalized Laplacian spectrum when `normalized` is True)
++    for every value of `q`.
++
++    See Also
++    --------
++    magnetic_laplacian_matrix
++    laplacian_spectrum
++    normalized_laplacian_spectrum
++
++    Examples
++    --------
++    A directed 3-cycle has a zero eigenvalue only when the phases around the
++    cycle add up to a multiple of $2\\pi$, e.g. for ``q=1/3``:
++
++    >>> G = nx.DiGraph([(0, 1), (1, 2), (2, 0)])
++    >>> evals = nx.magnetic_spectrum(G, q=1 / 3)
++    >>> [round(float(ev), 6) + 0 for ev in evals]
++    [0.0, 1.5, 1.5]
++    >>> [round(float(ev), 6) for ev in nx.magnetic_spectrum(G)]
++    [0.133975, 1.0, 1.866025]
++    """
++    import scipy as sp
++
++    L = nx.magnetic_laplacian_matrix(G, q=q, weight=weight, normalized=normalized)
++    return sp.linalg.eigvalsh(L.todense())
++
++
++@nx._dispatchable(edge_attrs="weight")
+ def adjacency_spectrum(G, weight="weight"):
+     """Returns eigenvalues of the adjacency matrix of G.
+ 
+diff -ruN '--exclude=__pycache__' '--exclude=*.pyc' '--exclude=tests' /opt/pristine/networkx/readwrite/gexf.py /app/networkx/readwrite/gexf.py
+--- /opt/pristine/networkx/readwrite/gexf.py	2026-11-17 09:44:24.000000000 +0000
++++ /app/networkx/readwrite/gexf.py	2026-11-17 08:55:03.000000000 +0000
+@@ -174,6 +174,27 @@
+     This implementation does not support mixed graphs (directed and undirected
+     edges together).
+ 
++    The file is parsed completely before the graph is built, so the order of
++    the elements in the file does not matter (e.g. attribute declarations may
++    follow the nodes that use them). Files with incomplete declarations are
++    read as far as possible:
++
++    - an ``<attvalue>`` that refers to an undeclared attribute is stored
++      as a string under the name given by its ``for`` (or ``id``) field;
++    - an attribute declared without ``type`` (or with a type unknown to
++      NetworkX) is read as a string, as are values that cannot be converted
++      to their declared type;
++    - a missing ``timeformat`` is taken as ``"double"`` (the GEXF default)
++      and missing ``start``/``end`` times are read as None;
++    - without a ``defaultedgetype`` the graph is directed when all edges
++      that declare a type are directed;
++    - a document without a known GEXF namespace is read with the namespace
++      (if any) of its root element.
++
++    Declared attribute defaults are stored in the ``"node_default"`` and
++    ``"edge_default"`` graph attributes. Node ids, parent ids (``pid``) and
++    ``parents`` are converted with `node_type` when it is given.
++
+     References
+     ----------
+     .. [1] GEXF File Format, http://gexf.net/
+@@ -707,6 +728,18 @@
+ class GEXFReader(GEXF):
+     # Class to read GEXF format files
+     # use read_gexf() function
++    #
++    # Reading happens in two steps. `parse_graph` turns the XML <graph> element
++    # into plain Python records: graph attributes, attribute declarations, and
++    # node and edge records holding their decoded data. `build_graph` then
++    # constructs the NetworkX graph from those records. Separating the steps
++    # means that every declaration in the file is known before any node or edge
++    # is interpreted, whatever the order of the elements in the file, and the
++    # graph class can be chosen once all edges have been seen.
++
++    # timeformat values whose times are kept as strings
++    _string_timeformats = {"date", "dateTime", "string"}
++
+     def __init__(self, node_type=None, version="1.2draft"):
+         self.construct_types()
+         self.node_type = node_type
+@@ -716,176 +749,322 @@
+ 
+     def __call__(self, stream):
+         self.xml = ElementTree(file=stream)
++        return self.make_graph(self.find_graph_element())
++
++    def find_graph_element(self):
++        """Return the <graph> element, setting the namespace used by the file."""
+         g = self.xml.find(f"{{{self.NS_GEXF}}}graph")
+         if g is not None:
+-            return self.make_graph(g)
++            return g
+         # try all the versions
+         for version in self.versions:
+             self.set_version(version)
+             g = self.xml.find(f"{{{self.NS_GEXF}}}graph")
+             if g is not None:
+-                return self.make_graph(g)
+-        raise nx.NetworkXError("No <graph> element in GEXF file.")
++                return g
++        # The document does not use the namespace of a known GEXF version (or
++        # declares no namespace at all): use the namespace of its root element.
++        root = self.xml.getroot()
++        namespace = root.tag[1:].partition("}")[0] if root.tag[:1] == "{" else ""
++        g = root.find(f"{{{namespace}}}graph")
++        if g is None:
++            raise nx.NetworkXError("No <graph> element in GEXF file.")
++        self.NS_GEXF = namespace
++        self.VERSION = root.get("version", self.VERSION)
++        return g
+ 
+     def make_graph(self, graph_xml):
+-        # start with empty DiGraph or MultiDiGraph
+-        edgedefault = graph_xml.get("defaultedgetype", None)
+-        if edgedefault == "directed":
+-            G = nx.MultiDiGraph()
+-        else:
+-            G = nx.MultiGraph()
++        """Return the NetworkX graph described by the <graph> element."""
++        return self.build_graph(self.parse_graph(graph_xml))
++
++    # Parsing
+ 
++    def parse_graph(self, graph_xml):
++        """Parse a <graph> element into plain records (see `build_graph`)."""
+         # graph attributes
++        graph_attrs = {}
+         graph_name = graph_xml.get("name", "")
+         if graph_name != "":
+-            G.graph["name"] = graph_name
++            graph_attrs["name"] = graph_name
+         graph_start = graph_xml.get("start")
+         if graph_start is not None:
+-            G.graph["start"] = graph_start
++            graph_attrs["start"] = graph_start
+         graph_end = graph_xml.get("end")
+         if graph_end is not None:
+-            G.graph["end"] = graph_end
+-        graph_mode = graph_xml.get("mode", "")
+-        if graph_mode == "dynamic":
+-            G.graph["mode"] = "dynamic"
++            graph_attrs["end"] = graph_end
++        if graph_xml.get("mode", "") == "dynamic":
++            graph_attrs["mode"] = "dynamic"
+         else:
+-            G.graph["mode"] = "static"
++            graph_attrs["mode"] = "static"
+ 
+-        # timeformat
++        # timeformat (the GEXF default is "double")
+         self.timeformat = graph_xml.get("timeformat")
+-        if self.timeformat == "date":
++        if self.timeformat in self._string_timeformats:
+             self.timeformat = "string"
+ 
+-        # node and edge attributes
+-        attributes_elements = graph_xml.findall(f"{{{self.NS_GEXF}}}attributes")
+-        # dictionaries to hold attributes and attribute defaults
+-        node_attr = {}
+-        node_default = {}
+-        edge_attr = {}
+-        edge_default = {}
+-        for a in attributes_elements:
++        # node and edge attribute declarations, wherever they are in the file
++        node_attr, node_default = {}, {}
++        edge_attr, edge_default = {}, {}
++        other_attr = {}  # declarations without a valid class
++        node_declared = False
++        for a in graph_xml.iter(f"{{{self.NS_GEXF}}}attributes"):
++            attrs, defaults = self.find_gexf_attributes(a)
+             attr_class = a.get("class")
+             if attr_class == "node":
+-                na, nd = self.find_gexf_attributes(a)
+-                node_attr.update(na)
+-                node_default.update(nd)
+-                G.graph["node_default"] = node_default
++                node_declared = True
++                node_attr.update(attrs)
++                node_default.update(defaults)
+             elif attr_class == "edge":
+-                ea, ed = self.find_gexf_attributes(a)
+-                edge_attr.update(ea)
+-                edge_default.update(ed)
+-                G.graph["edge_default"] = edge_default
++                edge_attr.update(attrs)
++                edge_default.update(defaults)
+             else:
+-                raise  # unknown attribute class
++                other_attr.update(attrs)
++        # declarations of unknown class are used when no other one matches
++        for attrs in (node_attr, edge_attr):
++            for attr_id, decl in other_attr.items():
++                attrs.setdefault(attr_id, decl)
++        if node_declared:
++            graph_attrs["node_default"] = node_default
++        # Hack to handle Gephi0.7beta bug: add weight attribute
++        edge_attr.setdefault(
++            "weight", {"type": "double", "mode": "static", "title": "weight"}
++        )
++        graph_attrs["edge_default"] = edge_default
+ 
+-        # Hack to handle Gephi0.7beta bug
+-        # add weight attribute
+-        ea = {"weight": {"type": "double", "mode": "static", "title": "weight"}}
+-        ed = {}
+-        edge_attr.update(ea)
+-        edge_default.update(ed)
+-        G.graph["edge_default"] = edge_default
+-
+-        # add nodes
+-        nodes_element = graph_xml.find(f"{{{self.NS_GEXF}}}nodes")
+-        if nodes_element is not None:
++        nodes = []
++        for nodes_element in graph_xml.findall(f"{{{self.NS_GEXF}}}nodes"):
+             for node_xml in nodes_element.findall(f"{{{self.NS_GEXF}}}node"):
+-                self.add_node(G, node_xml, node_attr)
++                nodes.extend(self.parse_node(node_xml, node_attr))
+ 
+-        # add edges
+-        edges_element = graph_xml.find(f"{{{self.NS_GEXF}}}edges")
+-        if edges_element is not None:
++        edges = []
++        for edges_element in graph_xml.findall(f"{{{self.NS_GEXF}}}edges"):
+             for edge_xml in edges_element.findall(f"{{{self.NS_GEXF}}}edge"):
+-                self.add_edge(G, edge_xml, edge_attr)
+-
+-        # switch to Graph or DiGraph if no parallel edges were found.
+-        if self.simple_graph:
+-            if G.is_directed():
+-                G = nx.DiGraph(G)
+-            else:
+-                G = nx.Graph(G)
+-        return G
++                edges.append(self.parse_edge(edge_xml, edge_attr))
+ 
+-    def add_node(self, G, node_xml, node_attr, node_pid=None):
+-        # add a single node with attributes to the graph
+-
+-        # get attributes and subattributues for node
++        return {
++            "graph": graph_attrs,
++            "defaultedgetype": graph_xml.get("defaultedgetype"),
++            "nodes": nodes,
++            "edges": edges,
++        }
++
++    def parse_node(self, node_xml, node_attr, node_pid=None):
++        """Return the ``(node, data)`` records of a <node> and its subnodes.
++
++        Subnodes are listed before their parent node.
++        """
++        # get attributes and subattributes for node
+         data = self.decode_attr_elements(node_attr, node_xml)
+         data = self.add_parents(data, node_xml)  # add any parents
+-        if self.VERSION == "1.1":
+-            data = self.add_slices(data, node_xml)  # add slices
+-        else:
+-            data = self.add_spells(data, node_xml)  # add spells
++        data = self.add_slices(data, node_xml)  # add slices (GEXF 1.1)
++        data = self.add_spells(data, node_xml)  # add spells
+         data = self.add_viz(data, node_xml)  # add viz
+         data = self.add_start_end(data, node_xml)  # add start/end
+ 
+-        # find the node id and cast it to the appropriate type
+-        node_id = node_xml.get("id")
+-        if self.node_type is not None:
+-            node_id = self.node_type(node_id)
+-
+-        # every node should have a label
++        # every node should have an id, but fall back to the label
+         node_label = node_xml.get("label")
+-        data["label"] = node_label
++        node_id = node_xml.get("id", node_label)
++        if node_id is None:
++            raise nx.NetworkXError("Found a <node> element with no id.")
++        node_id = self.convert_node(node_id)
++        if node_label is not None:
++            data["label"] = node_label
+ 
+         # parent node id
+-        node_pid = node_xml.get("pid", node_pid)
++        pid = node_xml.get("pid")
++        if pid is not None:
++            node_pid = self.convert_node(pid)
+         if node_pid is not None:
+             data["pid"] = node_pid
+ 
+         # check for subnodes, recursive
+-        subnodes = node_xml.find(f"{{{self.NS_GEXF}}}nodes")
+-        if subnodes is not None:
+-            for node_xml in subnodes.findall(f"{{{self.NS_GEXF}}}node"):
+-                self.add_node(G, node_xml, node_attr, node_pid=node_id)
++        records = []
++        for subnodes in node_xml.findall(f"{{{self.NS_GEXF}}}nodes"):
++            for subnode_xml in subnodes.findall(f"{{{self.NS_GEXF}}}node"):
++                records.extend(self.parse_node(subnode_xml, node_attr, node_id))
++        records.append((node_id, data))
++        return records
++
++    def parse_edge(self, edge_element, edge_attr):
++        """Return the ``(source, target, key, data, type)`` record of an <edge>."""
++        source = edge_element.get("source")
++        target = edge_element.get("target")
++        if source is None or target is None:
++            raise nx.NetworkXError("Found an <edge> element without source or target.")
++        source = self.convert_node(source)
++        target = self.convert_node(target)
++
++        data = self.decode_attr_elements(edge_attr, edge_element)
++        data = self.add_start_end(data, edge_element)
++        data = self.add_slices(data, edge_element)  # add slices (GEXF 1.1)
++        data = self.add_spells(data, edge_element)  # add spells
++        data = self.add_viz(data, edge_element)  # add viz
++
++        # GEXF stores edge ids as an attribute
++        # NetworkX uses them as keys in multigraphs
++        # if networkx_key is not specified as an attribute
++        edge_id = edge_element.get("id")
++        if edge_id is not None:
++            data["id"] = edge_id
++
++        # check if there is a 'multigraph_key' and use that as edge_id
++        multigraph_key = data.pop("networkx_key", None)
++        if multigraph_key is not None:
++            edge_id = multigraph_key
++
++        weight = edge_element.get("weight")
++        if weight is not None:
++            data["weight"] = self.convert_value(weight, "double")
++
++        edge_label = edge_element.get("label")
++        if edge_label is not None:
++            data["label"] = edge_label
++
++        return source, target, edge_id, data, edge_element.get("type")
++
++    def convert_node(self, node):
++        """Cast a node id read from the file with `node_type` (if given)."""
++        if self.node_type is not None:
++            return self.node_type(node)
++        return node
++
++    def convert_value(self, value, atype):
++        """Convert the string `value` according to the GEXF type `atype`.
++
++        Values that cannot be converted, or whose type is unknown, are kept as
++        strings.
++        """
++        if value is None:
++            return None
++        if atype == "boolean":
++            try:
++                return self.convert_bool[value]
++            except KeyError:
++                lowered = value.strip().lower()
++                if lowered in {"true", "1", "yes"}:
++                    return True
++                if lowered in {"false", "0", "no"}:
++                    return False
++                return value
++        convert = self.python_type.get(atype)
++        if convert is None:
++            return value
++        try:
++            return convert(value)
++        except (TypeError, ValueError, OverflowError):
++            return value
++
++    def convert_time(self, value):
++        """Convert a time value according to the graph timeformat."""
++        return self.convert_value(value, self.timeformat or "double")
++
++    def time_interval(self, xml):
++        """Return the ``(start, end)`` times of an element (None if absent)."""
++        start = xml.get("start", xml.get("startopen"))
++        end = xml.get("end", xml.get("endopen"))
++        if start is None and end is None:
++            start = end = xml.get("timestamp")
++        return self.convert_time(start), self.convert_time(end)
++
++    # Construction
++
++    def build_graph(self, parsed):
++        """Construct the graph from the records produced by `parse_graph`.
++
++        The graph is directed if the file declares ``defaultedgetype`` as
++        "directed", or does not declare it and all edges with an explicit type
++        are directed. A multigraph is returned only when parallel edges occur.
++        """
++        edges = parsed["edges"]
++        edgedefault = parsed["defaultedgetype"]
++        if edgedefault is None:
++            types = {edge_type for *_, edge_type in edges} - {None, "mutual"}
++            directed = types == {"directed"}
++        else:
++            directed = edgedefault == "directed"
++        G = nx.MultiDiGraph() if directed else nx.MultiGraph()
++        G.graph.update(parsed["graph"])
++        self.simple_graph = True
++
++        for node, data in parsed["nodes"]:
++            G.add_node(node, **data)
++
++        for record in edges:
++            self._add_edge_record(G, record)
++
++        # switch to Graph or DiGraph if no parallel edges were found.
++        if self.simple_graph:
++            if G.is_directed():
++                G = nx.DiGraph(G)
++            else:
++                G = nx.Graph(G)
++        return G
++
++    def _add_edge_record(self, G, record):
++        """Add the edge described by a `parse_edge` record to the multigraph G."""
++        source, target, key, data, edge_type = record
++        # raise error if we find mixed directed and undirected edges
++        if G.is_directed() and edge_type == "undirected":
++            raise nx.NetworkXError("Undirected edge found in directed graph.")
++        if not G.is_directed() and edge_type == "directed":
++            raise nx.NetworkXError("Directed edge found in undirected graph.")
++        if G.has_edge(source, target):
++            # seen this edge before - this is a multigraph
++            self.simple_graph = False
++        G.add_edge(source, target, key=key, **data)
++        if edge_type == "mutual":
++            G.add_edge(target, source, key=key, **data)
++
++    def add_node(self, G, node_xml, node_attr, node_pid=None):
++        """Add a <node> element (and its subnodes) to the graph G."""
++        for node, data in self.parse_node(node_xml, node_attr, node_pid):
++            G.add_node(node, **data)
+ 
+-        G.add_node(node_id, **data)
++    def add_edge(self, G, edge_element, edge_attr):
++        """Add an <edge> element to the multigraph G."""
++        self._add_edge_record(G, self.parse_edge(edge_element, edge_attr))
++
++    # Decoding the content of nodes and edges
+ 
+     def add_start_end(self, data, xml):
+         # start and end times
+-        ttype = self.timeformat
+-        node_start = xml.get("start")
++        node_start = xml.get("start", xml.get("startopen"))
+         if node_start is not None:
+-            data["start"] = self.python_type[ttype](node_start)
+-        node_end = xml.get("end")
++            data["start"] = self.convert_time(node_start)
++        node_end = xml.get("end", xml.get("endopen"))
+         if node_end is not None:
+-            data["end"] = self.python_type[ttype](node_end)
++            data["end"] = self.convert_time(node_end)
+         return data
+ 
+     def add_viz(self, data, node_xml):
+-        # add viz element for node
++        # add viz element for node or edge (in any viz namespace)
+         viz = {}
+-        color = node_xml.find(f"{{{self.NS_VIZ}}}color")
++        color = node_xml.find("{*}color")
+         if color is not None:
+-            if self.VERSION == "1.1":
+-                viz["color"] = {
+-                    "r": int(color.get("r")),
+-                    "g": int(color.get("g")),
+-                    "b": int(color.get("b")),
+-                }
+-            else:
+-                viz["color"] = {
+-                    "r": int(color.get("r")),
+-                    "g": int(color.get("g")),
+-                    "b": int(color.get("b")),
+-                    "a": float(color.get("a", 1)),
+-                }
++            hex_color = color.get("hex", "").lstrip("#")
++            rgb = {"r": color.get("r"), "g": color.get("g"), "b": color.get("b")}
++            if len(hex_color) == 6 and all(v is None for v in rgb.values()):
++                rgb = dict(zip("rgb", (hex_color[i : i + 2] for i in (0, 2, 4))))
++                rgb = {k: int(v, 16) for k, v in rgb.items()}
++            viz["color"] = {k: int(float(v or 0)) for k, v in rgb.items()}
++            if self.VERSION != "1.1":
++                viz["color"]["a"] = float(color.get("a", 1))
+ 
+-        size = node_xml.find(f"{{{self.NS_VIZ}}}size")
+-        if size is not None:
++        size = node_xml.find("{*}size")
++        if size is not None and size.get("value") is not None:
+             viz["size"] = float(size.get("value"))
+ 
+-        thickness = node_xml.find(f"{{{self.NS_VIZ}}}thickness")
+-        if thickness is not None:
++        thickness = node_xml.find("{*}thickness")
++        if thickness is not None and thickness.get("value") is not None:
+             viz["thickness"] = float(thickness.get("value"))
+ 
+-        shape = node_xml.find(f"{{{self.NS_VIZ}}}shape")
++        shape = node_xml.find("{*}shape")
+         if shape is not None:
+-            viz["shape"] = shape.get("shape")
++            viz["shape"] = shape.get("value", shape.get("shape"))
+             if viz["shape"] == "image":
+                 viz["shape"] = shape.get("uri")
+ 
+-        position = node_xml.find(f"{{{self.NS_VIZ}}}position")
++        position = node_xml.find("{*}position")
+         if position is not None:
+             viz["position"] = {
+                 "x": float(position.get("x", 0)),
+@@ -903,6 +1082,8 @@
+             data["parents"] = []
+             for p in parents_element.findall(f"{{{self.NS_GEXF}}}parent"):
+                 parent = p.get("for")
++                if parent is not None:
++                    parent = self.convert_node(parent)
+                 data["parents"].append(parent)
+         return data
+ 
+@@ -920,94 +1101,33 @@
+         spells_element = node_or_edge_xml.find(f"{{{self.NS_GEXF}}}spells")
+         if spells_element is not None:
+             data["spells"] = []
+-            ttype = self.timeformat
+             for s in spells_element.findall(f"{{{self.NS_GEXF}}}spell"):
+-                start = self.python_type[ttype](s.get("start"))
+-                end = self.python_type[ttype](s.get("end"))
+-                data["spells"].append((start, end))
++                data["spells"].append(self.time_interval(s))
+         return data
+ 
+-    def add_edge(self, G, edge_element, edge_attr):
+-        # add an edge to the graph
+-
+-        # raise error if we find mixed directed and undirected edges
+-        edge_direction = edge_element.get("type")
+-        if G.is_directed() and edge_direction == "undirected":
+-            raise nx.NetworkXError("Undirected edge found in directed graph.")
+-        if (not G.is_directed()) and edge_direction == "directed":
+-            raise nx.NetworkXError("Directed edge found in undirected graph.")
+-
+-        # Get source and target and recast type if required
+-        source = edge_element.get("source")
+-        target = edge_element.get("target")
+-        if self.node_type is not None:
+-            source = self.node_type(source)
+-            target = self.node_type(target)
+-
+-        data = self.decode_attr_elements(edge_attr, edge_element)
+-        data = self.add_start_end(data, edge_element)
+-
+-        if self.VERSION == "1.1":
+-            data = self.add_slices(data, edge_element)  # add slices
+-        else:
+-            data = self.add_spells(data, edge_element)  # add spells
+-
+-        # GEXF stores edge ids as an attribute
+-        # NetworkX uses them as keys in multigraphs
+-        # if networkx_key is not specified as an attribute
+-        edge_id = edge_element.get("id")
+-        if edge_id is not None:
+-            data["id"] = edge_id
+-
+-        # check if there is a 'multigraph_key' and use that as edge_id
+-        multigraph_key = data.pop("networkx_key", None)
+-        if multigraph_key is not None:
+-            edge_id = multigraph_key
+-
+-        weight = edge_element.get("weight")
+-        if weight is not None:
+-            data["weight"] = float(weight)
+-
+-        edge_label = edge_element.get("label")
+-        if edge_label is not None:
+-            data["label"] = edge_label
+-
+-        if G.has_edge(source, target):
+-            # seen this edge before - this is a multigraph
+-            self.simple_graph = False
+-        G.add_edge(source, target, key=edge_id, **data)
+-        if edge_direction == "mutual":
+-            G.add_edge(target, source, key=edge_id, **data)
+-
+     def decode_attr_elements(self, gexf_keys, obj_xml):
+         # Use the key information to decode the attr XML
+         attr = {}
++        titles = None
+         # look for outer '<attvalues>' element
+-        attr_element = obj_xml.find(f"{{{self.NS_GEXF}}}attvalues")
+-        if attr_element is not None:
++        for attr_element in obj_xml.findall(f"{{{self.NS_GEXF}}}attvalues"):
+             # loop over <attvalue> elements
+             for a in attr_element.findall(f"{{{self.NS_GEXF}}}attvalue"):
+-                key = a.get("for")  # for is required
+-                try:  # should be in our gexf_keys dictionary
+-                    title = gexf_keys[key]["title"]
+-                except KeyError as err:
+-                    raise nx.NetworkXError(f"No attribute defined for={key}.") from err
+-                atype = gexf_keys[key]["type"]
+-                value = a.get("value")
+-                if atype == "boolean":
+-                    value = self.convert_bool[value]
+-                else:
+-                    value = self.python_type[atype](value)
+-                if gexf_keys[key]["mode"] == "dynamic":
++                key = a.get("for", a.get("id"))
++                decl = gexf_keys.get(key)
++                if decl is None:
++                    # the file may refer to an attribute by its title
++                    if titles is None:
++                        titles = {d["title"]: d for d in gexf_keys.values()}
++                    # an undeclared attribute is kept as a string named by `for`
++                    decl = titles.get(key, {"title": key, "type": "string"})
++                title = decl["title"]
++                value = self.convert_value(a.get("value"), decl["type"])
++                if decl.get("mode") == "dynamic":
+                     # for dynamic graphs use list of three-tuples
+                     # [(value1,start1,end1), (value2,start2,end2), etc]
+-                    ttype = self.timeformat
+-                    start = self.python_type[ttype](a.get("start"))
+-                    end = self.python_type[ttype](a.get("end"))
+-                    if title in attr:
+-                        attr[title].append((value, start, end))
+-                    else:
+-                        attr[title] = [(value, start, end)]
++                    start, end = self.time_interval(a)
++                    attr.setdefault(title, []).append((value, start, end))
+                 else:
+                     # for static graphs just assign the value
+                     attr[title] = value
+@@ -1017,20 +1137,20 @@
+         # Extract all the attributes and defaults
+         attrs = {}
+         defaults = {}
+-        mode = attributes_element.get("mode")
++        mode = attributes_element.get("mode", "static")
+         for k in attributes_element.findall(f"{{{self.NS_GEXF}}}attribute"):
+             attr_id = k.get("id")
+-            title = k.get("title")
+-            atype = k.get("type")
++            title = k.get("title", attr_id)
++            atype = k.get("type", "string")
++            if attr_id is None:
++                attr_id = title
++            if attr_id is None:
++                continue
+             attrs[attr_id] = {"title": title, "type": atype, "mode": mode}
+             # check for the 'default' subelement of key element and add
+             default = k.find(f"{{{self.NS_GEXF}}}default")
+-            if default is not None:
+-                if atype == "boolean":
+-                    value = self.convert_bool[default.text]
+-                else:
+-                    value = self.python_type[atype](default.text)
+-                defaults[title] = value
++            if default is not None and default.text is not None:
++                defaults[title] = self.convert_value(default.text, atype)
+         return attrs, defaults
+ 
+ 

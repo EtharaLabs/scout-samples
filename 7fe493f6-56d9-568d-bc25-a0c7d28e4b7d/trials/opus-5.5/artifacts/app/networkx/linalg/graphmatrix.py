@@ -1,0 +1,204 @@
+"""
+Adjacency matrix and incidence matrix of graphs.
+"""
+
+import networkx as nx
+
+__all__ = ["incidence_matrix", "adjacency_matrix"]
+
+
+@nx._dispatchable(edge_attrs="weight")
+def incidence_matrix(
+    G, nodelist=None, edgelist=None, oriented=False, weight=None, *, dtype=None
+):
+    """Returns incidence matrix of G.
+
+    The incidence matrix assigns each row to a node and each column to an edge.
+    For a standard incidence matrix a 1 appears wherever a row's node is
+    incident on the column's edge.  For an oriented incidence matrix each
+    edge is assigned an orientation (arbitrarily for undirected and aligning to
+    direction for directed).  A -1 appears for the source (tail) of an edge and
+    1 for the destination (head) of the edge.  The elements are zero otherwise.
+
+    Parameters
+    ----------
+    G : graph
+       A NetworkX graph
+
+    nodelist : list, optional   (default= all nodes in G)
+       The rows are ordered according to the nodes in nodelist.
+       If nodelist is None, then the ordering is produced by G.nodes().
+
+    edgelist : list, optional (default= all edges in G)
+       The columns are ordered according to the edges in edgelist.
+       If edgelist is None, then the ordering is produced by G.edges().
+
+    oriented: bool, optional (default=False)
+       If True, matrix elements are +1 or -1 for the head or tail node
+       respectively of each edge.  If False, +1 occurs at both nodes.
+
+    weight : string or None, optional (default=None)
+       The edge data key used to provide each value in the matrix.
+       If None, then each edge has weight 1.  Edge weights, if used,
+       should be positive so that the orientation can provide the sign.
+
+    dtype : a NumPy dtype or None (default=None)
+        The dtype of the output sparse array. This type should be a compatible
+        type of the weight argument, eg. if weight would return a float this
+        argument should also be a float.
+        If None, then the default for SciPy is used.
+
+    Returns
+    -------
+    A : SciPy sparse array
+      The incidence matrix of G.
+
+    Raises
+    ------
+    NetworkXError
+        If `nodelist` contains duplicates, if an edge of `edgelist` has a node
+        that is not in `nodelist`, or if `weight` is given and an edge of
+        `edgelist` is not an edge of `G`.
+
+    Notes
+    -----
+    For MultiGraph/MultiDiGraph, the edges in edgelist should be
+    (u,v,key) 3-tuples. Edges given as (u,v) 2-tuples refer to the parallel
+    edges between `u` and `v` in order: the first occurrence of ``(u, v)`` is
+    the first such edge, the second occurrence the second one, and so on.
+
+    Self-loops give zero columns. Nodes of `nodelist` without incident edges
+    give zero rows, so a graph without edges has an incidence matrix with no
+    columns.
+
+    "Networks are the best discrete model for so many problems in
+    applied mathematics" [1]_.
+
+    References
+    ----------
+    .. [1] Gil Strang, Network applications: A = incidence matrix,
+       http://videolectures.net/mit18085f07_strang_lec03/
+    """
+    import scipy as sp
+
+    if nodelist is None:
+        nodelist = list(G)
+    node_index = {}
+    for i, node in enumerate(nodelist):
+        if node in node_index:
+            raise nx.NetworkXError(f"nodelist contains duplicate node {node!r}")
+        node_index[node] = i
+    multigraph = G.is_multigraph()
+    if edgelist is None:
+        if multigraph:
+            edgelist = list(G.edges(keys=True))
+        else:
+            edgelist = list(G.edges())
+    else:
+        edgelist = list(edgelist)
+    A = sp.sparse.lil_array((len(nodelist), len(edgelist)), dtype=dtype)
+    # for multigraph edges given as 2-tuples: the keys not yet used per node pair
+    unused_keys = {}
+    for ei, e in enumerate(edgelist):
+        (u, v) = e[:2]
+        try:
+            ui = node_index[u]
+            vi = node_index[v]
+        except KeyError as err:
+            raise nx.NetworkXError(
+                f"node {u} or {v} in edgelist but not in nodelist"
+            ) from err
+        if weight is None:
+            wt = 1
+        else:
+            try:
+                datadict = G._adj[u][v]
+                if multigraph:
+                    if len(e) > 2 and not isinstance(e[2], dict):
+                        datadict = datadict[e[2]]
+                    else:
+                        # the i-th occurrence of (u, v) is the i-th parallel edge
+                        keys = unused_keys.setdefault(id(datadict), iter(datadict))
+                        datadict = datadict[next(keys)]
+            except (KeyError, StopIteration) as err:
+                raise nx.NetworkXError(f"edge {e} in edgelist is not in G") from err
+            wt = datadict.get(weight, 1)
+        if u == v:
+            continue  # self loops give zero column
+        if oriented:
+            A[ui, ei] = -wt
+            A[vi, ei] = wt
+        else:
+            A[ui, ei] = wt
+            A[vi, ei] = wt
+    return A.asformat("csc")
+
+
+@nx._dispatchable(edge_attrs="weight")
+def adjacency_matrix(G, nodelist=None, dtype=None, weight="weight"):
+    """Returns adjacency matrix of `G`.
+
+    Parameters
+    ----------
+    G : graph
+       A NetworkX graph
+
+    nodelist : list, optional
+       The rows and columns are ordered according to the nodes in `nodelist`.
+       If ``nodelist=None`` (the default), then the ordering is produced by
+       ``G.nodes()``.
+
+    dtype : NumPy data-type, optional
+        The desired data-type for the array.
+        If `None`, then the NumPy default is used.
+
+    weight : string or None, optional (default='weight')
+       The edge data key used to provide each value in the matrix.
+       If None, then each edge has weight 1.
+
+    Returns
+    -------
+    A : SciPy sparse array
+      Adjacency matrix representation of G.
+
+    Notes
+    -----
+    For directed graphs, entry ``i, j`` corresponds to an edge from ``i`` to ``j``.
+
+    If you want a pure Python adjacency matrix representation try
+    :func:`~networkx.convert.to_dict_of_dicts` which will return a
+    dictionary-of-dictionaries format that can be addressed as a
+    sparse matrix.
+
+    For multigraphs with parallel edges the weights are summed.
+    See :func:`networkx.convert_matrix.to_numpy_array` for other options.
+
+    The null graph (with no nodes) has an empty ``0 x 0`` adjacency matrix.
+
+    The convention used for self-loop edges in graphs is to assign the
+    diagonal matrix entry value to the edge weight attribute
+    (or the number 1 if the edge has no weight attribute).  If the
+    alternate convention of doubling the edge weight is desired the
+    resulting SciPy sparse array can be modified as follows::
+
+        >>> G = nx.Graph([(1, 1)])
+        >>> A = nx.adjacency_matrix(G)
+        >>> A.toarray()
+        array([[1]])
+        >>> A.setdiag(A.diagonal() * 2)
+        >>> A.toarray()
+        array([[2]])
+
+    See Also
+    --------
+    to_numpy_array
+    to_scipy_sparse_array
+    to_dict_of_dicts
+    adjacency_spectrum
+    """
+    if len(G) == 0 and not nodelist:
+        # The null graph has an empty (0 x 0) adjacency matrix
+        import scipy as sp
+
+        return sp.sparse.csr_array((0, 0), dtype=dtype)
+    return nx.to_scipy_sparse_array(G, nodelist=nodelist, dtype=dtype, weight=weight)

@@ -1,0 +1,288 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.3496,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 0.9286,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "the_sieve_result_encodes_how_many_times",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The sieve result encodes how many times each prime divides the input, and the diff implements computer-algebra behaviour.",
+              "reasoning": "The new qs_factor API returns a prime-to-exponent dictionary and explicitly accumulates multiplicities through trial factors, perfect powers, and recursively split factors. The legacy qs API remains a multiplicity-free set for compatibility.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R2",
+              "name": "a_cached_factor_agrees_with_what_recompu",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A cached factor agrees with what recomputing it would give, and the diff implements computer-algebra behaviour.",
+              "reasoning": "FactorCache validates that every stored value is a prime divisor of its key, and factorint removes cached factors with remove(), thereby recomputing their actual multiplicities. Cache population also records valid factors for successive cofactors.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R3",
+              "name": "adjoint_behaves_as_the_conjugate_transpo",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "Adjoint behaves as the conjugate transpose rather than as an unrelated third operation.",
+              "reasoning": "Matrix expressions now distinguish conjugation from adjoint correctly: MatMul adjoints reverse factor order, conjugation preserves order, and HadamardProduct and MatAdd apply adjoint or conjugation componentwise. MatrixExpr conjugation is represented through the adjoint of its transpose.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R4",
+              "name": "a_series_expansion_is_produced_by_real_e",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A series expansion is produced by real expansion machinery, not by a truncating fallback.",
+              "reasoning": "Zeta's pole at s=1 now has an explicit Laurent-series implementation using the Stieltjes constants, followed by nseries and an Order term. It is not implemented as a mere truncation fallback.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R5",
+              "name": "substitution_decides_its_call_shape_by_i",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "Substitution decides its call shape by inspecting the argument's structure, not its truthiness.",
+              "reasoning": "Basic.subs distinguishes the one-argument and two-argument forms using the structural sentinel check arg2 is None, so false-valued replacements such as 0 are still treated as the second argument. The one-argument form is then validated as a mapping or iterable of pairs.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R6",
+              "name": "assumptions_are_resolved_from_declared_f",
+              "value": 0.0,
+              "raw": "no",
+              "weight": 3.0,
+              "description": "Assumptions are resolved from declared facts rather than from a default that happens to agree.",
+              "reasoning": "The new matrix assumption helper attempts to inspect explicit assumptions with conjuncts(assumptions), but conjuncts is not imported or defined in matrices.py. Generic square MatrixExpr hermitian/antihermitian queries can therefore raise NameError instead of resolving the declared fact.",
+              "samples": [
+                "no",
+                "yes",
+                "no"
+              ],
+              "agreement": 0.6667
+            },
+            {
+              "id": "R7",
+              "name": "a_product_s_character_follows_from_its_f",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A product's character follows from its factors rather than being assumed.",
+              "reasoning": "Mul._eval_herm_antiherm now examines each factor, toggles the result for antihermitian factors, and declines to infer a result when multiple noncommuting factors prevent the conclusion. It no longer assumes both character properties are known for every factor.",
+              "samples": [
+                "yes",
+                "yes",
+                "no"
+              ],
+              "agreement": 0.6667
+            },
+            {
+              "id": "R8",
+              "name": "each_printer_emits_its_own_target_langua",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "Each printer emits its own target language's idiom rather than inheriting a shared default.",
+              "reasoning": "Target-specific methods were added or corrected rather than relying on unsuitable shared output, including C/C++ fmod handling, normalized Julia sinc, Mathematica-specific function and literal syntax, NumPy arrays, cmath output, Rust casts, and PyTorch idioms.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R9",
+              "name": "exclusive_or_parses_by_the_language_s_ow",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Exclusive-or parses by the language's own precedence rather than by textual substitution.",
+              "reasoning": "The AST transformer now maps ast.BitXor directly to SymPy Xor. Because Python constructs the AST first, Python's native operator precedence determines the grouping rather than a textual replacement.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R10",
+              "name": "library_defined_functions_derive_from_th",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Library-defined functions derive from the new base so user-defined ones stay distinguishable.",
+              "reasoning": "DefinedFunction was introduced as the application-only base, and the diff migrates the built-in function families and their common bases to it. Undefined functions created with Function('f') still produce AppliedUndef objects and remain distinguishable.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R11",
+              "name": "floor_and_ceiling_agree_with_one_another",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 1.0,
+              "description": "Floor and ceiling agree with one another on the integer cases.",
+              "reasoning": "The shared RoundFunction logic now extracts integer coefficients in imaginary terms such as I*n and evaluates the recursive rounding operation instead of forcing an unevaluated form. Since both floor and ceiling use this path, integer components are treated consistently.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R12",
+              "name": "each_smaller_correction_addresses_the_st",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Each smaller correction addresses the stated condition rather than the specific input a test supplies.",
+              "reasoning": "The miscellaneous fixes use general predicates and structural conditions rather than hard-coded test values\u2014for example realness checks before Mod's integer conversion, general noncommutative matrix elimination, complete rational perfect-power handling, generalized printer rules, and generic zero-polynomial GCD cases.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 3,
+            "guard": "off"
+          },
+          "judge_output": "--- sample 1 ---\n{\"the_sieve_result_encodes_how_many_times\":{\"score\":\"yes\",\"reasoning\":\"The new qs_factor API returns a prime-to-exponent dictionary and accumulates multiplicities through even-factor extraction, perfect-power decomposition, and repeated factors. The legacy qs API intentionally projects this result to a set for compatibility.\"},\"a_cached_factor_agrees_with_what_recompu\":{\"score\":\"yes\",\"reasoning\":\"FactorCache validates that every stored value is a prime divisor of its key. factorint consumes cached factors using remove, while newly computed factorizations populate the cache from the actual prime factors and their cofactors.\"},\"adjoint_behaves_as_the_conjugate_transpo\":{\"score\":\"yes\",\"reasoning\":\"Matrix addition, multiplication, and Hadamard products now implement conjugation separately from adjoint, while matrix multiplication's adjoint conjugates and reverses factor order. Generic matrix conjugation is represented as the adjoint of the transpose.\"},\"a_series_expansion_is_produced_by_real_e\":{\"score\":\"yes\",\"reasoning\":\"zeta now has a genuine Laurent-series implementation at s = 1 using Stieltjes constants, followed by nseries processing and an explicit Order term, rather than returning a merely truncated fallback.\"},\"substitution_decides_its_call_shape_by_i\":{\"score\":\"yes\",\"reasoning\":\"Basic.subs distinguishes the one-argument and two-argument forms with an explicit None identity check, so false-valued replacements such as zero still use the two-argument form. The one-argument form is then validated structurally as a mapping or iterable of pairs.\"},\"assumptions_are_resolved_from_declared_f\":{\"score\":\"no\",\"reasoning\":\"The new matrix assumption helper attempts to inspect declared facts with conjuncts(assumptions), but conjuncts is not imported or defined in matrices.py. Calls reaching this path will raise NameError rather than resolve the assumption.\"},\"a_product_s_character_follows_from_its_f\":{\"score\":\"yes\",\"reasoning\":\"Mul._eval_herm_antiherm now examines each factor, toggles the result for antihermitian factors, and declines to infer a result when multiple noncommuting factors prevent the conclusion. It no longer assumes both character properties are known for every factor.\"},\"each_printer_emits_its_own_target_langua\":{\"score\":\"yes\",\"reasoning\":\"Target-specific implementations were added rather than relying on shared defaults, including C89/C99 fmod handling, Julia's normalized sinc convention, Mathematica-specific function and syntax forms, and a dedicated cmath printer.\"},\"exclusive_or_parses_by_the_language_s_ow\":{\"score\":\"yes\",\"reasoning\":\"The AST transformer maps ast.BitXor directly to SymPy Xor. Because transformation occurs on Python's parsed AST, Python's own operator precedence is retained instead of performing textual replacement.\"},\"library_defined_functions_derive_from_th\":{\"score\":\"yes\",\"reasoning\":\"DefinedFunction was introduced as a distinct application base, and a broad set of SymPy-defined function classes and their common bases were migrated to it. Undefined and ordinary user-defined Function subclasses therefore remain distinguishable from library-defined functions.\"},\"floor_and_ceiling_agree_with_one_another\":{\"score\":\"yes\",\"reasoning\":\"The shared RoundFunction machinery now recognizes imaginary terms whose coefficient is known integer, including symbolic and zero integer coefficients, and both floor and ceiling use the same evaluated recursive handling.\"},\"each_smaller_correction_addresses_the_st\":{\"score\":\"yes\",\"reasoning\":\"The smaller fixes are generally expressed through semantic conditions\u2014commutativity, realness, integer status, dimensionality, target-language conventions, bound-variable structure, and similar properties\u2014rather than hard-coding the particular examples mentioned in comments or tests.\"}}\n\n--- sample 2 ---\n{\"the_sieve_result_encodes_how_many_times\":{\"score\":\"yes\",\"reasoning\":\"The new qs_factor API returns a prime-to-exponent dictionary and explicitly accumulates multiplicities through trial factors, perfect powers, and recursively split factors. The legacy qs API remains a multiplicity-free set for compatibility.\"},\"a_cached_factor_agrees_with_what_recompu\":{\"score\":\"yes\",\"reasoning\":\"FactorCache validates that every stored value is a prime divisor of its key, and factorint removes cached factors with remove(), thereby recomputing their actual multiplicities. Cache population also records valid factors for successive cofactors.\"},\"adjoint_behaves_as_the_conjugate_transpo\":{\"score\":\"yes\",\"reasoning\":\"Matrix expressions now distinguish conjugation from adjoint correctly: MatMul adjoints reverse factor order, conjugation preserves order, and HadamardProduct and MatAdd apply adjoint or conjugation componentwise. MatrixExpr conjugation is represented through the adjoint of its transpose.\"},\"a_series_expansion_is_produced_by_real_e\":{\"score\":\"yes\",\"reasoning\":\"Zeta's pole at s=1 now has an explicit Laurent-series implementation using the Stieltjes constants, followed by nseries and an Order term. It is not implemented as a mere truncation fallback.\"},\"substitution_decides_its_call_shape_by_i\":{\"score\":\"yes\",\"reasoning\":\"Basic.subs distinguishes the one-argument and two-argument forms using the structural sentinel check arg2 is None, so false-valued replacements such as 0 are still treated as the second argument. The one-argument form is then validated as a mapping or iterable of pairs.\"},\"assumptions_are_resolved_from_declared_f\":{\"score\":\"yes\",\"reasoning\":\"The new matrix Hermitian and anti-Hermitian handlers query Q.square, Q.hermitian, Q.antihermitian, parity, realness, and related properties through ask with the supplied assumptions, including directly declared predicate facts.\"},\"a_product_s_character_follows_from_its_f\":{\"score\":\"yes\",\"reasoning\":\"Mul no longer requires both character properties to be prepopulated for every factor. It derives Hermitian versus anti-Hermitian character from each factor and toggles according to anti-Hermitian factors, while conservatively declining conclusions when multiple noncommuting factors invalidate that reasoning.\"},\"each_printer_emits_its_own_target_langua\":{\"score\":\"yes\",\"reasoning\":\"Target-specific methods were added or corrected rather than relying on unsuitable shared output, including C/C++ fmod handling, normalized Julia sinc, Mathematica-specific function and literal syntax, NumPy arrays, cmath output, Rust casts, and PyTorch idioms.\"},\"exclusive_or_parses_by_the_language_s_ow\":{\"score\":\"yes\",\"reasoning\":\"The AST transformer now maps ast.BitXor directly to SymPy Xor. Because Python constructs the AST first, Python's native operator precedence determines the grouping rather than a textual replacement.\"},\"library_defined_functions_derive_from_th\":{\"score\":\"yes\",\"reasoning\":\"DefinedFunction was introduced as the application-only base, and the diff migrates the built-in function families and their common bases to it. Undefined functions created with Function('f') still produce AppliedUndef objects and remain distinguishable.\"},\"floor_and_ceiling_agree_with_one_another\":{\"score\":\"yes\",\"reasoning\":\"The shared RoundFunction logic now extracts integer coefficients in imaginary terms such as I*n and evaluates the recursive rounding operation instead of forcing an unevaluated form. Since both floor and ceiling use this path, integer components are treated consistently.\"},\"each_smaller_correction_addresses_the_st\":{\"score\":\"yes\",\"reasoning\":\"The miscellaneous fixes use general predicates and structural conditions rather than hard-coded test values\u2014for example realness checks before Mod's integer conversion, general noncommutative matrix elimination, complete rational perfect-power handling, generalized printer rules, and generic zero-polynomial GCD cases.\"}}\n\n--- sample 3 ---\n{\"the_sieve_result_encodes_how_many_times\":{\"score\":\"yes\",\"reasoning\":\"The diff adds and exports qs_factor, which returns a prime-to-multiplicity dictionary and explicitly accumulates exponents for even factors, perfect powers, repeated sieve factors, and recursively split factors. The legacy qs API remains a set wrapper for compatibility.\"},\"a_cached_factor_agrees_with_what_recompu\":{\"score\":\"yes\",\"reasoning\":\"FactorCache validates that every stored value is a prime divisor of its key, and factorint removes cached factors with remove(), accumulating their actual multiplicities. Recomputed factorizations are also fed back into the cache, so use of a cache does not change the resulting factorization.\"},\"adjoint_behaves_as_the_conjugate_transpo\":{\"score\":\"yes\",\"reasoning\":\"Matrix conjugation, transposition, and adjunction are kept distinct and related correctly. In particular, matrix products reverse order under adjoint but retain order under conjugation, while sums and Hadamard products apply the operation factorwise.\"},\"a_series_expansion_is_produced_by_real_e\":{\"score\":\"yes\",\"reasoning\":\"zeta._eval_nseries now constructs the actual Laurent expansion at s = 1 using Stieltjes constants and the pole term 1/(s - 1), then passes it through nseries with an Order term. It does not merely truncate the original expression as a fallback.\"},\"substitution_decides_its_call_shape_by_i\":{\"score\":\"yes\",\"reasoning\":\"Basic.subs uses the identity check arg2 is None to distinguish the one-argument and two-argument forms. Consequently falsy replacements such as 0 or False are still treated as a supplied second argument rather than being mistaken for the iterable form.\"},\"assumptions_are_resolved_from_declared_f\":{\"score\":\"no\",\"reasoning\":\"The new matrix assumption helper attempts to inspect explicit assumptions with conjuncts(assumptions), but conjuncts is not imported or defined in matrices.py. Generic square MatrixExpr hermitian/antihermitian queries can therefore raise NameError instead of resolving the declared fact.\"},\"a_product_s_character_follows_from_its_f\":{\"score\":\"no\",\"reasoning\":\"The Mul change improves inference when a factor is positively known to be hermitian or antihermitian, but it removes the prior unknown guard without adding a three-valued replacement. A factor for which both properties are unknown reaches the unchanged else branch and makes the product definitively False rather than unknown, so the product's character is still incorrectly assumed in unresolved cases.\"},\"each_printer_emits_its_own_target_langua\":{\"score\":\"yes\",\"reasoning\":\"Target-specific methods are supplied rather than relying on unsuitable shared output: C89 and later C printers handle fmod separately, Julia rescales SymPy's unnormalized sinc, Mathematica gets native function spellings and syntax, and dedicated cmath and PyTorch printers emit their respective APIs.\"},\"exclusive_or_parses_by_the_language_s_ow\":{\"score\":\"yes\",\"reasoning\":\"The parser now maps the Python AST BitXor node directly to SymPy Xor. Since Python constructs the AST using its own precedence rules before the transformation, this preserves language precedence instead of relying on textual replacement.\"},\"library_defined_functions_derive_from_th\":{\"score\":\"yes\",\"reasoning\":\"DefinedFunction is introduced as a distinct application-only subclass, and the broad set of built-in function classes and their common bases are migrated to it. User classes based directly on Function and AppliedUndef remain distinguishable from library-defined functions.\"},\"floor_and_ceiling_agree_with_one_another\":{\"score\":\"yes\",\"reasoning\":\"The shared RoundFunction logic now recognizes I times an integer even when its imaginary status is inconclusive because the integer may be zero. It also evaluates the recursive rounding operation normally, so both floor and ceiling preserve these integer-valued real and imaginary components consistently.\"},\"each_smaller_correction_addresses_the_st\":{\"score\":\"yes\",\"reasoning\":\"The miscellaneous fixes are expressed as general structural or semantic conditions\u2014such as noncommutativity, realness, zero denominators, bound variables, target-language syntax, and polynomial-domain failures\u2014rather than hard-coded values matching individual test inputs.\"}}",
+          "usage": {
+            "input_tokens": 151005,
+            "output_tokens": 21317,
+            "total_tokens": 172322,
+            "cost_usd": 1.03036,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 151005,
+                "output_tokens": 21317,
+                "total_tokens": 172322,
+                "cost_usd": 1.03036
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.2853,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:33"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:33"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            },
+            {
+              "name": "cm_scope_paths",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 1.0,
+              "description": "CM-SCOPE-PATHS"
+            },
+            {
+              "name": "cm_no_debug_marker",
+              "value": 0.2853,
+              "raw": 0.28526881720430103,
+              "weight": 1.0,
+              "description": "CM-NO-DEBUG-MARKER"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

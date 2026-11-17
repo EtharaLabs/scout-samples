@@ -1,0 +1,258 @@
+# Judged channel for the sympy core, functions, number-theory and printing bundle.
+#
+# Carries one tenth of the reward. Three properties make it a usable instrument, and each was paid
+# for in measurement across the four sibling bundles:
+#
+#   1. EVERY criterion is a POSITIVE presence or count check. Criteria that ask a NEGATIVE property
+#      over a large real diff cannot hold: a judge told to find dead code or unrelated churn in a
+#      300KB upstream diff will find something, regardless of how exhaustively the rule forbids it.
+#   2. EVERY criterion is COMPOUND, and the compound clause lives in the DESCRIPTION, not only in the
+#      rule. The judge answers the description. A universally quantified property with no compound
+#      clause passes VACUOUSLY on an empty diff, because a diff adding no names has no undocumented
+#      name; that defect held a sibling's no-op at 0.2647 of this channel until the clause was
+#      restored to each description.
+#   3. description, judgment and evaluation_rule ask the SAME question. A sibling criterion whose
+#      rule forbade judging cleanup in six enumerated ways, while its description still asked whether
+#      the code "survives a failure during cleanup", failed with both dissenting samples citing
+#      cleanup.
+#
+# Every property below was verified against the reference BEFORE being written here: the 59-file
+# reference has 0 path violations, 0 unexported new public names, 0 undocumented new public names,
+# and 0 unguarded debug markers.
+#
+# There is no Q4. The siblings carried a "test tree untouched" criterion and it was REMOVED rather
+# than reworded: final.diff excludes the test subtrees, so the criterion asked for a verdict its own
+# evidence cannot support. The deterministic channel enforces that red line with a hard gate.
+
+[judge]
+judge = "openai/gpt-5.6-sol"
+files = ["/logs/verifier/final.diff"]
+reasoning_effort = "high"
+# Median of three. A single sample is not a stable instrument: across seven measured rounds on
+# IDENTICAL reference bytes in a sibling bundle, individual criteria flipped verdict repeatedly. With
+# twelve criteria even 95 percent per-criterion reliability compounds to roughly a coin flip on an
+# all-pass result, which is unusable now that this channel reports its raw mean.
+samples = 3
+
+[scoring]
+# weighted-mean, NOT threshold. `threshold` computes this same mean and then rounds it to 1.0 or 0.0
+# against a bar, which inflates every partial submission: a sibling rollout earned a judged mean of
+# 0.8095 and the threshold paid it a full 1.0. The raw mean makes the REFERENCE's own tidiness the
+# binding constraint, which is why all twelve criteria must and do pass on the oracle.
+aggregation = "weighted-mean"
+
+[[criterion]]
+
+id = "R1"
+description = "The sieve result encodes how many times each prime divides the input, and the diff implements computer-algebra behaviour."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "VALUE"
+residue = "whether a returned structure encodes MULTIPLICITY rather than mere membership cannot be decided from its type or from any name; it requires reading how factors are accumulated as the sieve consumes them"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the new factoring entry point produces a result in which each prime is associated with the number of times it divides the input, so the result reconstructs the input when its primes are raised to their recorded powers, rather than merely listing which primes appear"
+evaluation_rule = "EVIDENCE: the hunks in the number-theory sieve module. Read how the result is built as factors are found. ANSWER YES IF the accumulation records a COUNT or EXPONENT per prime, so a repeated divisor increments rather than being absorbed. ANSWER NO if the result only records WHICH primes divide, discarding repetition, which is the contract the pre-existing entry point already had. You are judging the semantics of the accumulation, not the presence of any identifier: a name containing the word factor proves nothing either way. Do not judge the sieve's mathematics, efficiency, parameter defaults or seeding. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R2"
+description = "A cached factor agrees with what recomputing it would give, and the diff implements computer-algebra behaviour."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "cache coherence is a relation BETWEEN the stored-answer path and the compute path; no single line carries it"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the factorisation cache returns, on a hit, a value consistent with what the computing path would produce, and a miss falls through to computation rather than returning an absent or placeholder answer as if it were a result"
+evaluation_rule = "EVIDENCE: the hunks in the factorisation module. Follow both paths, the one answering from the cache and the one computing. ANSWER YES IF a hit can only return a value the cache previously stored from the computing path, AND a miss reaches computation rather than returning a default as though it were an answer. ANSWER NO if a miss can return a sentinel a caller would read as a factorisation. This is a question about the RELATION between two paths; the presence of a cache class decides nothing. Do not judge eviction policy, size or thread safety. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R3"
+description = "Adjoint behaves as the conjugate transpose rather than as an unrelated third operation."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "the identity binding adjoint to transpose and conjugation is mathematical, not syntactic; a reader must know the three are related and check the implementation respects the relation"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the three unary conjugation operations are implemented so that adjoint is consistent with composing transpose and conjugation, rather than each being given independent behaviour that could disagree"
+evaluation_rule = "EVIDENCE: the hunks touching the complex-function and matrix modules. ANSWER YES IF the implementation keeps the three operations mutually consistent, whether by defining one in terms of the others, by shared routing, or by rules that agree with the composition. ANSWER NO if the three get independent rules that could disagree on the same operand. You are judging whether the MATHEMATICAL RELATION is respected; three method definitions decide nothing. Do not require every operand type be covered. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R4"
+description = "A series expansion is produced by real expansion machinery, not by a truncating fallback."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "EFFECT"
+residue = "distinguishing a genuine expansion from a degenerate one that returns the leading term and stops requires reading what the code does with higher-order terms"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "a function defined through the public function interface expands through the library's own series machinery, carrying terms beyond the leading one, rather than through a path that returns a degenerate result and stops"
+evaluation_rule = "EVIDENCE: the hunks in the function and series modules. ANSWER YES IF the expansion path produces successive terms, by recursion, by iteration over an order, or by delegating to existing series machinery that does so. ANSWER NO if the path returns only a leading term, or a constant, while presenting it as an expansion. Judge whether real expansion happens, not whether a series method exists. Do not judge convergence or coverage. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R5"
+description = "Substitution decides its call shape by inspecting the argument's structure, not its truthiness."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a dispatch reads STRUCTURE or TRUTHINESS is a judgment about how a branch decides; both are written with the same keywords and the defect is invisible to a token search"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the substitution entry point distinguishes a single mapping, a single sequence of pairs, and two separate arguments by examining what the arguments ARE, so an empty mapping or a falsy replacement value is routed the same way a non-empty one would be"
+evaluation_rule = "EVIDENCE: the changed substitution method on the base expression class and its dispatch. ANSWER YES IF the branch decides by inspecting structure, for example by testing whether the second argument was supplied at all, or by testing the first argument's type or protocol. ANSWER NO if the branch decides by plain truthiness, so an empty mapping or a zero, empty-string or None replacement takes a different path than an equivalent non-falsy value. Do not judge the correctness of any particular substitution. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R6"
+description = "Assumptions are resolved from declared facts rather than from a default that happens to agree."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "a default coinciding with the right answer is indistinguishable from a derivation by inspecting outputs alone; separating them means reading whether the code consults declared facts or short-circuits"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the assumption-resolution changes derive their answer by consulting the declared assumptions of the objects involved, rather than returning a fixed answer that merely coincides with the expected one for the cases the suite exercises"
+evaluation_rule = "EVIDENCE: the hunks in the assumptions and core modules. ANSWER YES IF the resolution reads the operands' declared facts, consults the assumption system, or derives from expression structure. ANSWER NO if the change returns a constant verdict, or hard-codes an answer for a recognised shape, so the result would be right for exercised cases and wrong for a neighbour. Judge whether a DERIVATION happens. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R7"
+description = "A product's character follows from its factors rather than being assumed."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "EFFECT"
+residue = "whether a property is DERIVED from factors or ASSUMED is a judgment about the direction of inference; both read as ordinary conditionals"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the hermitian or antihermitian character of a product is computed from the characters of its factors, so a product of mixed factors resolves by combining them rather than by assuming a single outcome"
+evaluation_rule = "EVIDENCE: the hunks in the arithmetic and matrix modules dealing with hermitian character. ANSWER YES IF the code examines the factors and combines their characters, including the mixed case. ANSWER NO if the product's character is asserted without consulting the factors, or only one arrangement is handled while others fall through to an unrelated default. Judge the direction of inference. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R8"
+description = "Each printer emits its own target language's idiom rather than inheriting a shared default."
+type = "binary"
+weight = 5
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "INVARIANT"
+residue = "idiomatic fidelity to a target language requires knowledge of that language's conventions; the emitted strings are opaque data to a mechanical check, which can count printers but not tell whether a form is what the language expects"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the printer changes emit forms appropriate to each printer's own target language, so a construct printed for one backend is not simply the form another backend uses"
+evaluation_rule = "EVIDENCE: the hunks in the printing modules. For each changed printer read the string it emits. ANSWER YES IF the emitted forms are specific to each printer's own target: module prefix, function name, call syntax and any normalisation belong to that language rather than being copied from a sibling. ANSWER NO if a printer emits another language's form, for example reaching for a real-valued module where a complex-valued one is required, or if several printers emit an identical form that cannot be correct for all. Do not count how many printers changed. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R9"
+description = "Exclusive-or parses by the language's own precedence rather than by textual substitution."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "reasoning"
+mode = "judged"
+type = "ORDERING"
+residue = "whether a parser change respects precedence or merely rewrites text is a judgment about how the transformation composes with surrounding expressions"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the parser change makes exclusive-or evaluate according to its place in the grammar, so it composes correctly with surrounding operators, rather than rewriting the token in a way that would mis-associate in a larger expression"
+evaluation_rule = "EVIDENCE: the hunks in the parsing module. ANSWER YES IF the change operates on the parsed structure, or guards the rewrite so surrounding operators keep their binding. ANSWER NO if the change is a bare textual substitution that would re-associate a larger expression, or drops the operands' grouping. Judge how the change COMPOSES. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R10"
+description = "Library-defined functions derive from the new base so user-defined ones stay distinguishable."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "perception"
+mode = "judged"
+type = "INVARIANT"
+residue = "whether a hierarchy change PRESERVES a distinction is a design reading: the base class and the subclass edits are ordinary statements, and the question is whether together they still separate two populations"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the new base class is actually adopted by functions the library itself defines, so a user-defined function remains distinguishable from a library-defined one rather than the distinction existing in name only"
+evaluation_rule = "EVIDENCE: the hunks in the core function module and the function hierarchies. ANSWER YES IF the new base is both defined AND adopted by at least some library-defined functions, so the separation it exists to express is realised. ANSWER NO if the base is introduced but nothing derives from it, leaving the distinction nominal, or if applied so broadly that user-defined functions would also fall under it. Do not count migrations. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R11"
+description = "Floor and ceiling agree with one another on the integer cases."
+type = "binary"
+weight = 1
+negate = false
+[criterion.annotations]
+obligation = "RB-OUTCOME-IMPL"
+dimension = "outcome"
+mode = "judged"
+type = "DIVERGENCE"
+residue = "agreement between two separately implemented functions is a relation neither one's code states; checking it means reasoning about both together"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the floor and ceiling changes leave the two functions consistent with each other on integer arguments, rather than fixing one in a way the other contradicts"
+evaluation_rule = "EVIDENCE: the hunks touching floor and ceiling. ANSWER YES IF the two changes are mutually consistent, so an integer argument yields the same value from both and the pair does not disagree. ANSWER NO if one is changed in a way that contradicts the other on a shared case. Judge the two TOGETHER. Do not judge non-integer arguments. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."
+
+[[criterion]]
+
+id = "R12"
+description = "Each smaller correction addresses the stated condition rather than the specific input a test supplies."
+type = "binary"
+weight = 3
+negate = false
+[criterion.annotations]
+obligation = "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+dimension = "robustness"
+mode = "judged"
+type = "INVARIANT"
+residue = "special-casing is visible only by judging whether a fix GENERALISES beyond the motivating case; the narrow fix and the general one use the same constructs"
+evidence = ["final_diff"]
+evaluation_target = "final_diff"
+judgment = "the smaller corrections each guard the general condition the objective describes, rather than recognising the particular value, shape or symbol a test happens to supply"
+evaluation_rule = "EVIDENCE: the smaller hunks, those touching the extended greatest-common-divisor routine, replacement inside a piecewise expression, the power case, pattern matching against a bound symbol, the residue computation, the matrix-base case and the non-commutative linear solve. ANSWER YES IF each guard is expressed over the general condition: a type, a property, an emptiness or a structural relation. ANSWER NO if a guard tests for a specific literal value, symbol name, or argument count that only the motivating case exhibits. A branch raising a documented error for an unsupported configuration is specified behaviour, not special-casing. Judge whether the fix GENERALISES. IMPORTANT: judge the SUBMISSION, not the upstream release's design. An argument that the release's own approach is incomplete, could miss a case, or should have been designed differently is OUT OF SCOPE and is NOT a finding here."

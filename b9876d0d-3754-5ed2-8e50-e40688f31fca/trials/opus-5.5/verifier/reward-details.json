@@ -1,0 +1,288 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.6128,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 1.0,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "the_community_detection_entry_points_are",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The community-detection entry points are implemented natively rather than left delegating to a backend.",
+              "reasoning": "Both Leiden entry points now have a native NetworkX implementation. The backend-only flags and NotImplementedError were removed, and leiden_partitions delegates to the native _leiden_levels algorithm.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R2",
+              "name": "the_constant_potts_model_is_computed_fro",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The constant Potts model is computed from its definition rather than fitted to expected values.",
+              "reasoning": "constant_potts_model directly sums each community's internal edge weight minus the resolution-scaled number of possible node pairs, with separate ordered-pair handling for directed graphs.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R3",
+              "name": "bipartite_modularity_is_told_which_node",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "Bipartite modularity is told which node set forms one side rather than inferring it from the partition.",
+              "reasoning": "Bipartite modularity requires an explicit top_nodes argument. It treats those nodes as one side, uses all remaining graph nodes as the other side, and validates that every edge crosses the specified sides.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R4",
+              "name": "node_bipartitioning_improves_a_partition",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Node bipartitioning improves a partition by swapping nodes rather than returning a fixed or arbitrary split.",
+              "reasoning": "greedy_node_swap_bipartition repeatedly selects and moves the node with the best incremental modularity gain, retains the best prefix of moves, and stops when no improving sequence exists. Kernighan-Lin also performs actual pair swaps.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R6",
+              "name": "the_bipartite_matrix_form_gains_optional",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "The bipartite matrix form gains optional node-order parameters while remaining callable as before.",
+              "reasoning": "from_biadjacency_matrix adds optional row_order and column_order parameters after the existing parameters, while retaining the previous default integer labels when they are omitted.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N1",
+              "name": "a_quality_change_is_computed_incremental",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "A quality change is computed incrementally rather than by recomputing the whole objective.",
+              "reasoning": "The CPM delta helpers compute changes from cross-edge weights and community sizes, the bipartite modularity merge delta uses cross edges and red/blue degree totals, and greedy node swapping updates side statistics rather than recomputing full quality.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N2",
+              "name": "a_bipartition_is_derived_from_the_graph",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A bipartition is derived from the graph's two sides rather than from a general partition.",
+              "reasoning": "Where side information is not explicitly stored, _red_blue_degrees derives the two bipartite sides using nx.bipartite.color(G), rather than attempting to infer sides from an arbitrary community partition.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N3",
+              "name": "a_motif_count_counts_the_motif_itself_ra",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A motif count counts the motif itself rather than an approximation of it.",
+              "reasoning": "butterflies counts exact K2,2 motifs containing each node by finding each same-side second-order neighbor and applying binomial(common-neighbor count, 2).",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N4",
+              "name": "a_set_overlap_measure_normalises_by_the",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A set-overlap measure normalises by the quantity its definition names.",
+              "reasoning": "overlapping_modularity divides node contributions by their actual community-membership counts O_i and O_j and uses the definition's 2m normalization through deg_sum and m.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N5",
+              "name": "a_resolution_parameter_actually_scales_t",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A resolution parameter actually scales the objective it is passed to.",
+              "reasoning": "Resolution explicitly multiplies the null-model or pair penalty in CPM, ordinary and overlapping modularity-related calculations, bipartite modularity, its merge delta, and Leiden gain calculations.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N6",
+              "name": "an_unsupported_graph_kind_is_refused_exp",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "An unsupported graph kind is refused explicitly rather than mishandled silently.",
+              "reasoning": "Unsupported directed inputs are explicitly rejected with not_implemented_for decorators on relevant algorithms, while butterflies explicitly rejects non-bipartite graphs with NetworkXError.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "N7",
+              "name": "direction_is_accounted_for_where_the_mea",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 1.0,
+              "description": "Direction is accounted for where the measure is defined on directed graphs.",
+              "reasoning": "The directed CPM uses ordered node pairs via pair_factor=1 and counts directed internal arcs. Its directed incremental delta separately counts incoming and outgoing cross edges and doubles the ordered-pair penalty.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 3,
+            "guard": "off"
+          },
+          "judge_output": "--- sample 1 ---\n{\"the_community_detection_entry_points_are\":{\"score\":\"yes\",\"reasoning\":\"Both Leiden entry points now use native NetworkX dispatch and execute the in-tree `_leiden_levels` implementation instead of declaring `implemented_by_nx=False` or raising `NotImplementedError`.\"},\"the_constant_potts_model_is_computed_fro\":{\"score\":\"yes\",\"reasoning\":\"`constant_potts_model` directly sums each community's internal edge weight and subtracts the resolution-scaled number of possible node pairs, with the appropriate ordered-pair form for directed graphs.\"},\"bipartite_modularity_is_told_which_node\":{\"score\":\"yes\",\"reasoning\":\"Bipartite modularity requires an explicit `top_nodes` argument, uses it as one side and the remaining graph nodes as the other, and validates that every edge crosses those sides.\"},\"node_bipartitioning_improves_a_partition\":{\"score\":\"yes\",\"reasoning\":\"`greedy_node_swap_bipartition` computes modularity gains for individual node moves, applies the best sequence, and rolls back moves after the best observed split. Kernighan\u2013Lin likewise performs gain-based swaps.\"},\"the_bipartite_matrix_form_gains_optional\":{\"score\":\"yes\",\"reasoning\":\"`from_biadjacency_matrix` adds optional `row_order` and `column_order` parameters after the existing parameters, while its defaults retain the prior integer labeling and old calls remain valid.\"},\"a_quality_change_is_computed_incremental\":{\"score\":\"yes\",\"reasoning\":\"The CPM delta helpers compute changes from cross-community edge weights and size products, and the bipartite modularity merge delta uses inter-community weight and cached red/blue degree totals rather than recomputing the full objective.\"},\"a_bipartition_is_derived_from_the_graph\":{\"score\":\"yes\",\"reasoning\":\"Red and blue quantities are derived from the graph's explicit bipartite attributes or a graph two-coloring, while public bipartite modularity uses the supplied side and its graph complement; they are not inferred from community membership.\"},\"a_motif_count_counts_the_motif_itself_ra\":{\"score\":\"yes\",\"reasoning\":\"`butterflies` exactly counts K2,2 motifs containing each node by computing common-neighbor multiplicities and summing `binom(c, 2)` for each same-side second-order neighbor.\"},\"a_set_overlap_measure_normalises_by_the\":{\"score\":\"yes\",\"reasoning\":\"`overlapping_modularity` computes each node's number of community memberships and divides edge and degree contributions by the corresponding membership counts, matching the stated O_i normalization.\"},\"a_resolution_parameter_actually_scales_t\":{\"score\":\"yes\",\"reasoning\":\"Resolution explicitly multiplies the null-model or pair penalty in bipartite modularity, CPM, overlapping modularity, incremental deltas, and the Leiden optimization gain through `gamma`.\"},\"an_unsupported_graph_kind_is_refused_exp\":{\"score\":\"yes\",\"reasoning\":\"Algorithms that do not support directed graphs are decorated with `not_implemented_for(\\\"directed\\\")`, and invalid bipartite structure, partitions, covers, and matrix node orders raise explicit errors.\"},\"direction_is_accounted_for_where_the_mea\":{\"score\":\"yes\",\"reasoning\":\"The directed CPM uses ordered node pairs and its directed incremental delta includes both incoming and outgoing cross-community edges; measures that are only defined here for undirected graphs reject directed inputs explicitly.\"}}\n\n--- sample 2 ---\n{\n  \"the_community_detection_entry_points_are\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Both Leiden entry points now have a native NetworkX implementation. The backend-only flags and NotImplementedError were removed, and leiden_partitions delegates to the native _leiden_levels algorithm.\"\n  },\n  \"the_constant_potts_model_is_computed_fro\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"constant_potts_model directly sums each community's internal edge weight minus the resolution-scaled number of possible node pairs, with separate ordered-pair handling for directed graphs.\"\n  },\n  \"bipartite_modularity_is_told_which_node\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Bipartite modularity requires an explicit top_nodes argument. It treats those nodes as one side, uses all remaining graph nodes as the other side, and validates that every edge crosses the specified sides.\"\n  },\n  \"node_bipartitioning_improves_a_partition\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"greedy_node_swap_bipartition repeatedly selects and moves the node with the best incremental modularity gain, retains the best prefix of moves, and stops when no improving sequence exists. Kernighan-Lin also performs actual pair swaps.\"\n  },\n  \"the_bipartite_matrix_form_gains_optional\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"from_biadjacency_matrix adds optional row_order and column_order parameters after the existing parameters, while retaining the previous default integer labels when they are omitted.\"\n  },\n  \"a_quality_change_is_computed_incremental\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The CPM delta helpers compute changes from cross-edge weights and community sizes, the bipartite modularity merge delta uses cross edges and red/blue degree totals, and greedy node swapping updates side statistics rather than recomputing full quality.\"\n  },\n  \"a_bipartition_is_derived_from_the_graph\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Where side information is not explicitly stored, _red_blue_degrees derives the two bipartite sides using nx.bipartite.color(G), rather than attempting to infer sides from an arbitrary community partition.\"\n  },\n  \"a_motif_count_counts_the_motif_itself_ra\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"butterflies counts exact K2,2 motifs containing each node by finding each same-side second-order neighbor and applying binomial(common-neighbor count, 2).\"\n  },\n  \"a_set_overlap_measure_normalises_by_the\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"overlapping_modularity divides node contributions by their actual community-membership counts O_i and O_j and uses the definition's 2m normalization through deg_sum and m.\"\n  },\n  \"a_resolution_parameter_actually_scales_t\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Resolution explicitly multiplies the null-model or pair penalty in CPM, ordinary and overlapping modularity-related calculations, bipartite modularity, its merge delta, and Leiden gain calculations.\"\n  },\n  \"an_unsupported_graph_kind_is_refused_exp\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Unsupported directed inputs are explicitly rejected with not_implemented_for decorators on relevant algorithms, while butterflies explicitly rejects non-bipartite graphs with NetworkXError.\"\n  },\n  \"direction_is_accounted_for_where_the_mea\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The directed CPM uses ordered node pairs via pair_factor=1 and counts directed internal arcs. Its directed incremental delta separately counts incoming and outgoing cross edges and doubles the ordered-pair penalty.\"\n  }\n}\n\n--- sample 3 ---\n{\n  \"the_community_detection_entry_points_are\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The Leiden entry points no longer use `implemented_by_nx=False` or raise `NotImplementedError`; they now execute native NetworkX implementations through `_leiden_levels` and its local moving, refinement, and aggregation helpers.\"\n  },\n  \"the_constant_potts_model_is_computed_fro\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`constant_potts_model` directly sums each community's internal edge weight minus the resolution-scaled number of possible node pairs, with separate ordered-pair handling for directed graphs.\"\n  },\n  \"bipartite_modularity_is_told_which_node\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Bipartite `modularity` requires an explicit `top_nodes` argument and validates that every edge crosses between that set and its complement; it does not infer the bipartite sides from the communities.\"\n  },\n  \"node_bipartitioning_improves_a_partition\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`greedy_node_swap_bipartition` starts from the supplied or default split, computes modularity gains for moving nodes, applies the best sequence of moves, rolls back moves after the best point, and iterates while improvement exists.\"\n  },\n  \"the_bipartite_matrix_form_gains_optional\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`from_biadjacency_matrix` adds optional `row_order` and `column_order` parameters after the existing arguments, while preserving the prior default integer labels and old calling convention.\"\n  },\n  \"a_quality_change_is_computed_incremental\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The CPM delta helpers and `_bipartite_modularity_merge_delta` calculate changes from cross-community edge weights, community sizes, and degree totals. The greedy node-swap routine likewise maintains side degrees and neighbor-side weights instead of recomputing modularity.\"\n  },\n  \"a_bipartition_is_derived_from_the_graph\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Bipartite-side information comes from the explicit `top_nodes` set, node `bipartite` attributes, or a two-coloring of the graph, with the other side formed from the graph complement; it is not derived from an arbitrary community partition.\"\n  },\n  \"a_motif_count_counts_the_motif_itself_ra\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`butterflies` exactly counts K2,2 motifs containing each node by finding each second-order same-side node and applying `C(common_neighbors, 2)`, which corresponds directly to the butterfly definition.\"\n  },\n  \"a_set_overlap_measure_normalises_by_the\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`overlapping_modularity` computes each node's membership count `O_i` and divides edge and degree contributions by the relevant membership counts, while using the specified `2m`-equivalent degree-sum normalization.\"\n  },\n  \"a_resolution_parameter_actually_scales_t\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Resolution explicitly multiplies the null-model or pair penalty in CPM, bipartite modularity, overlapping modularity, quality-delta helpers, and the Leiden gain parameter `gamma`.\"\n  },\n  \"an_unsupported_graph_kind_is_refused_exp\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Algorithms that do not support directed graphs use `@not_implemented_for(\\\"directed\\\")`, and `butterflies` explicitly raises `NetworkXError` for a non-bipartite graph rather than silently processing it as bipartite.\"\n  },\n  \"direction_is_accounted_for_where_the_mea\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Directed CPM uses ordered node pairs via a pair factor of 1, and its directed delta includes both outgoing and incoming cross-community edge weights with the corresponding doubled pair penalty.\"\n  }\n}",
+          "usage": {
+            "input_tokens": 76794,
+            "output_tokens": 8607,
+            "total_tokens": 85401,
+            "cost_usd": 0.479316,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 76794,
+                "output_tokens": 8607,
+                "total_tokens": 85401,
+                "cost_usd": 0.479316
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.5697,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:31"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:31"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            },
+            {
+              "name": "cm_scope_paths",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 1.0,
+              "description": "CM-SCOPE-PATHS"
+            },
+            {
+              "name": "cm_no_debug_marker",
+              "value": 0.5697,
+              "raw": 0.5697490990990991,
+              "weight": 1.0,
+              "description": "CM-NO-DEBUG-MARKER"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

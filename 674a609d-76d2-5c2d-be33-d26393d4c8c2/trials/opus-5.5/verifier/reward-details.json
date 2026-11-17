@@ -1,0 +1,289 @@
+{
+  "reward": {
+    "kind": "group",
+    "score": 0.6275,
+    "aggregation": "weighted-mean",
+    "components": [
+      {
+        "name": "judge",
+        "weight": 0.1,
+        "detail": {
+          "score": 0.85,
+          "criteria": [
+            {
+              "id": "R1",
+              "name": "a_failing_chord_carries_the_originating",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "A failing chord carries the originating exception rather than a substitute, and the diff implements task-queue behaviour.",
+              "reasoning": "ChordError wrappers now retain the originating exception as __cause__, and group chord bodies unwrap that cause so their tasks and errbacks are failed with the original exception. This is implemented in the Celery backend/task-queue paths.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R2",
+              "name": "the_worker_can_be_told_not_to_prefetch",
+              "value": 0.0,
+              "raw": "no",
+              "weight": 5.0,
+              "description": "The worker can be told not to prefetch, and only a Redis broker honours it.",
+              "reasoning": "The setting and CLI option exist, but honoring it is gated only on the channel QoS object exposing can_consume. There is no Redis transport check, so other virtual transports with that method can honor it as well.",
+              "samples": [
+                "no",
+                "no",
+                "no"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R3",
+              "name": "the_consumer_cancels_requests_in_flight",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "The consumer cancels requests in flight, and an individual cancel chooses whether to retry.",
+              "reasoning": "Consumer.cancel_active_requests iterates active requests and cancels them, while Request.cancel now has an emit_retry parameter. Late-acknowledged requests are canceled with retry announcement disabled.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R4",
+              "name": "control_and_event_queues_each_declare_du",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Control and event queues each declare durability and exclusivity from their own settings.",
+              "reasoning": "Control mailbox queues use control_queue_durable and control_queue_exclusive, while event receiver queues independently use event_queue_durable and event_queue_exclusive. Conflicting durable/exclusive combinations are also rejected.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R5",
+              "name": "the_queue_created_for_an_unknown_route_t",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 5.0,
+              "description": "The queue created for an unknown route takes its type from configuration or an explicit parameter.",
+              "reasoning": "Automatically created queues take their queue type from create_missing_queue_type, supplied explicitly to Queues or obtained from task_create_missing_queue_type. Non-classic types receive the appropriate x-queue-type argument.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R6",
+              "name": "consumption_admission_is_bounded_by_in_f",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Consumption admission is bounded by in-flight work against the effective concurrency limit, and otherwise defers to the original check.",
+              "reasoning": "The patched can_consume rejects admission when reserved_requests reaches the effective autoscaler, controller, or pool concurrency limit, and otherwise invokes the original can_consume check.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R7",
+              "name": "binding_delayed_delivery_queues_retries",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Binding delayed-delivery queues retries a defined set of transient failures.",
+              "reasoning": "RETRIED_EXCEPTIONS defines the transient failures, retry_over_time catches that set, and queue binding re-raises those exceptions directly so the complete setup is retried.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R8",
+              "name": "django_teardown_suppresses_a_vanished_co",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "Django teardown suppresses a vanished connection pool but lets a cache failure propagate.",
+              "reasoning": "Database pool closure suppresses KeyError for an already-vanished pool, while close_cache no longer catches TypeError or AttributeError, allowing cache teardown failures to propagate.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R9",
+              "name": "a_chord_body_receives_an_identity_derive",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A chord body receives an identity derived from the chord rather than a fabricated placeholder.",
+              "reasoning": "The chord freezes its body with the chord task identity and, when the body itself lacks an ID, assigns the ID from the frozen body result rather than leaving or manufacturing an unrelated placeholder.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R10",
+              "name": "the_eager_application_path_builds_its_re",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "The eager application path builds its request with lineage read from the task stack when a calling task is present.",
+              "reasoning": "Task.apply now builds parent_id and root_id before constructing its eager request, consulting _task_stack.top and its request whenever explicit lineage values are absent.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R11",
+              "name": "a_corrupted_stored_schedule_is_rebuilt_r",
+              "value": 1.0,
+              "raw": "yes",
+              "weight": 3.0,
+              "description": "A corrupted stored schedule is rebuilt rather than silently swallowed.",
+              "reasoning": "The schedule load error set now includes EOF and pickle unpickling failures, and _create_schedule handles those failures by recreating the entries mapping. Corrupted metadata is also logged rather than silently ignored.",
+              "samples": [
+                "yes",
+                "yes",
+                "yes"
+              ],
+              "agreement": 1.0
+            },
+            {
+              "id": "R12",
+              "name": "termination_on_failure_and_on_timeout_re",
+              "value": 0.0,
+              "raw": "no",
+              "weight": 1.0,
+              "description": "Termination on failure and on timeout reports through the shared path rather than a bespoke one.",
+              "reasoning": "The change adds early-return guards for already canceled or revoked requests, but hard-timeout reporting still has its bespoke mark_as_failure and task-failed event logic. Failure and timeout reporting were not refactored through one shared reporting path.",
+              "samples": [
+                "no",
+                "no",
+                "no"
+              ],
+              "agreement": 1.0
+            }
+          ],
+          "kind": "llm",
+          "judge": {
+            "model": "openai/gpt-5.6-sol",
+            "reasoning_effort": "high",
+            "timeout": 300,
+            "files": [
+              "/logs/verifier/final.diff"
+            ],
+            "atif_trajectory": null,
+            "reference": null,
+            "mode": "batched",
+            "samples": 3,
+            "guard": "off"
+          },
+          "judge_output": "--- sample 1 ---\n{\n  \"a_failing_chord_carries_the_originating\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Chord errors now retain the originating exception as their cause. For a group chord body, `_handle_group_chord_error` unwraps that cause and invokes each task's errbacks and failure storage with the original exception, implementing actual task/result-queue behavior.\"\n  },\n  \"the_worker_can_be_told_not_to_prefetch\": {\n    \"score\": \"no\",\n    \"reasoning\": \"The configuration and CLI switch are present, but honoring the option is gated only on whether the channel QoS object has `can_consume`. Other virtual transports may expose that method, so the implementation does not explicitly restrict the behavior to Redis brokers.\"\n  },\n  \"the_consumer_cancels_requests_in_flight\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`Consumer.cancel_active_requests` iterates active, non-successful requests and cancels them. `Request.cancel` now accepts `emit_retry`, allowing each cancellation to decide whether a retry state and signal should be emitted.\"\n  },\n  \"control_and_event_queues_each_declare_du\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Control queues use `control_queue_durable` and `control_queue_exclusive`, while event queues independently use `event_queue_durable` and `event_queue_exclusive`. Both combinations are validated against being simultaneously durable and exclusive.\"\n  },\n  \"the_queue_created_for_an_unknown_route_t\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`Queues.new_missing` applies `create_missing_queue_type` through `x-queue-type`, and the value can come from explicit `Queues` parameters or `task_create_missing_queue_type` configuration. The missing queue's exchange type is similarly configurable.\"\n  },\n  \"consumption_admission_is_bounded_by_in_f\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The wrapped channel `can_consume` rejects admission once `reserved_requests` reaches the effective maximum concurrency, including the autoscaler's current maximum when available. Below that limit it delegates to the original `can_consume` check.\"\n  },\n  \"binding_delayed_delivery_queues_retries\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"`RETRIED_EXCEPTIONS` defines the transient failures, `retry_over_time` catches that set, and queue binding re-raises those exceptions directly so the entire delayed-delivery setup is retried.\"\n  },\n  \"django_teardown_suppresses_a_vanished_co\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Database pool teardown suppresses only `KeyError` from `close_pool`, covering an already-vanished shared pool. `close_cache` no longer catches `TypeError` or `AttributeError`, so cache teardown failures propagate.\"\n  },\n  \"a_chord_body_receives_an_identity_derive\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"After freezing the chord body, a body lacking an ID is assigned `bodyres.id`, which is the identity produced by freezing the actual body with the chord's requested task ID, rather than an unrelated placeholder.\"\n  },\n  \"the_eager_application_path_builds_its_re\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The eager request now includes `parent_id` and `root_id`. Missing lineage is read from `_task_stack.top.request` when a calling task exists, with the eager task's own ID used as the root only when no inherited root is available.\"\n  },\n  \"a_corrupted_stored_schedule_is_rebuilt_r\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Schedule loading now recognizes EOF and pickle unpickling failures in addition to the prior errors. Corrupted `entries` are replaced with an empty schedule, while corrupted metadata is logged and subsequently rewritten.\"\n  },\n  \"termination_on_failure_and_on_timeout_re\": {\n    \"score\": \"no\",\n    \"reasoning\": \"The changes only add early returns for requests already marked cancelled or revoked. Hard timeout still uses its bespoke backend failure reporting, while failure termination follows a separate revoked-reporting branch; no shared reporting path is introduced.\"\n  }\n}\n\n--- sample 2 ---\n{\n  \"a_failing_chord_carries_the_originating\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"ChordError wrappers now retain the originating exception as __cause__, and group chord bodies unwrap that cause so their tasks and errbacks are failed with the original exception. This is implemented in the Celery backend/task-queue paths.\"\n  },\n  \"the_worker_can_be_told_not_to_prefetch\": {\n    \"score\": \"no\",\n    \"reasoning\": \"The setting and CLI option exist, but honoring it is gated only on the channel QoS object exposing can_consume. There is no Redis transport check, so other virtual transports with that method can honor it as well.\"\n  },\n  \"the_consumer_cancels_requests_in_flight\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Consumer.cancel_active_requests iterates active requests and cancels them, while Request.cancel now has an emit_retry parameter. Late-acknowledged requests are canceled with retry announcement disabled.\"\n  },\n  \"control_and_event_queues_each_declare_du\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Control mailbox queues use control_queue_durable and control_queue_exclusive, while event receiver queues independently use event_queue_durable and event_queue_exclusive. Conflicting durable/exclusive combinations are also rejected.\"\n  },\n  \"the_queue_created_for_an_unknown_route_t\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Automatically created queues take their queue type from create_missing_queue_type, supplied explicitly to Queues or obtained from task_create_missing_queue_type. Non-classic types receive the appropriate x-queue-type argument.\"\n  },\n  \"consumption_admission_is_bounded_by_in_f\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The patched can_consume rejects admission when reserved_requests reaches the effective autoscaler, controller, or pool concurrency limit, and otherwise invokes the original can_consume check.\"\n  },\n  \"binding_delayed_delivery_queues_retries\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"RETRIED_EXCEPTIONS defines the transient failures, retry_over_time catches that set, and queue binding re-raises those exceptions directly so the complete setup is retried.\"\n  },\n  \"django_teardown_suppresses_a_vanished_co\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Database pool closure suppresses KeyError for an already-vanished pool, while close_cache no longer catches TypeError or AttributeError, allowing cache teardown failures to propagate.\"\n  },\n  \"a_chord_body_receives_an_identity_derive\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The chord freezes its body with the chord task identity and, when the body itself lacks an ID, assigns the ID from the frozen body result rather than leaving or manufacturing an unrelated placeholder.\"\n  },\n  \"the_eager_application_path_builds_its_re\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"Task.apply now builds parent_id and root_id before constructing its eager request, consulting _task_stack.top and its request whenever explicit lineage values are absent.\"\n  },\n  \"a_corrupted_stored_schedule_is_rebuilt_r\": {\n    \"score\": \"yes\",\n    \"reasoning\": \"The schedule load error set now includes EOF and pickle unpickling failures, and _create_schedule handles those failures by recreating the entries mapping. Corrupted metadata is also logged rather than silently ignored.\"\n  },\n  \"termination_on_failure_and_on_timeout_re\": {\n    \"score\": \"no\",\n    \"reasoning\": \"The change adds early-return guards for already canceled or revoked requests, but hard-timeout reporting still has its bespoke mark_as_failure and task-failed event logic. Failure and timeout reporting were not refactored through one shared reporting path.\"\n  }\n}\n\n--- sample 3 ---\n{\"a_failing_chord_carries_the_originating\":{\"score\":\"yes\",\"reasoning\":\"Chord errors now retain the originating exception as their cause, group chord bodies are failed with that original exception, and cleanup or errback failures do not replace it. The implementation updates actual backend/chord task-result behavior.\"},\"the_worker_can_be_told_not_to_prefetch\":{\"score\":\"no\",\"reasoning\":\"The configuration and CLI switch exist, but support is enabled for any transport whose channel QoS exposes can_consume. There is no Redis transport check, so this does not ensure that only Redis honors the setting.\"},\"the_consumer_cancels_requests_in_flight\":{\"score\":\"yes\",\"reasoning\":\"Consumer.cancel_active_requests iterates active requests and cancels them, while Request.cancel now accepts emit_retry so callers can choose whether cancellation announces a retry; late-ack active requests use emit_retry=False.\"},\"control_and_event_queues_each_declare_du\":{\"score\":\"yes\",\"reasoning\":\"Control queues use control_queue_durable/control_queue_exclusive, while event queues independently use event_queue_durable/event_queue_exclusive. Both declarations apply their respective values and reject the incompatible durable-plus-exclusive combination.\"},\"the_queue_created_for_an_unknown_route_t\":{\"score\":\"yes\",\"reasoning\":\"Automatically created queues derive x-queue-type from create_missing_queue_type, which may be supplied explicitly to Queues or read from task_create_missing_queue_type configuration. The exchange type is similarly configurable.\"},\"consumption_admission_is_bounded_by_in_f\":{\"score\":\"yes\",\"reasoning\":\"The wrapped can_consume rejects admission when reserved requests reach the computed worker concurrency limit, including the autoscaler maximum where applicable, and otherwise delegates to the original can_consume implementation.\"},\"binding_delayed_delivery_queues_retries\":{\"score\":\"yes\",\"reasoning\":\"RETRIED_EXCEPTIONS defines the transient failures, retry_over_time catches that set, and queue binding re-raises members of that set directly so the complete setup is retried.\"},\"django_teardown_suppresses_a_vanished_co\":{\"score\":\"yes\",\"reasoning\":\"Database pool closure suppresses KeyError when an already-removed pool vanishes, while close_cache no longer catches TypeError or AttributeError, allowing cache teardown failures to propagate.\"},\"a_chord_body_receives_an_identity_derive\":{\"score\":\"yes\",\"reasoning\":\"After freezing the chord body, a body lacking its own identity is assigned the frozen body result's ID. This is the actual workflow-derived identity rather than an unrelated placeholder.\"},\"the_eager_application_path_builds_its_re\":{\"score\":\"yes\",\"reasoning\":\"Task.apply now obtains parent and root lineage through _task_stack.top when a calling task is present and places parent_id and root_id into the eager request, while preserving explicitly supplied lineage.\"},\"a_corrupted_stored_schedule_is_rebuilt_r\":{\"score\":\"yes\",\"reasoning\":\"Schedule loading now recognizes EOFError and pickle.UnpicklingError in addition to the previous corruption errors, and _create_schedule replaces an unreadable entries value with a new empty schedule instead of leaving the corruption unhandled.\"},\"termination_on_failure_and_on_timeout_re\":{\"score\":\"no\",\"reasoning\":\"The changes add cancellation/revocation guards that suppress reporting, but they do not route failure and timeout termination reporting through a shared reporting path. The existing bespoke Terminated handling in on_failure remains, while on_timeout has a separate early-return branch.\"}}",
+          "usage": {
+            "input_tokens": 52605,
+            "output_tokens": 18517,
+            "total_tokens": 71122,
+            "cost_usd": 0.58076,
+            "models": {
+              "openai/gpt-5.6-sol": {
+                "input_tokens": 52605,
+                "output_tokens": 18517,
+                "total_tokens": 71122,
+                "cost_usd": 0.58076
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "test_output",
+        "weight": 0.9,
+        "detail": {
+          "score": 0.6027,
+          "criteria": [
+            {
+              "name": "rb_outcome_impl",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 5.0,
+              "description": "RB-OUTCOME-IMPL",
+              "reasoning": "unresolved:23"
+            },
+            {
+              "name": "rb_coverage_required",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 5.0,
+              "description": "RB-COVERAGE-REQUIRED",
+              "reasoning": "incomplete:23"
+            },
+            {
+              "name": "rb_constraints_no_regress",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-REGRESS",
+              "reasoning": "regressed:3"
+            },
+            {
+              "name": "rb_constraints_no_test_edit",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 5.0,
+              "description": "RB-CONSTRAINTS-NO-TEST-EDIT"
+            },
+            {
+              "name": "rb_robustness_no_special_case",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 3.0,
+              "description": "RB-ROBUSTNESS-NO-SPECIAL-CASE"
+            },
+            {
+              "name": "cm_scope_paths",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 1.0,
+              "description": "CM-SCOPE-PATHS"
+            },
+            {
+              "name": "cm_no_debug_marker",
+              "value": 0.6027,
+              "raw": 0.6027433894230769,
+              "weight": 1.0,
+              "description": "CM-NO-DEBUG-MARKER"
+            }
+          ],
+          "kind": "programmatic"
+        }
+      }
+    ]
+  }
+}

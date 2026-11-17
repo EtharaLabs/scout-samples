@@ -1,0 +1,177 @@
+schema_version = "1.4"
+reward_type = "bounded_continuous"
+
+# Every path the verifier grades or a reviewer replays is snapshotted out of the agent environment
+# before teardown. [verifier].environment_mode is "separate", so this is also the only bytes that
+# reach the verifier: its own tree is otherwise pristine base-revision source.
+#
+#   /app/networkx  the package tree the solver evolves; the graded deliverable.
+#
+# This repository keeps its tests INSIDE the package, so the graded tree and the test tree are one
+# tree. tests/test.sh restores every networkx/**/tests/ subtree from the target revision before any
+# test runs, which both supplies the required tests and overwrites any test the solver edited.
+artifacts = [
+  "/app/networkx",
+]
+
+[task]
+name = "scout/7fe493f6-56d9-568d-bc25-a0c7d28e4b7d"
+version = "1.0.0"
+description = "Evolve a pinned graph-library source tree across a feature release boundary spanning the core graph views, serialisation formats, spectral matrices, generators and several algorithms."
+authors = [{ name = "jaskaran.oberoi", email = "jaskaran.oberoi@ethara.ai" }]
+keywords = [
+  "release-evolution",
+  "specification-length",
+  "horizon-length",
+  "regression-surface",
+  "patch-scope",
+  "python",
+]
+summary = """
+Evolve networkx from a pinned revision so that the core graph view classes, the GEXF
+serialiser, the spectral matrix constructors, several generators and a handful of
+algorithms gain the behaviour a later release describes. The work is deliberately broad
+rather than deep: 95 required nodes spread over 27 test files and 42 behavioural groups,
+with no group holding more than 13.7 percent, so no single insight carries the task.
+"""
+
+[metadata]
+archetype = "release-evolution"
+upstream = "github:890377"
+task_lane = "sample"
+language = "python"
+platforms = ["linux/amd64", "linux/arm64"]
+# The unmodified base tree resolves nothing in the required set: the base revision was run twice
+# against its own suite at 6955 passed and 0 failed, and every required node comes from the later
+# revision's tests.
+null_floor = 0.0
+# tests/group_map.json carries 42 equally weighted groups over the 95 required nodes, cut at
+# file::class. Unlike the sibling bundles this one DOES hold a single-node group, so the costliest
+# single-node loss is a whole group at 1/42.
+discrimination_weight = 0.0238
+selection_note = """
+Selected by measurement, and it is the best-distributed cluster of the three networkx
+bundles. The required set was derived by running the later revision's tests against this
+base revision's source: 95 nodes over 27 test files, largest file 13.7 percent and largest
+file::class group 13.7 percent, against a one-third ceiling.
+
+The minimal implementation surface was found by subtraction rather than assumed. The full
+diff across these areas is 77 files; 28 resolve all 95 required nodes with zero
+regressions. Finding that set surfaced a real coupling: taking the new
+algorithms/distance_measures.py without the target's algorithms/tree/distance_measures.py
+registers `centroid` twice in the dispatch namespace and makes `import networkx` fail
+outright, so the tree module is part of the minimum rather than optional.
+"""
+
+[environment]
+build_timeout_sec = 3600.0
+network_mode = "no-network"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[agent]
+timeout_sec = 7200.0
+network_mode = "no-network"
+user = "10001:10001"
+
+[verifier]
+timeout_sec = 5400.0
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+environment_mode = "separate"
+user = "10002:10002"
+
+[verifier.env]
+OPENAI_BASE_URL = "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+LITELLM_LOCAL_MODEL_COST_MAP = "True"
+
+[verifier.environment]
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "host.docker.internal"]
+build_timeout_sec = 3600.0
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+
+[upstream_provenance]
+origin = "original"
+provenance_date = "2026-11-01"
+source_kind = "public_repository"
+
+[upstream_provenance.source]
+canonical_repo = "https://github.com/networkx/networkx"
+base_commit = "bb9a6ded1889f182d7a5b76831c389c335d52910"
+event_timestamp = "2025-11-24T02:57:00Z"
+
+[span_provenance]
+enumerated_objective_count = 7
+pr_count = 0
+pr_count_note = """
+Pull request numbers, tags and diffs are withheld. The release prose is read by the author
+and the objectives are restated positionally, because a tag, a pull request number or a
+diff is each a retrieval handle to the published answer.
+"""
+
+[interface_spec]
+bound = true
+bound_note = """
+Six symbols, each signature read from the target revision rather than asserted. All six are
+PUBLIC and all six are reached by the graded suite through the package namespace as
+`nx.<name>` rather than by `from ... import`, which is why they are disclosed here: a
+solver cannot infer a keyword-only boundary or a default from prose.
+
+Finding them corrected a flaw in the author's own audit. An earlier pass inspected only
+`ImportFrom` statements and reported zero undisclosed symbols for this bundle, missing every
+symbol the tests reach by attribute access. The audit now walks attribute references too,
+and re-run against the two sibling bundles it confirms both of those are complete.
+
+The set is not exhaustive for behaviour: the view-class, GEXF and matrix objectives change
+conduct behind callables the pinned revision already exports, and those interfaces must be
+derived from the repository and from what the tests assert.
+"""
+
+[[interface_spec.symbol]]
+objective = "the width of a partial order"
+module = "networkx.algorithms.dag"
+symbol = "antichain_width"
+parameters = "G"
+returns = "the width of the partial order the DAG defines, that is the largest number of mutually incomparable nodes. Takes the graph alone: no keyword arguments."
+
+[[interface_spec.symbol]]
+objective = "walks on a graph"
+module = "networkx.algorithms.walks"
+symbol = "random_walk"
+parameters = "G, *, start, weight=None, seed=None"
+returns = "a generator yielding the nodes a random walk visits, beginning at `start`. Note `start` is KEYWORD-ONLY and REQUIRED, so a positional call is a TypeError. `weight` names an edge attribute biasing the step choice and `seed` makes the walk reproducible."
+
+[[interface_spec.symbol]]
+objective = "spectral matrices carrying a phase"
+module = "networkx.linalg.laplacianmatrix"
+symbol = "magnetic_laplacian_matrix"
+parameters = "G, *, nodelist=None, normalized=False, q=0.25, weight=\"weight\""
+returns = "the magnetic Laplacian, a Hermitian matrix whose off-diagonal entries carry a phase set by `q`. Every argument after the graph is KEYWORD-ONLY, and the default phase is 0.25 rather than zero."
+
+[[interface_spec.symbol]]
+objective = "spectral matrices carrying a phase"
+module = "networkx.linalg.spectrum"
+symbol = "magnetic_spectrum"
+parameters = "G, *, q=0.25, weight=\"weight\", normalized=False"
+returns = "the eigenvalues of that magnetic Laplacian. Keyword-only after the graph, with the same 0.25 default phase. Note the argument ORDER differs from magnetic_laplacian_matrix, which is harmless because both are keyword-only."
+
+[[interface_spec.symbol]]
+objective = "random constructions over an existing graph"
+module = "networkx.generators.random_graphs"
+symbol = "random_k_lift"
+parameters = "G, k, seed=None"
+returns = "a k-lift of G: the result holds k copies of every node, and each edge of G becomes a random perfect matching between the two endpoint fibres. `k` is POSITIONAL, unlike the keyword-only style of the matrix constructors above."
+
+[[interface_spec.symbol]]
+objective = "a named small graph"
+module = "networkx.generators.small"
+symbol = "shrikhande_graph"
+parameters = "create_using=None"
+returns = "the Shrikhande graph, a 4-by-4 toroidal grid with the diagonal wraparound connections that make it strongly regular. Follows the convention of its neighbours in the small-graph module, taking only `create_using`."
